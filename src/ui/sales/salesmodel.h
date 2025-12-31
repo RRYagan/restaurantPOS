@@ -48,6 +48,9 @@ public:
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE void clearOrder(); // To reset for a new customer
     Q_INVOKABLE void loadOrderHistory();
+    Q_INVOKABLE void removeItem(int index);
+    Q_INVOKABLE void updateQuantity(int index, int newQuantity);
+
     QString totalFormatted() const;
 
 signals:

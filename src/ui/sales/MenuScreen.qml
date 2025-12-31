@@ -78,28 +78,91 @@ Rectangle {
                     font.bold: true
                 }
 
+                // Inside MenuScreen.qml - Right Side SplitView Panel
                 ListView {
                     id: orderList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     model: salesModel
                     clip: true
+                    spacing: 8
 
                     delegate: ItemDelegate {
                         width: orderList.width
+                        padding: 10
+
                         contentItem: RowLayout {
-                            Text {
-                                text: model.quantity + "x " + model.name
-                                Layout.fillWidth: true
-                            }
-                            Text {
-                                text: (model.price ? model.price.formatted : "0.00") + " Ksh."
+                            spacing: 12
+
+                            // 1. Remove Button on the left
+                            Button {
+                                text: "×"
+                                font.pixelSize: 20
                                 font.bold: true
+                                palette.buttonText: "#e74c3c" // Red color
+                                flat: true
+                                Layout.preferredWidth: 30
+                                onClicked: salesModel.removeItem(index)
                             }
+
+                            // 2. Item Name and Price
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text {
+                                    text: model.name
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                                Text {
+                                    text: (model.price ? model.price.formatted : "0.00") + " Ksh."
+                                    font.pixelSize: 12
+                                    color: "#7f8c8d"
+                                }
+                            }
+
+                            // 3. Quantity Controls (Fit to the right)
+                            RowLayout {
+                                spacing: 5
+
+                                Button {
+                                    text: "-"
+                                    flat: true
+                                    Layout.preferredWidth: 30
+                                    onClicked: {
+                                        if (model.quantity > 1) {
+                                            salesModel.updateQuantity(index, model.quantity - 1)
+                                        } else {
+                                            salesModel.removeItem(index)
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: model.quantity
+                                    font.bold: true
+                                    font.pixelSize: 14
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Layout.preferredWidth: 20
+                                }
+
+                                Button {
+                                    text: "+"
+                                    flat: true
+                                    Layout.preferredWidth: 30
+                                    onClicked: salesModel.updateQuantity(index, model.quantity + 1)
+                                }
+                            }
+                        }
+
+                        // Add a subtle background highlight
+                        background: Rectangle {
+                            color: hovered ? "#f1f2f6" : "transparent"
+                            radius: 4
                         }
                     }
                 }
-
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1

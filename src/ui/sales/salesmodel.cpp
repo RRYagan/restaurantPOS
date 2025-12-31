@@ -251,3 +251,24 @@ void SalesModel::loadOrderHistory() {
     }
     endResetModel();
 }
+
+void SalesModel::removeItem(int index) {
+    if (index < 0 || index >= m_items.size()) return;
+
+    beginRemoveRows(QModelIndex(), index, index);
+    m_items.removeAt(index);
+    endRemoveRows();
+
+    calculateTotal();
+}
+
+void SalesModel::updateQuantity(int index, int newQuantity) {
+    if (index < 0 || index >= m_items.size() || newQuantity <= 0) return;
+
+    m_items[index].quantity = newQuantity;
+
+    QModelIndex idx = this->index(index, 0);
+    emit dataChanged(idx, idx, {QuantityRole});
+
+    calculateTotal();
+}
