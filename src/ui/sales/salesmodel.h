@@ -47,6 +47,7 @@ public:
     Q_INVOKABLE void addItemToOrder(int menuItemId);
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE void clearOrder(); // To reset for a new customer
+    Q_INVOKABLE void loadOrderHistory();
     QString totalFormatted() const;
 
 signals:

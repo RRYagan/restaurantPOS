@@ -235,3 +235,19 @@ void SalesModel::calculateTotal() {
 QString SalesModel::totalFormatted() const {
     return m_totalMoney.toString();
 }
+
+void SalesModel::loadOrderHistory() {
+    beginResetModel();
+    m_items.clear();
+
+    QSqlQuery query("SELECT id, table_number, status, created_at FROM orders ORDER BY created_at DESC");
+    while (query.next()) {
+        OrderItem item;
+        item.id = query.value("id").toString();
+        item.name = "Order #" + item.id + " (Table " + query.value("table_number").toString() + ")";
+        item.quantity = 1;
+        // In a real app, you'd join with order_items to get the total or add a total_cents column to orders
+        m_items.append(item);
+    }
+    endResetModel();
+}

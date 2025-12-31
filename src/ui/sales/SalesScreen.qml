@@ -13,41 +13,61 @@ Rectangle {
         anchors.margins: 15
         spacing: 10
 
-        Text {
-            text: "Current Order"
-            font.pixelSize: 24
-            font.bold: true
+        RowLayout {
+            Layout.fillWidth: true
+            Text {
+                text: "Order History"
+                font.pixelSize: 24
+                font.bold: true
+            }
+            Item { Layout.fillWidth: true }
+            Button {
+                text: "Refresh History"
+                onClicked: salesModel.loadOrderHistory()
+            }
         }
 
         ListView {
+            id: orderHistoryList
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             model: salesModel
+
             delegate: ItemDelegate {
-                width: parent.width
-                // Uses the .value property of the Money gadget for numeric formatting
-                text: model.quantity + "x " + model.name + " - " +
-                      (model.price ? model.price.formatted : "0.00") + " Ksh."
+                width: orderHistoryList.width
+                contentItem: RowLayout {
+                    ColumnLayout {
+                        Text {
+                            text: model.name // Displays "Order #ID (Table X)"
+                            font.bold: true
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                    Label {
+                        text: "Status: OPEN" // Based on your 'status' column default
+                        color: "#2980b9"
+                    }
+                }
+                onClicked: {
+                    console.log("Viewing details for Order ID:", model.itemId)
+                }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Button {
-                text: "Add Test Item"
-                highlighted: true
-                onClicked: salesModel.addItem(101)
-            }
-            Item { Layout.fillWidth: true }
             Text {
-                font.pixelSize: 20
-                font.bold: true
-                // Assuming salesModel provides a formatted total string or gadget
-                text: "Total: " + salesModel.totalFormatted + " Ksh."
+                font.pixelSize: 16
+                text: "Total Orders: " + salesModel.rowCount()
             }
         }
+    }
 
-
+    // Load history automatically when the screen is navigated to
+    Component.onCompleted: {
+        if (salesModel) {
+            salesModel.loadOrderHistory()
+        }
     }
 }
