@@ -50,6 +50,7 @@ public:
     Q_INVOKABLE void loadOrderHistory();
     Q_INVOKABLE void removeItem(int index);
     Q_INVOKABLE void updateQuantity(int index, int newQuantity);
+    Q_INVOKABLE void viewOrderDetails(int orderId);
 
     QString totalFormatted() const;
 

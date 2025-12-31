@@ -1,6 +1,6 @@
 qt_add_qml_module(POS_Sales
     STATIC
-    URI "POS.Sales"
+    URI POS.Sales
     VERSION 1.0
     SOURCES
        salesmodel.h salesmodel.cpp
@@ -10,9 +10,11 @@ qt_add_qml_module(POS_Sales
         Main.qml
         MenuScreen.qml
         Card.qml
+        OrderDetailsScreen.qml
     RESOURCES
         "../assets/icons/default.png"
 )
+
 
 target_link_libraries(POS_Sales
     PRIVATE

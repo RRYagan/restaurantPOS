@@ -74,7 +74,10 @@ ApplicationWindow {
             Component { id: salesView;
                 SalesScreen {salesModel: globalSalesModel}
             }
-
+            Component {
+                id: orderDetailsView
+                OrderDetailsScreen { salesModel: globalSalesModel }
+            }
 
             // This defines the smooth slide transition
             replaceEnter: Transition {

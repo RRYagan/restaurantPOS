@@ -128,7 +128,7 @@ Rectangle {
 
                                 Button {
                                     text: "-"
-                                    flat: true
+                                    // flat: true
                                     Layout.preferredWidth: 30
                                     onClicked: {
                                         if (model.quantity > 1) {
@@ -149,7 +149,7 @@ Rectangle {
 
                                 Button {
                                     text: "+"
-                                    flat: true
+                                    // flat: true
                                     Layout.preferredWidth: 30
                                     onClicked: salesModel.updateQuantity(index, model.quantity + 1)
                                 }

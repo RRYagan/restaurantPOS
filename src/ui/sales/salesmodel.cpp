@@ -272,3 +272,24 @@ void SalesModel::updateQuantity(int index, int newQuantity) {
 
     calculateTotal();
 }
+
+void SalesModel::viewOrderDetails(int orderId) {
+    beginResetModel();
+    m_items.clear();
+
+    QSqlQuery query;
+    query.prepare("SELECT name, quantity, price_cents FROM order_items WHERE order_id = ?");
+    query.addBindValue(orderId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            OrderItem item;
+            item.name = query.value(0).toString();
+            item.quantity = query.value(1).toInt();
+            item.price.cents = query.value(2).toLongLong();
+            m_items.append(item);
+        }
+    }
+    endResetModel();
+    calculateTotal(); // Updates totalFormatted for the breakdown [cite: 19]
+}

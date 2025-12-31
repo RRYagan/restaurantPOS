@@ -8,6 +8,12 @@ Rectangle {
     color: "#f8f9fa"
     property SalesModel salesModel: null
 
+    StackView.onActivated: {
+            if (salesModel) {
+                salesModel.loadOrderHistory(); // Refresh list every time we navigate back here
+            }
+        }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 15
@@ -50,7 +56,10 @@ Rectangle {
                     }
                 }
                 onClicked: {
-                    console.log("Viewing details for Order ID:", model.itemId)
+                    contentStack.push("OrderDetailsScreen.qml", {
+                        "currentOrderId": model.itemId,
+                        "salesModel": salesModel
+                    })
                 }
             }
         }
