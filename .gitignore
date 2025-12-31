@@ -1,0 +1,47 @@
+# --- Qt Creator / User specific ---
+*.user
+*.user.*
+*.autosave
+*.qmlc
+*.jsc
+
+# --- Compilation / Build Outputs ---
+# For CMake projects
+/build/
+/build-*/
+CMakeLists.txt.user
+
+# For qmake projects
+.qmake.stash
+Makefile*
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+
+# --- Generated Source Files (MOC, UI, RCC) ---
+# These are generated during build and should not be tracked
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*-build/
+
+# --- Database Files ---
+# Since you are using SQLite, ignore the local database file
+*.db
+*.sqlite
+*.sqlite3
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- Python (if using PySide/PyQt) ---
+__pycache__/
+*.pyc

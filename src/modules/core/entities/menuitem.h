@@ -1,0 +1,29 @@
+#ifndef MENUITEM_H
+#define MENUITEM_H
+
+#pragma once
+#include "money.h"
+#include <QString>
+#include <QList>
+
+struct Modifier {
+    Q_GADGET
+public:
+    int id;
+    QString name;
+    Money extraPrice;
+};
+
+struct MenuItem {
+    Q_GADGET
+
+public:
+    int id;
+    QString name;
+    QString category;
+    Money basePrice;
+    QList<Modifier> availableModifier;
+    QString iconSource;
+};
+
+#endif // MENUITEM_H
