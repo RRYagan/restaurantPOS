@@ -13,10 +13,11 @@ qt_standard_project_setup(REQUIRES 6.8)
 # 3. Add subdirectories (Definitions)
 add_subdirectory(src/modules)
 add_subdirectory(src/ui/sales)
-
+add_subdirectory(tests)
 # 4. Create the main executable
 qt_add_executable(RestaurantPOS
     src/main.cpp
+
     # Add your main.qml here if you have one in the root
 )
 

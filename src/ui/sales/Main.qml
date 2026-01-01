@@ -9,10 +9,18 @@ ApplicationWindow {
     height: 768
     visible: true
     title: "Restaurant POS"
+
+    // --- 1. Separate Model Instances ---
+    // Handles the active shopping cart (Menu Page)
     SalesModel {
-            id: globalSalesModel
-        }
-    // Property to control sidebar and split-screen state
+        id: globalCartModel
+    }
+
+    // Handles database lookups (History Page)
+    HistoryModel {
+        id: globalHistoryModel
+    }
+
     property bool isFullScreen: false
 
     RowLayout {
@@ -23,7 +31,6 @@ ApplicationWindow {
         Rectangle {
             id: sidebar
             Layout.fillHeight: true
-            // Smoothly collapses to 0 width
             Layout.preferredWidth: window.isFullScreen ? 0 : 200
             color: "#2c3e50"
             clip: true
@@ -47,22 +54,22 @@ ApplicationWindow {
                 }
 
                 Button {
-                    text: "Menu Management"
+                    text: "Menu / Ordering"
                     Layout.fillWidth: true
                     onClicked: contentStack.replace(menuView)
                 }
 
                 Button {
-                    text: "Sales View"
+                    text: "Order History"
                     Layout.fillWidth: true
                     onClicked: contentStack.replace(salesView)
                 }
-
 
                 Item { Layout.fillHeight: true }
             }
         }
 
+        // --- Main Content Area ---
         StackView {
             id: contentStack
             Layout.fillWidth: true
@@ -70,16 +77,32 @@ ApplicationWindow {
             clip: true
             initialItem: menuView
 
-            Component { id: menuView; MenuScreen {salesModel: globalSalesModel} }
-            Component { id: salesView;
-                SalesScreen {salesModel: globalSalesModel}
-            }
+            // 2. Assign the appropriate model to each view
             Component {
-                id: orderDetailsView
-                OrderDetailsScreen { salesModel: globalSalesModel }
+                id: menuView
+                MenuScreen {
+                    salesModel: globalCartModel
+                }
             }
 
-            // This defines the smooth slide transition
+            Component {
+                id: salesView
+                SalesScreen {
+                    // HistoryScreen uses the historyModel to avoid flickering the cart
+                    hModel: globalHistoryModel
+                    cModel: globalCartModel // We still pass cartModel if we need detail lookups
+                }
+            }
+
+            Component {
+                id: orderDetailsView
+                OrderDetailsScreen {
+                    // We use the cartModel's detail view logic here
+                    salesModel: globalCartModel
+                }
+            }
+
+            // Slide Transitions
             replaceEnter: Transition {
                 PropertyAnimation {
                     property: "x"

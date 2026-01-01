@@ -2,17 +2,18 @@
 #define SALESMODEL_H
 
 #include <QAbstractTableModel>
+#include <orderitem.h>
 #include <QtQml/qqmlregistration.h>
 #include "money.h"
 
 // Structure to represent an item in the current active order
-struct OrderItem {
-    QString id;
-    int quantity;
-    QString name;
-    Money price;
-    int menu_item_id;
-};
+// struct OrderItem {
+//     QString id;
+//     int quantity;
+//     QString name;
+//     Money price;
+//     int menu_item_id;
+// };
 
 class SalesModel : public QAbstractTableModel
 {
@@ -42,11 +43,11 @@ public:
     Q_INVOKABLE void addItemToOrder(int menuItemId);
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE void clearOrder(); // To reset for a new customer
-    Q_INVOKABLE void loadOrderHistory();
+    // Q_INVOKABLE void loadOrderHistory();
     Q_INVOKABLE void removeItem(int index);
     Q_INVOKABLE void updateQuantity(int index, int newQuantity);
     Q_INVOKABLE void viewOrderDetails(int orderId);
-
+    Q_INVOKABLE void switchToCart();
     QString totalFormatted() const;
 
 signals:
@@ -55,8 +56,11 @@ signals:
 private:
     QList<OrderItem> m_items;
     int m_currentOrderId = -1;
+    QList<OrderItem> m_activeCart; // Keep the actual cart safe here
+    bool m_isShowingHistory = false;
     void calculateTotal();
     Money m_totalMoney;
+
 };
 
 #endif // SALESMODEL_H

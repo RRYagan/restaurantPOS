@@ -42,29 +42,19 @@ QHash<int, QByteArray> MenuModel::roleNames() const {
     roles[IconRole] = "icon_source";
     return roles;
 }
-
 void MenuModel::refresh() {
     beginResetModel();
     m_data.clear();
 
+    // Use the global instance to ensure we are on the same connection
     QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
-
-    if (!query.exec()) {
-        qDebug() << "Database Query Error:" << query.lastError().text();
-        endResetModel();
-        return;
-    }
 
     while (query.next()) {
         MenuItem item;
         item.id = query.value(0).toInt();
         item.name = query.value(1).toString();
         item.category = query.value(2).toString();
-
-        // Map the database integer (cents) to the Money struct
-        // According to money.h, cents is an int64_t
         item.basePrice.cents = query.value(3).toLongLong();
-
         item.iconSource = query.value(4).toString();
         m_data.append(item);
     }

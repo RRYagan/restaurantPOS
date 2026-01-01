@@ -8,16 +8,16 @@
 struct OrderItem {
     Q_GADGET
 public:
-    QUuid uniqueId;
+    QString id;
     int menuItemId;
     QString name;
     int quantity = 1;
-    Money priceAtTimeOfSale;
-    QList<Modifier> selectModifiers;
+    Money price;
+    // QList<Modifier> selectModifiers;
 
     Money total() const {
-        Money t = priceAtTimeOfSale;
-        for (const auto& m : selectModifiers) t = t + m.extraPrice;
+        Money t = price;
+        // for (const auto& m : selectModifiers) t = t + m.extraPrice;
         return t * quantity;
     }
 

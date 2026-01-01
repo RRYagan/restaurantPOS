@@ -9,6 +9,11 @@ Rectangle {
     property SalesModel salesModel: null
 
     MenuModel { id: menuModel }
+    StackView.onActivated: {
+            if (salesModel) {
+                salesModel.switchToCart(); // Ensure we aren't looking at old history
+            }
+        }
 
     SplitView {
         anchors.fill: parent

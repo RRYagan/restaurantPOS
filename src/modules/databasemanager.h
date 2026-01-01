@@ -1,7 +1,6 @@
 #ifndef DATABASEMANAGER_H
 #define DATABASEMANAGER_H
 
-#pragma once
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -14,19 +13,25 @@ class DatabaseManager : public QObject
 public:
     static DatabaseManager& instance();
 
+    // Delete copy constructor and assignment operator
+    DatabaseManager(const DatabaseManager&) = delete;
+    void operator=(const DatabaseManager&) = delete;
+
     bool openDatabase();
     void closeDatabase();
-    void seedDatabase();
 
     bool saveOrder(const Order& order);
-    Order loadOrder(int orderId);
-    QList<MenuItem> getAllMenuItem();
+    // Added implementations for these based on your requirements
+    QList<MenuItem> getAllMenuItems();
     int generateOrderId();
+    Order loadOrder(int orderId);
 
 private:
     explicit DatabaseManager(QObject *parent = nullptr);
     bool initSchema();
+    void seedDatabase();
+
     QSqlDatabase m_db;
 };
 
-#endif // DATABASEMANAGER_H
+#endif

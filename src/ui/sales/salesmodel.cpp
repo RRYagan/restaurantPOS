@@ -3,6 +3,8 @@
 #include <QSqlError>
 #include <QDebug>
 #include <QUuid>
+#include <order.h>
+#include <databasemanager.h>
 
 
 SalesModel::SalesModel(QObject *parent) : QAbstractTableModel(parent) {}
@@ -32,7 +34,7 @@ QVariant SalesModel::data(const QModelIndex &index, int role) const {
     case ItemIdRole:
         return item.id;       // The UUID string for order_items.id
     case MenuIdRole:
-        return item.menu_item_id; // The INTEGER FK for menu_items
+        return item.menuItemId; // The INTEGER FK for menu_items
     }
     return QVariant();
 }
@@ -53,12 +55,13 @@ void SalesModel::clearOrder() {
     m_items.clear();
     m_currentOrderId = -1;
     endResetModel();
-    emit totalChanged();
+    calculateTotal();
 }
 
 void SalesModel::addItemToOrder(int menuItemId) {
+    // Check if item exists to increment quantity
     for (int i = 0; i < m_items.size(); i++) {
-        if (m_items[i].menu_item_id == menuItemId) {
+        if (m_items[i].menuItemId == menuItemId) {
             m_items[i].quantity += 1;
             QModelIndex idx = index(i, 0);
             emit dataChanged(idx, idx, {QuantityRole});
@@ -66,17 +69,18 @@ void SalesModel::addItemToOrder(int menuItemId) {
             return;
         }
     }
+
+    // Fetch details from DB via a standardized query (could also be moved to DatabaseManager)
     QSqlQuery query;
     query.prepare("SELECT name, base_price_cents FROM menu_items WHERE id = ?");
     query.addBindValue(menuItemId);
 
     if (query.exec() && query.next()) {
-        //  We use beginInsertRows to notify the UI to show a new line immediately
         beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
 
         OrderItem item;
         item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        item.menu_item_id = menuItemId; //  Store for final SQL insert
+        item.menuItemId = menuItemId;
         item.name = query.value("name").toString();
         item.quantity = 1;
         item.price.cents = query.value("base_price_cents").toLongLong();
@@ -87,49 +91,38 @@ void SalesModel::addItemToOrder(int menuItemId) {
     }
 }
 
+// void SalesModel::clearOrder() {
+//     if (m_items.isEmpty()) return;
+
+//     beginResetModel();
+//     m_items.clear();
+//     endResetModel();
+
+//     // THIS IS THE FIX:
+//     calculateTotal();
+// }
+
 bool SalesModel::makeOrder() {
     if (m_items.isEmpty()) return false;
 
-    QSqlDatabase db = QSqlDatabase::database();
-    if (!db.transaction()) return false;
+    Order newOrder;
+    newOrder.tableNumber = 1;
+    newOrder.status = OrderStatus::Open;
+    newOrder.createdAt = QDateTime::currentDateTime();
+    newOrder.items = m_items;
 
-    QSqlQuery query;
-    // 1. Parent Order: Table Number and Status
-    query.prepare("INSERT INTO orders (table_number, status) VALUES (?, 'OPEN')");
-    query.addBindValue(1);
+    if (DatabaseManager::instance().saveOrder(newOrder)) {
+        beginResetModel();
+        clearOrder();
+        refresh(); // Force view refresh
 
-    if (!query.exec()) {
-        qDebug() << "Order Insert Error:" << query.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    int orderId = query.lastInsertId().toInt();
-
-    // 2. Child Items: UUID, Foreign Key, and Price
-    for (const auto& item : m_items) {
-        query.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, quantity, price_cents) "
-                      "VALUES (?, ?, ?, ?, ?, ?)");
-        query.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
-        query.addBindValue(orderId);
-        query.addBindValue(item.menu_item_id);
-        query.addBindValue(item.name);
-        query.addBindValue(item.quantity);
-        query.addBindValue(static_cast<qlonglong>(item.price.cents));
-
-        if (!query.exec()) {
-            db.rollback();
-            return false;
-        }
-    }
-
-    if (db.commit()) {
-        clearOrder(); // This wipes the memory list and updates UI
+        // THIS IS THE FIX:
+        // calculateTotal();
+        emit totalChanged();
         return true;
     }
     return false;
 }
-
 void SalesModel::refresh() {
     if (m_currentOrderId == -1) return;
 
@@ -176,22 +169,37 @@ QString SalesModel::totalFormatted() const {
     return m_totalMoney.toString();
 }
 
-void SalesModel::loadOrderHistory() {
+
+
+// void SalesModel::loadOrderHistory() {
+//     if (!m_isShowingHistory) {
+//         m_activeCart = m_items; // Save the current burger/fries cart
+//         m_isShowingHistory = true;
+//     }
+
+//     beginResetModel();
+//     m_items.clear();
+
+//     QSqlQuery query("SELECT id, table_number, status, created_at FROM orders ORDER BY created_at DESC");
+//     while (query.next()) {
+//         OrderItem item;
+//         item.id = query.value("id").toString();
+//         item.name = "Order #" + item.id + " (Table " + query.value("table_number").toString() + ")";
+//         item.quantity = 1;
+//         // In a real app, you'd join with order_items to get the total or add a total_cents column to orders
+//         m_items.append(item);
+//     }
+//     endResetModel();
+// }
+void SalesModel::switchToCart() {
+    if (!m_isShowingHistory) return;
+
     beginResetModel();
-    m_items.clear();
-
-    QSqlQuery query("SELECT id, table_number, status, created_at FROM orders ORDER BY created_at DESC");
-    while (query.next()) {
-        OrderItem item;
-        item.id = query.value("id").toString();
-        item.name = "Order #" + item.id + " (Table " + query.value("table_number").toString() + ")";
-        item.quantity = 1;
-        // In a real app, you'd join with order_items to get the total or add a total_cents column to orders
-        m_items.append(item);
-    }
+    m_items = m_activeCart; // Restore the saved cart
+    m_isShowingHistory = false;
     endResetModel();
+    calculateTotal();
 }
-
 void SalesModel::removeItem(int index) {
     if (index < 0 || index >= m_items.size()) return;
 
