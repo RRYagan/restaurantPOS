@@ -48,7 +48,6 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
     return roles;
 }
 
-// Add the missing clearOrder implementation to fix the build error
 void SalesModel::clearOrder() {
     beginResetModel();
     m_items.clear();
@@ -56,6 +55,7 @@ void SalesModel::clearOrder() {
     endResetModel();
     emit totalChanged();
 }
+
 void SalesModel::addItemToOrder(int menuItemId) {
     for (int i = 0; i < m_items.size(); i++) {
         if (m_items[i].menu_item_id == menuItemId) {

@@ -1,5 +1,4 @@
 # --- Core Entities Module ---
-# I moved this up so other modules can reference it
 add_library(core_entities
     core/entities/menuitem.h
     core/entities/order.h
@@ -7,17 +6,15 @@ add_library(core_entities
     core/entities/money.h
 )
 target_include_directories(core_entities PUBLIC core/entities)
-target_link_libraries(core_entities
-    PUBLIC   # Changed to PUBLIC because .h files need Qt headers
-        Qt6::Core
-)
+target_link_libraries(core_entities PUBLIC Qt6::Core)
 
 # --- Database Module ---
+# This remains the single source of truth for database logic
 add_library(database
-    database/databasemanager.cpp
-    database/databasemanager.h
+    databasemanager.cpp
+    databasemanager.h
 )
-target_include_directories(database PUBLIC database)
+target_include_directories(database PUBLIC .) # Expose current dir for headers
 target_link_libraries(database
     PUBLIC
         Qt6::Sql
@@ -28,10 +25,10 @@ target_link_libraries(database
 
 # --- Order Module ---
 add_library(order
-    order/orderservice.cpp
-    order/orderservice.h
+    orderservice.cpp
+    orderservice.h
 )
-target_include_directories(order PUBLIC order)
+target_include_directories(order PUBLIC .)
 target_link_libraries(order
     PUBLIC
         core_entities
@@ -41,12 +38,12 @@ target_link_libraries(order
 )
 
 
-# --- Order Module ---
+# --- Menu Module ---
 add_library(menu
-    menu/menumodel.cpp
-    menu/menumodel.h
+    menumodel.cpp
+    menumodel.h
 )
-target_include_directories(menu PUBLIC menu)
+target_include_directories(menu PUBLIC .)
 target_link_libraries(menu
     PUBLIC
         core_entities

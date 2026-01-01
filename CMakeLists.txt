@@ -16,7 +16,7 @@ add_subdirectory(src/ui/sales)
 
 # 4. Create the main executable
 qt_add_executable(RestaurantPOS
-    main.cpp
+    src/main.cpp
     # Add your main.qml here if you have one in the root
 )
 
@@ -25,7 +25,6 @@ qt_add_executable(RestaurantPOS
 target_link_libraries(RestaurantPOS
     PRIVATE
         Qt6::Quick
-        Qt6::Sql
         Qt6::Sql
         POS_Sales
         POS_Salesplugin

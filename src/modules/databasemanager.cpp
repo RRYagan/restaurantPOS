@@ -43,15 +43,12 @@ bool DatabaseManager::initSchema() {
 
     QSqlQuery query;
 
-
-
     // 1. Menu Items Table
-
     query.exec("CREATE TABLE IF NOT EXISTS menu_items ("
 
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
 
-               " name TEXT NOT NULL,"
+               "name TEXT NOT NULL,"
 
                "category TEXT,"
 
@@ -59,11 +56,7 @@ bool DatabaseManager::initSchema() {
 
                "icon_source TEXT)");
 
-
-
-    // 2. Orders Table
-
-    // Orders Table
+    // Orders per Table/Chair
     query.exec("CREATE TABLE IF NOT EXISTS orders ("
                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                "table_number INTEGER,"
@@ -85,6 +78,7 @@ bool DatabaseManager::initSchema() {
     return true;
 
 }
+
 void DatabaseManager::seedDatabase() {
     QSqlQuery checkQuery("SELECT COUNT(*) FROM menu_items");
     if (checkQuery.next() && checkQuery.value(0).toInt() > 0) {
@@ -107,7 +101,6 @@ void DatabaseManager::seedDatabase() {
     };
 
     // --- SEED DATA ---
-
     // Category: Burgers
     addItem("Classic Cheeseburger", "Burgers", 1250, "qrc:/assets/icons/burger.svg");
     addItem("Bacon BBQ Burger", "Burgers", 1450, "qrc:/assets/icons/burger_bacon.svg");
