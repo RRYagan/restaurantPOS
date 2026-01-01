@@ -11,6 +11,7 @@ qt_add_qml_module(POS_Sales
         MenuScreen.qml
         Card.qml
         OrderDetailsScreen.qml
+        PaymentPage.qml
     RESOURCES
         "../assets/icons/default.png"
 )

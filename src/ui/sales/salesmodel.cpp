@@ -23,11 +23,11 @@ QVariant SalesModel::data(const QModelIndex &index, int role) const {
 
     switch (role) {
     case QuantityRole:
-        return item.quantity; // Maps to "quantity" INTEGER [cite: 1, 18, 20]
+        return item.quantity; // Maps to "quantity" INTEGER
     case NameRole:
-        return item.name;     // Maps to "name" TEXT [cite: 1, 18, 20]
+        return item.name;     // Maps to "name" TEXT
     case PriceRole:
-        // Returns the Money gadget for formatted display in QML [cite: 1, 18, 23, 24]
+        // Returns the Money gadget for formatted display in QML
         return QVariant::fromValue(item.price);
     case ItemIdRole:
         return item.id;       // The UUID string for order_items.id
@@ -46,64 +46,6 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
     roles[ItemIdRole] = "itemId";   // The unique UUID for this row
     roles[MenuIdRole] = "menuId";   // The ID linking back to the Menu
     return roles;
-}
-
-bool SalesModel::startNewOrder(int menuItemId) {
-    QSqlDatabase db = QSqlDatabase::database();
-    if (!db.transaction()) return false;
-
-    QSqlQuery query;
-
-    // 1. Insert into orders - explicitly naming columns
-    query.prepare("INSERT INTO orders (table_number, status) VALUES (?, 'OPEN')");
-    query.addBindValue(1); // Defaulting to Table 1 for now
-
-    if (!query.exec()) {
-        qDebug() << "Order Insert Error:" << query.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    // Get the new Order ID
-    int orderId = query.lastInsertId().toInt();
-
-    // 2. Fetch Item Details from menu_items
-    QSqlQuery itemQuery;
-    itemQuery.prepare("SELECT name, base_price_cents FROM menu_items WHERE id = ?");
-    itemQuery.addBindValue(menuItemId);
-
-    if (!itemQuery.exec() || !itemQuery.next()) {
-        qDebug() << "Menu Item Not Found:" << itemQuery.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    QString name = itemQuery.value("name").toString();
-    qlonglong price = itemQuery.value("base_price_cents").toLongLong();
-
-    // 3. Insert into order_items with a UUID
-    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-
-    query.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, quantity, price_cents) "
-                  "VALUES (?, ?, ?, ?, 1, ?)");
-    query.addBindValue(uuid);
-    query.addBindValue(orderId);
-    query.addBindValue(menuItemId);
-    query.addBindValue(name);
-    query.addBindValue(static_cast<qlonglong>(price));
-
-    if (!query.exec()) {
-        qDebug() << "Order Item Insert Error:" << query.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    if (db.commit()) {
-        m_currentOrderId = orderId;
-        refresh(); // Refresh the QAbstractTableModel
-        return true;
-    }
-    return false;
 }
 
 // Add the missing clearOrder implementation to fix the build error
@@ -147,8 +89,6 @@ void SalesModel::addItemToOrder(int menuItemId) {
 
 bool SalesModel::makeOrder() {
     if (m_items.isEmpty()) return false;
-
-
 
     QSqlDatabase db = QSqlDatabase::database();
     if (!db.transaction()) return false;

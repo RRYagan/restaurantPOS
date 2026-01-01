@@ -73,6 +73,16 @@ Rectangle {
                 Layout.fillWidth: true
                 onClicked: console.log("Printing Customer Copy for Order:", currentOrderId)
             }
+            Button {
+                    text: "Proceed to Payment >"
+                    highlighted: true
+                    palette.button: "#2ecc71"
+                    Layout.fillWidth: true
+                    onClicked: contentStack.push("PaymentPage.qml", {
+                        "salesModel": salesModel,
+                        "orderId": currentOrderId
+                    })
+                }
         }
     }
 

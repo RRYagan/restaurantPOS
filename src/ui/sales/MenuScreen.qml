@@ -199,6 +199,13 @@ Rectangle {
                     Layout.fillWidth: true
                     onClicked: salesModel.clearOrder()
                 }
+                // Button {
+                //         text: ">"
+                //         font.bold: true
+                //         flat: true
+                //         enabled: salesModel && salesModel.rowCount() > 0
+                //         onClicked: contentStack.push("PaymentPage.qml", { "salesModel": salesModel })
+                //     }
             }
         }
     }

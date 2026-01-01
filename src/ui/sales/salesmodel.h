@@ -8,18 +8,17 @@
 // Structure to represent an item in the current active order
 struct OrderItem {
     QString id;
-    int menu_item_id;
     int quantity;
     QString name;
-
     Money price;
+    int menu_item_id;
 };
 
 class SalesModel : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
-    // Property for QML to display the running total of the current order [cite: 19]
+    // Property for QML to display the running total of the current order
     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY totalChanged)
 
 public:
@@ -39,10 +38,6 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // Logic to create a new order and add the first item
-    Q_INVOKABLE bool startNewOrder(int menuItemId);
-
-    // Refresh the model from the database
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void addItemToOrder(int menuItemId);
     Q_INVOKABLE bool makeOrder();
