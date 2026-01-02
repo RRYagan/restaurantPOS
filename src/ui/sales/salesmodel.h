@@ -12,7 +12,7 @@ class SalesModel : public QAbstractTableModel
     QML_ELEMENT
     // Property for QML to display the running total of the current order
     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY totalChanged)
-    Q_PROPERTY(int currentOrderId READ currentOrderId NOTIFY currentOrderIdChanged)
+    Q_PROPERTY(QString currentOrderId READ currentOrderId NOTIFY currentOrderIdChanged)
 
 public:
     enum SalesRoles {
@@ -38,10 +38,10 @@ public:
     // Q_INVOKABLE void loadOrderHistory();
     Q_INVOKABLE void removeItem(int index);
     Q_INVOKABLE void updateQuantity(int index, int newQuantity);
-    Q_INVOKABLE void viewOrderDetails(int orderId);
+    Q_INVOKABLE void viewOrderDetails(const QString& orderId);
     Q_INVOKABLE void switchToCart();
     QString totalFormatted() const;
-    int currentOrderId() const { return m_currentOrderId; }
+    QString currentOrderId() const { return m_currentOrderId; }
 
 signals:
     void totalChanged();
@@ -49,7 +49,7 @@ signals:
 
 private:
     QList<OrderItem> m_items;
-    int m_currentOrderId = -1;
+    QString m_currentOrderId = "";
     QList<OrderItem> m_activeCart; // Keep the actual cart safe here
     bool m_isShowingHistory = false;
     void calculateTotal();

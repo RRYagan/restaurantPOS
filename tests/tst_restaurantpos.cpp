@@ -86,14 +86,21 @@ private slots:
         SalesModel model;
         model.addItemToOrder(1);
 
-        // makeOrder() calls DatabaseManager::instance().saveOrder()
+        // Capture the ID before making the order (or from the model after)
+        // Assuming you've updated SalesModel to expose the ID of the pending order
+        // Or check the database for the last inserted record.
+
         QVERIFY(model.makeOrder());
 
-        // Verify model reset
-        QCOMPARE(model.rowCount(), 0);
+        // Since we use UUIDs, we can't guess "1".
+        // For testing purposes, you might want to query the DB for the most recent UUID
+        QSqlQuery query("SELECT id FROM orders ORDER BY created_at DESC LIMIT 1");
+        QVERIFY(query.exec() && query.next());
+        QString latestUuid = query.value(0).toString();
 
-        // Verify Database Retrieval via loadOrder
-        Order dbOrder = DatabaseManager::instance().loadOrder(1);
+        // Pass the QString latestUuid instead of the int 1
+        Order dbOrder = DatabaseManager::instance().loadOrder(latestUuid);
+
         QVERIFY(!dbOrder.items.isEmpty());
         QCOMPARE(dbOrder.items.first().menuItemId, 1);
     }

@@ -9,7 +9,12 @@ ApplicationWindow {
     height: 768
     visible: true
     title: "Restaurant POS"
-
+    StackView.onActivated: {
+        if (salesModel) {
+            // Force the model to notify the view it has changed
+            salesModel.switchToCart();
+        }
+    }
     // --- 1. Separate Model Instances ---
     // Handles the active shopping cart (Menu Page)
     SalesModel {

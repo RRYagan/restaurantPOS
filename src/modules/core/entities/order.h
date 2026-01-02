@@ -15,7 +15,7 @@ enum class OrderStatus {
 struct Order {
     Q_GADGET
 public:
-    int orderId;
+    QString orderId;
     int tableNumber;
     QDateTime createdAt;
     OrderStatus status = OrderStatus::Open;

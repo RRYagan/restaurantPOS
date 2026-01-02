@@ -5,7 +5,8 @@ import POS.Sales 1.0
 
 Rectangle {
     id: root
-    property int currentOrderId: -1
+    property string currentOrderId: ""
+    onCurrentOrderIdChanged: console.log("New Order ID received in Details Screen:", currentOrderId)
     property SalesModel salesModel: null
     color: "#f8f9fa"
 
@@ -99,10 +100,11 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (currentOrderId !== -1 && salesModel !== null) {
+        if (currentOrderId !== "" && salesModel !== null) {
                 salesModel.viewOrderDetails(currentOrderId);
             } else {
-                console.error("OrderDetailsScreen: salesModel is null or OrderID is invalid");
+            console.error("OrderDetailsScreen: salesModel is null or OrderID is invalid. " +
+                                  "ID: '" + currentOrderId + "', Model: " + salesModel);
             }
     }
 }

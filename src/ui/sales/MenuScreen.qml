@@ -8,6 +8,7 @@ Rectangle {
     id: root
     color: "#f8f9fa"
     property SalesModel salesModel: null
+    property string currentOrderId: ""
 
     MenuModel { id: menuModel }
     StackView.onActivated: {
@@ -85,7 +86,7 @@ Rectangle {
                 }
                 Label {
                     // Dynamically change title based on whether we are viewing an old order or a new one
-                    text: (salesModel && salesModel.currentOrderId > 0)
+                    text: (salesModel && salesModel.currentOrderId !== "")
                           ? "Viewing Order #" + salesModel.currentOrderId
                           : "Menu Items"
                     font.pixelSize: 28
@@ -190,34 +191,87 @@ Rectangle {
                     Text { text: "Total:"; font.bold: true; font.pixelSize: 18 }
                     Item { Layout.fillWidth: true }
                     Text {
-                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " €"
+                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
                         font.bold: true; font.pixelSize: 18; color: "#27ae60"
                     }
                 }
 
-                // Inside MenuScreen.qml - Right Side Panel [cite: 3]
-                Button {
-                    objectName: "makeOrderButton"
-                    text: (salesModel && salesModel.currentOrderId > 0) ? "Update Order" : "Place Order"
-                    highlighted: true
+                // Inside MenuScreen.qml - Right Side Panel objectName: "makeOrderButton"=
+                // Inside MenuScreen.qml
+                // This layout contains both buttons, ensuring they share the width properly
+                // Inside MenuScreen.qml - Right Panel ColumnLayout
+                // Inside the right-side panel ColumnLayout
+                // Inside the right side panel ColumnLayout
+                ColumnLayout {
+                    id: buttonContainer
                     Layout.fillWidth: true
+                    spacing: 8
+                    Layout.topMargin: 10
+                        Layout.bottomMargin: 10
+                        Layout.leftMargin: 5
+                        Layout.rightMargin: 5
 
-                    // DISABLE LOGIC: Button is only active if the model has items [cite: 44]
-                    enabled: salesModel !== null && salesModel.rowCount() > 0
+                    Button {
+                        id: orderButton
+                        Layout.fillWidth: true
+                        // Cap the height so the button doesn't expand excessively
+                        Layout.preferredHeight: 45
+                        Layout.maximumHeight: 50
 
-                    onClicked: {
-                        if (salesModel.makeOrder()) {
-                            console.log("Order saved to database successfully.");
+                        contentItem: Text {
+                            text: (salesModel && salesModel.currentOrderId !== "") ? "UPDATE ORDER" : "PLACE ORDER"
+                            color: "white"
+                            font.bold: true
+                            font.pixelSize: 14
+
+                            // This forces the text to stay within the blue/green box
+                            fontSizeMode: Text.Fit
+                            minimumPixelSize: 9
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 10
+                            rightPadding: 10
                         }
+
+                        background: Rectangle {
+                            // Blue for Update, Green for New
+                            color: orderButton.enabled
+                                ? (salesModel.currentOrderId !== "" ? "#3498db" : "#2ecc71")
+                                : "#bdc3c7"
+                            radius: 4
+                        }
+
+                        // Use totalFormatted so the totalChanged signal disables the button immediately
+                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
+                        onClicked: salesModel.makeOrder()
+                    }
+
+                    Button {
+                        id: clearButton
+                        text: "CLEAR CART"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 40
+
+                        // Secondary style for clear action
+                        contentItem: Text {
+                            text: clearButton.text
+                            color: "white"
+                            font.bold: true
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        background: Rectangle {
+                            color: clearButton.enabled ? "#e74c3c" : "#bdc3c7"
+                            radius: 4
+                        }
+
+                        enabled: salesModel !== null && salesModel.totalFormatted !=="0.00"
+                        onClicked: salesModel.clearOrder()
                     }
                 }
 
-                Button {
-                    text: "Clear Cart"
-                    enabled: salesModel !== null && salesModel.rowCount() > 0
-                    Layout.fillWidth: true
-                    onClicked: salesModel.clearOrder()
-                }
                 // Button {
                 //         text: ">"
                 //         font.bold: true

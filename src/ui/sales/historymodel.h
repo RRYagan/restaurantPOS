@@ -11,7 +11,7 @@ class HistoryModel : public QAbstractTableModel
     QML_ELEMENT
 public:
     enum HistoryRoles {
-        OrderIdRole = Qt::UserRole + 1,
+        OrderIdRole = Qt::UserRole,
         TableRole,
         DateRole,
         DisplayTitleRole // For the "Order #1 (Table 1)" string
@@ -28,7 +28,7 @@ public:
 
 private:
     struct HistoryRecord {
-        int id;
+        QString id;
         int tableNumber;
         QString createdAt;
     };

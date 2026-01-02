@@ -6,7 +6,6 @@
 #include <order.h>
 #include <databasemanager.h>
 
-
 SalesModel::SalesModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 int SalesModel::rowCount(const QModelIndex &parent) const {
@@ -51,13 +50,15 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
 }
 
 void SalesModel::clearOrder() {
-    m_currentOrderId = -1;
-    emit currentOrderIdChanged();
+
     beginResetModel();
     m_items.clear();
-    // m_currentOrderId = -1;
+    m_currentOrderId = "";
+    m_totalMoney = Money();
     endResetModel();
-    calculateTotal();
+
+    emit currentOrderIdChanged();
+    emit totalChanged();
 }
 
 void SalesModel::addItemToOrder(int menuItemId) {
@@ -95,70 +96,28 @@ void SalesModel::addItemToOrder(int menuItemId) {
 
 
 
+// In salesmodel.cpp
 bool SalesModel::makeOrder() {
     if (m_items.isEmpty()) return false;
 
-    // 1. Determine if we are updating or creating
-    bool isUpdate = (m_currentOrderId > 0);
+    // Create the order object to pass to the DB manager
+    Order order;
+    order.orderId = m_currentOrderId; // If empty, DBManager generates one. If not, it updates.
+    order.items = m_items;
+    order.tableNumber = 1;
+    order.status = OrderStatus::Open;
+    order.createdAt = QDateTime::currentDateTime();
 
-    // 2. Start a transaction via DatabaseManager or direct SQL
-    QSqlDatabase db = QSqlDatabase::database();
-    if (!db.transaction()) return false;
-
-    try {
-        int orderId = m_currentOrderId;
-
-        if (!isUpdate) {
-            // SCENARIO A: New Order
-            Order newOrder;
-            newOrder.tableNumber = 1; // Default
-            newOrder.status = OrderStatus::Open;
-            newOrder.createdAt = QDateTime::currentDateTime();
-            newOrder.items = m_items;
-
-            if (!DatabaseManager::instance().saveOrder(newOrder)) {
-                throw std::runtime_error("Failed to save new order");
-            }
-        } else {
-            // SCENARIO B: Update Existing Order
-            // Delete old items first to ensure the new list is exactly what's saved
-            QSqlQuery deleteQuery;
-            deleteQuery.prepare("DELETE FROM order_items WHERE order_id = ?");
-            deleteQuery.addBindValue(orderId);
-            if (!deleteQuery.exec()) throw std::runtime_error("Failed to clear old items");
-
-            // Re-insert current items from m_items list
-            for (const auto &item : m_items) {
-                QSqlQuery insertQuery;
-                insertQuery.prepare("INSERT INTO order_items (order_id, name, quantity, price_cents) "
-                                    "VALUES (?, ?, ?, ?)");
-                insertQuery.addBindValue(orderId);
-                insertQuery.addBindValue(item.name);
-                insertQuery.addBindValue(item.quantity);
-                insertQuery.addBindValue(static_cast<qlonglong>(item.price.cents));
-                if (!insertQuery.exec()) throw std::runtime_error("Failed to insert updated items");
-            }
-
-            // Optional: Update the 'updated_at' timestamp in orders table
-            QSqlQuery updateTime;
-            updateTime.prepare("UPDATE orders SET created_at = datetime('now') WHERE id = ?");
-            updateTime.addBindValue(orderId);
-            updateTime.exec();
-        }
-
-        db.commit();
-        clearOrder(); // Resets m_items and m_currentOrderId to -1
+    // The logic is now encapsulated in DatabaseManager
+    if (DatabaseManager::instance().saveOrder(order)) {
+        clearOrder();
         return true;
-
-    } catch (const std::exception& e) {
-        qDebug() << "Order Error:" << e.what();
-        db.rollback();
-        return false;
     }
-}
 
+    return false;
+}
 void SalesModel::refresh() {
-    if (m_currentOrderId == -1) return;
+    if (m_currentOrderId == "") return;
 
     // 1. Tell the view we are about to change everything
     beginResetModel();
@@ -234,7 +193,7 @@ void SalesModel::updateQuantity(int index, int newQuantity) {
     calculateTotal();
 }
 
-void SalesModel::viewOrderDetails(int orderId) {
+void SalesModel::viewOrderDetails(const QString& orderId) {
     m_currentOrderId = orderId; // Store the ID
     emit currentOrderIdChanged();
 

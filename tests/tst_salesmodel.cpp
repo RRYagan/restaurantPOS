@@ -87,16 +87,25 @@ private slots:
 
     void testCartStatePersistence() {
         SalesModel model;
-        model.addItemToOrder(1);
 
-        // Simulate switching to history view logic
-        // (Note: viewOrderDetails resets the model and populates items from a specific order)
-        model.viewOrderDetails(999); // Non-existent order
+        // 1. Setup: Add an item to the "Active Cart"
+        model.addItemToOrder(1);
+        int originalCount = model.rowCount();
+        QVERIFY(originalCount > 0);
+
+        // 2. Transition: "View" a historical order
+        // We pass an empty UUID string or a dummy UUID
+        QString dummyUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        model.viewOrderDetails(dummyUuid);
+
+        // Verify current view is cleared (assuming dummyUuid has no items in DB)
         QCOMPARE(model.rowCount(), 0);
 
-        // switchToCart restores m_activeCart
-        // Note: For this to work in your current code, m_activeCart must be set
-        // during the history loading process.
+        // 3. Restoration: Switch back to the active user cart
+        model.switchToCart();
+
+        // Verify the original items are back
+        QCOMPARE(model.rowCount(), originalCount);
     }
 };
 

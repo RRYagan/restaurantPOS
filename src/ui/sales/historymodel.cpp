@@ -45,7 +45,7 @@ void HistoryModel::loadOrderHistory() {
     QSqlQuery query("SELECT id, table_number, created_at FROM orders ORDER BY id DESC");
     while (query.next()) {
         m_history.append({
-            query.value(0).toInt(),
+            query.value(0).toString(),
             query.value(1).toInt(),
             query.value(2).toString()
         });

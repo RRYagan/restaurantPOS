@@ -20,11 +20,11 @@ public:
     bool openDatabase(const QString& path = QString());
     void closeDatabase();
 
-    bool saveOrder(const Order& order);
+    bool saveOrder(Order& order);
     // Added implementations for these based on your requirements
     QList<MenuItem> getAllMenuItems();
     int generateOrderId();
-    Order loadOrder(int orderId);
+    Order loadOrder(const QString& orderId);
 
 private:
     explicit DatabaseManager(QObject *parent = nullptr);

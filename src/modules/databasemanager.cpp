@@ -71,7 +71,7 @@ bool DatabaseManager::initSchema() {
 
     // Orders
     success &= query.exec("CREATE TABLE IF NOT EXISTS orders ("
-                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "id TEXT PRIMARY KEY, "
                           "table_number INTEGER, "
                           "status INTEGER, " // Changed to INTEGER to match enum cast
                           "created_at DATETIME)");
@@ -79,7 +79,7 @@ bool DatabaseManager::initSchema() {
     // Order Items (Fixed column name to 'id' to match saveOrder logic)
     success &= query.exec("CREATE TABLE IF NOT EXISTS order_items ("
                           "id TEXT PRIMARY KEY, "
-                          "order_id INTEGER, "
+                          "order_id TEXT, "
                           "menu_item_id INTEGER, "
                           "name TEXT, "
                           "quantity INTEGER, "
@@ -89,45 +89,58 @@ bool DatabaseManager::initSchema() {
     return success;
 }
 
-bool DatabaseManager::saveOrder(const Order& order) {
+// In databasemanager.cpp
+bool DatabaseManager::saveOrder(Order &order) {
+    // 1. Handle UUID generation if this is a new order
+    if (order.orderId.isEmpty()) {
+        order.orderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    }
+
     if (!m_db.transaction()) return false;
 
-    QSqlQuery q;
-    // If order.orderId is 0, we let SQLite autoincrement
-    q.prepare("INSERT INTO orders (table_number, status, created_at) VALUES (?, ?, ?)");
-    q.addBindValue(order.tableNumber);
-    q.addBindValue(static_cast<int>(order.status));
-    q.addBindValue(order.createdAt.toString(Qt::ISODate));
+    try {
+        QSqlQuery q;
+        // 2. INSERT OR REPLACE handles updating the main 'orders' entry
+        q.prepare("INSERT OR REPLACE INTO orders (id, table_number, status, created_at) "
+                  "VALUES (?, ?, ?, ?)");
+        q.addBindValue(order.orderId);
+        q.addBindValue(order.tableNumber);
+        q.addBindValue(static_cast<int>(order.status));
+        q.addBindValue(order.createdAt.toString(Qt::ISODate));
 
-    if (!q.exec()) {
+        if (!q.exec()) throw std::runtime_error("Order table update failed");
+
+        // 3. Clear existing items for this order (Standard for Update logic)
+        QSqlQuery del;
+        del.prepare("DELETE FROM order_items WHERE order_id = ?");
+        del.addBindValue(order.orderId);
+        del.exec();
+
+        // 4. Insert the current list of items
+        for (const auto &item : order.items) {
+            QSqlQuery iq;
+            iq.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, quantity, price_cents) "
+                       "VALUES (?, ?, ?, ?, ?, ?)");
+            // Every order_item record gets a unique UUID
+            iq.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
+            iq.addBindValue(order.orderId); // Links to the main order
+            iq.addBindValue(item.menuItemId);
+            iq.addBindValue(item.name);
+            iq.addBindValue(item.quantity);
+            iq.addBindValue(static_cast<qlonglong>(item.price.cents));
+
+            if (!iq.exec()) throw std::runtime_error("Item insertion failed");
+        }
+
+        return m_db.commit();
+
+    } catch (const std::exception& e) {
+        qDebug() << "Database Error:" << e.what();
         m_db.rollback();
         return false;
     }
-
-    // GET THE GENERATED ID
-    int generatedId = q.lastInsertId().toInt();
-
-    for (const auto& item : order.items) {
-        QSqlQuery i;
-        i.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, quantity, price_cents) "
-                  "VALUES (?, ?, ?, ?, ?, ?)");
-        i.addBindValue(item.id);
-        i.addBindValue(generatedId); // Use the freshly generated ID
-        i.addBindValue(item.menuItemId);
-        i.addBindValue(item.name);
-        i.addBindValue(item.quantity);
-        i.addBindValue(static_cast<qlonglong>(item.price.cents));
-
-        if (!i.exec()) {
-            m_db.rollback();
-            return false;
-        }
-    }
-
-    return m_db.commit();
 }
-// databasemanager.cpp additive updates
-Order DatabaseManager::loadOrder(int orderId) {
+Order DatabaseManager::loadOrder(const QString& orderId) {
     Order order;
     QSqlQuery q;
 
@@ -157,6 +170,9 @@ Order DatabaseManager::loadOrder(int orderId) {
     }
     return order;
 }
+
+
+
 void DatabaseManager::seedDatabase() {
     QSqlQuery check("SELECT COUNT(*) FROM menu_items");
     if (check.next() && check.value(0).toInt() > 0) return;
