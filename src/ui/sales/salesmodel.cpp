@@ -51,9 +51,11 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
 }
 
 void SalesModel::clearOrder() {
+    m_currentOrderId = -1;
+    emit currentOrderIdChanged();
     beginResetModel();
     m_items.clear();
-    m_currentOrderId = -1;
+    // m_currentOrderId = -1;
     endResetModel();
     calculateTotal();
 }
@@ -91,33 +93,68 @@ void SalesModel::addItemToOrder(int menuItemId) {
     }
 }
 
-// void SalesModel::clearOrder() {
-//     if (m_items.isEmpty()) return;
 
-//     beginResetModel();
-//     m_items.clear();
-//     endResetModel();
-
-//     // THIS IS THE FIX:
-//     calculateTotal();
-// }
 
 bool SalesModel::makeOrder() {
     if (m_items.isEmpty()) return false;
 
-    Order newOrder;
-    newOrder.tableNumber = 1;
-    newOrder.status = OrderStatus::Open;
-    newOrder.createdAt = QDateTime::currentDateTime();
-    newOrder.items = m_items;
+    // 1. Determine if we are updating or creating
+    bool isUpdate = (m_currentOrderId > 0);
 
-    if (DatabaseManager::instance().saveOrder(newOrder)) {
-        // This handles beginResetModel, m_items.clear(),
-        // endResetModel(), and ONE calculateTotal() call.
-        clearOrder();
+    // 2. Start a transaction via DatabaseManager or direct SQL
+    QSqlDatabase db = QSqlDatabase::database();
+    if (!db.transaction()) return false;
+
+    try {
+        int orderId = m_currentOrderId;
+
+        if (!isUpdate) {
+            // SCENARIO A: New Order
+            Order newOrder;
+            newOrder.tableNumber = 1; // Default
+            newOrder.status = OrderStatus::Open;
+            newOrder.createdAt = QDateTime::currentDateTime();
+            newOrder.items = m_items;
+
+            if (!DatabaseManager::instance().saveOrder(newOrder)) {
+                throw std::runtime_error("Failed to save new order");
+            }
+        } else {
+            // SCENARIO B: Update Existing Order
+            // Delete old items first to ensure the new list is exactly what's saved
+            QSqlQuery deleteQuery;
+            deleteQuery.prepare("DELETE FROM order_items WHERE order_id = ?");
+            deleteQuery.addBindValue(orderId);
+            if (!deleteQuery.exec()) throw std::runtime_error("Failed to clear old items");
+
+            // Re-insert current items from m_items list
+            for (const auto &item : m_items) {
+                QSqlQuery insertQuery;
+                insertQuery.prepare("INSERT INTO order_items (order_id, name, quantity, price_cents) "
+                                    "VALUES (?, ?, ?, ?)");
+                insertQuery.addBindValue(orderId);
+                insertQuery.addBindValue(item.name);
+                insertQuery.addBindValue(item.quantity);
+                insertQuery.addBindValue(static_cast<qlonglong>(item.price.cents));
+                if (!insertQuery.exec()) throw std::runtime_error("Failed to insert updated items");
+            }
+
+            // Optional: Update the 'updated_at' timestamp in orders table
+            QSqlQuery updateTime;
+            updateTime.prepare("UPDATE orders SET created_at = datetime('now') WHERE id = ?");
+            updateTime.addBindValue(orderId);
+            updateTime.exec();
+        }
+
+        db.commit();
+        clearOrder(); // Resets m_items and m_currentOrderId to -1
         return true;
+
+    } catch (const std::exception& e) {
+        qDebug() << "Order Error:" << e.what();
+        db.rollback();
+        return false;
     }
-    return false;
 }
 
 void SalesModel::refresh() {
@@ -167,27 +204,6 @@ QString SalesModel::totalFormatted() const {
 }
 
 
-
-// void SalesModel::loadOrderHistory() {
-//     if (!m_isShowingHistory) {
-//         m_activeCart = m_items; // Save the current burger/fries cart
-//         m_isShowingHistory = true;
-//     }
-
-//     beginResetModel();
-//     m_items.clear();
-
-//     QSqlQuery query("SELECT id, table_number, status, created_at FROM orders ORDER BY created_at DESC");
-//     while (query.next()) {
-//         OrderItem item;
-//         item.id = query.value("id").toString();
-//         item.name = "Order #" + item.id + " (Table " + query.value("table_number").toString() + ")";
-//         item.quantity = 1;
-//         // In a real app, you'd join with order_items to get the total or add a total_cents column to orders
-//         m_items.append(item);
-//     }
-//     endResetModel();
-// }
 void SalesModel::switchToCart() {
     if (!m_isShowingHistory) return;
 
@@ -219,10 +235,14 @@ void SalesModel::updateQuantity(int index, int newQuantity) {
 }
 
 void SalesModel::viewOrderDetails(int orderId) {
+    m_currentOrderId = orderId; // Store the ID
+    emit currentOrderIdChanged();
+
     beginResetModel();
     m_items.clear();
 
     QSqlQuery query;
+
     query.prepare("SELECT name, quantity, price_cents FROM order_items WHERE order_id = ?");
     query.addBindValue(orderId);
 
@@ -236,5 +256,5 @@ void SalesModel::viewOrderDetails(int orderId) {
         }
     }
     endResetModel();
-    calculateTotal(); // Updates totalFormatted for the breakdown [cite: 19]
+    calculateTotal();
 }

@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. Find only the components needed for testing
-find_package(Qt6 REQUIRED COMPONENTS Core Sql Test)
+find_package(Qt6 REQUIRED COMPONENTS Core Sql Test Quick)
+
 
 # 2. Helper function to reduce boilerplate for new tests
 function(add_restaurant_test TEST_NAME SOURCES)
@@ -17,8 +18,10 @@ function(add_restaurant_test TEST_NAME SOURCES)
         Qt6::Core
         Qt6::Sql
         Qt6::Test
+        Qt6::Quick
         database    # Linked as requested
         POS_Sales   # Linked as requested
+        POS_Salesplugin
         menu        # Linked as requested
     )
 
@@ -33,3 +36,5 @@ add_restaurant_test(RestaurantPOSTest tst_restaurantpos.cpp)
 
 # Standalone SalesModel Test
 add_restaurant_test(SalesModelTest tst_salesmodel.cpp)
+
+add_restaurant_test(MenuScreenUITest tst_uimenuscreen.cpp)

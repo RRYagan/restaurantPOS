@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+// import POS.Menu 1.0
 import POS.Sales 1.0
 
 Rectangle {
@@ -80,6 +81,14 @@ Rectangle {
                 Text {
                     text: "Current Order"
                     font.pixelSize: 22
+                    font.bold: true
+                }
+                Label {
+                    // Dynamically change title based on whether we are viewing an old order or a new one
+                    text: (salesModel && salesModel.currentOrderId > 0)
+                          ? "Viewing Order #" + salesModel.currentOrderId
+                          : "Menu Items"
+                    font.pixelSize: 28
                     font.bold: true
                 }
 
@@ -186,11 +195,16 @@ Rectangle {
                     }
                 }
 
+                // Inside MenuScreen.qml - Right Side Panel [cite: 3]
                 Button {
-                    text: "Make Order"
+                    objectName: "makeOrderButton"
+                    text: (salesModel && salesModel.currentOrderId > 0) ? "Update Order" : "Place Order"
                     highlighted: true
                     Layout.fillWidth: true
-                    // enabled: salesModel && salesModel.rowCount() > 0
+
+                    // DISABLE LOGIC: Button is only active if the model has items [cite: 44]
+                    enabled: salesModel !== null && salesModel.rowCount() > 0
+
                     onClicked: {
                         if (salesModel.makeOrder()) {
                             console.log("Order saved to database successfully.");
@@ -200,7 +214,7 @@ Rectangle {
 
                 Button {
                     text: "Clear Cart"
-                    // flat: true
+                    enabled: salesModel !== null && salesModel.rowCount() > 0
                     Layout.fillWidth: true
                     onClicked: salesModel.clearOrder()
                 }

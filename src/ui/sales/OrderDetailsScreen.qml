@@ -20,6 +20,18 @@ Rectangle {
                 text: "← Back"
                 onClicked: contentStack.pop()
             }
+
+            // OrderDetailsScreen.qml
+            Button {
+                text: "Open in Menu/Cart"
+                icon.name: "edit"
+                onClicked: {
+                    // Since salesModel already has the items loaded via viewOrderDetails,
+                    // we just need to switch the StackView index or push MenuScreen
+                    contentStack.push(menuView, { "salesModel": salesModel })
+                }
+            }
+
             Text {
                 text: "Order Details #" + currentOrderId
                 font.pixelSize: 22; font.bold: true

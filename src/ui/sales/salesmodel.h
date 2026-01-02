@@ -6,21 +6,13 @@
 #include <QtQml/qqmlregistration.h>
 #include "money.h"
 
-// Structure to represent an item in the current active order
-// struct OrderItem {
-//     QString id;
-//     int quantity;
-//     QString name;
-//     Money price;
-//     int menu_item_id;
-// };
-
 class SalesModel : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
     // Property for QML to display the running total of the current order
     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY totalChanged)
+    Q_PROPERTY(int currentOrderId READ currentOrderId NOTIFY currentOrderIdChanged)
 
 public:
     enum SalesRoles {
@@ -49,9 +41,11 @@ public:
     Q_INVOKABLE void viewOrderDetails(int orderId);
     Q_INVOKABLE void switchToCart();
     QString totalFormatted() const;
+    int currentOrderId() const { return m_currentOrderId; }
 
 signals:
     void totalChanged();
+    void currentOrderIdChanged();
 
 private:
     QList<OrderItem> m_items;
