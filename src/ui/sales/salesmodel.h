@@ -49,6 +49,7 @@ signals:
 
 private:
     QList<OrderItem> m_items;
+    QList<OrderItem> hd_items;
     QString m_currentOrderId = "";
     QList<OrderItem> m_activeCart; // Keep the actual cart safe here
     bool m_isShowingHistory = false;

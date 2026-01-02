@@ -198,7 +198,7 @@ void SalesModel::viewOrderDetails(const QString& orderId) {
     emit currentOrderIdChanged();
 
     beginResetModel();
-    m_items.clear();
+    hd_items.clear();
 
     QSqlQuery query;
 
@@ -211,7 +211,7 @@ void SalesModel::viewOrderDetails(const QString& orderId) {
             item.name = query.value(0).toString();
             item.quantity = query.value(1).toInt();
             item.price.cents = query.value(2).toLongLong();
-            m_items.append(item);
+            hd_items.append(item);
         }
     }
     endResetModel();
