@@ -12,11 +12,21 @@ DatabaseManager& DatabaseManager::instance() {
     return _instance;
 }
 
-bool DatabaseManager::openDatabase() {
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dataPath);
-    QString dbPath = dataPath + "/restaurant.db";
+// databasemanager.cpp
+bool DatabaseManager::openDatabase(const QString& path) {
+    QString dbPath;
 
+    if (path.isEmpty()) {
+        // Default production path
+        QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QDir().mkpath(dataPath);
+        dbPath = dataPath + "/restaurant.db";
+    } else {
+        // Custom path (e.g., ":memory:" for tests)
+        dbPath = path;
+    }
+
+    // Use a unique connection name if needed, or stick to default
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName(dbPath);
 
@@ -31,7 +41,22 @@ bool DatabaseManager::openDatabase() {
     }
     return false;
 }
+void DatabaseManager::closeDatabase() {
+    // We must capture the connection name before the database object is modified
+    QString connectionName = m_db.connectionName();
 
+    // 1. Close the actual connection if it's open
+    if (m_db.isOpen()) {
+        m_db.close();
+    }
+
+    // 2. Clear the QSqlDatabase object to release its handle on the connection
+    m_db = QSqlDatabase();
+
+    // 3. Remove the connection from the global registry using its name
+    // This allows openDatabase() to be called again without "duplicate connection" warnings.
+    QSqlDatabase::removeDatabase(connectionName);
+}
 bool DatabaseManager::initSchema() {
     QSqlQuery query;
     bool success = true;

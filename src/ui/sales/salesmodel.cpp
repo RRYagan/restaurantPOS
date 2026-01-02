@@ -112,17 +112,14 @@ bool SalesModel::makeOrder() {
     newOrder.items = m_items;
 
     if (DatabaseManager::instance().saveOrder(newOrder)) {
-        beginResetModel();
+        // This handles beginResetModel, m_items.clear(),
+        // endResetModel(), and ONE calculateTotal() call.
         clearOrder();
-        refresh(); // Force view refresh
-
-        // THIS IS THE FIX:
-        // calculateTotal();
-        emit totalChanged();
         return true;
     }
     return false;
 }
+
 void SalesModel::refresh() {
     if (m_currentOrderId == -1) return;
 

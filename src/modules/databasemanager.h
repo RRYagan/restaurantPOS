@@ -17,7 +17,7 @@ public:
     DatabaseManager(const DatabaseManager&) = delete;
     void operator=(const DatabaseManager&) = delete;
 
-    bool openDatabase();
+    bool openDatabase(const QString& path = QString());
     void closeDatabase();
 
     bool saveOrder(const Order& order);

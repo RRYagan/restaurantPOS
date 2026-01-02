@@ -7,28 +7,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 1. Find only the components needed for testing
 find_package(Qt6 REQUIRED COMPONENTS Core Sql Test)
 
-# 2. Define the test executable
-# We include the source files from the parent directory so we can test them
-qt_add_executable(RestaurantPOSTest
-    tst_restaurantpos.cpp
+# 2. Helper function to reduce boilerplate for new tests
+function(add_restaurant_test TEST_NAME SOURCES)
+    qt_add_executable(${TEST_NAME} ${SOURCES})
 
-)
+    target_include_directories(${TEST_NAME} PRIVATE ../src)
 
-# 3. Add Include Paths
-# This allows tst_restaurantpos.cpp to find your headers (e.g., #include "money.h")
-target_include_directories(RestaurantPOSTest PRIVATE ../src)
+    target_link_libraries(${TEST_NAME} PRIVATE
+        Qt6::Core
+        Qt6::Sql
+        Qt6::Test
+        database    # Linked as requested
+        POS_Sales   # Linked as requested
+        menu        # Linked as requested
+    )
 
-# 4. Link Libraries
-# Qt6::Test is the key requirement here
-target_link_libraries(RestaurantPOSTest PRIVATE
-    Qt6::Core
-    Qt6::Sql
-    Qt6::Test
-    database
-    POS_Sales
-    menu
-)
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endfunction()
 
-# 5. Enable CTest
+# 3. Define the test executables
 enable_testing()
-add_test(NAME RestaurantPOSTest COMMAND RestaurantPOSTest)
+
+# Standard Integration Test
+add_restaurant_test(RestaurantPOSTest tst_restaurantpos.cpp)
+
+# Standalone SalesModel Test
+add_restaurant_test(SalesModelTest tst_salesmodel.cpp)

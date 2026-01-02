@@ -3,7 +3,6 @@
 
 #include <QAbstractTableModel>
 #include <QSqlQuery>
-#include <orderitem.h>
 #include <QtQml/qqmlregistration.h>
 
 class HistoryModel : public QAbstractTableModel
@@ -26,11 +25,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void loadOrderHistory();
-    Q_INVOKABLE void viewOrderDetails(int orderId);
-    QString totalFormatted() const;
 
-signals:
-    void totalChanged();
 private:
     struct HistoryRecord {
         int id;
@@ -38,9 +33,6 @@ private:
         QString createdAt;
     };
     QList<HistoryRecord> m_history;
-    QList<OrderItem> m_items;
-    void calculateTotal();
-    Money m_totalMoney;
 };
 
 #endif

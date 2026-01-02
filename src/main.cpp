@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
 
     // 1. Initialize Database
     // We do this before the engine loads so data is ready for the UI
+
     if (!DatabaseManager::instance().openDatabase()) {
         qCritical() << "Could not open or initialize the database. Exiting...";
         return -1;

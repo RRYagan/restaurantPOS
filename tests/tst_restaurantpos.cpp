@@ -10,10 +10,20 @@ class RestaurantPOSTest : public QObject {
     Q_OBJECT
 
 private slots:
-    // --- DATABASE & SINGLETON ---
+
     void initTestCase() {
-        // Test Singleton and DB initialization
+        // Use an in-memory database to ensure isolation and speed
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "test_connection");
+        db.setDatabaseName(":memory:");
+        QVERIFY(db.open());
+
+        // Use the singleton instance to set up schema for the model to use
         QVERIFY(DatabaseManager::instance().openDatabase());
+    }
+
+    // Run once after all tests
+    void cleanupTestCase() {
+        DatabaseManager::instance().closeDatabase();
     }
 
     void testSingletonEnforcement() {
@@ -86,6 +96,21 @@ private slots:
         Order dbOrder = DatabaseManager::instance().loadOrder(1);
         QVERIFY(!dbOrder.items.isEmpty());
         QCOMPARE(dbOrder.items.first().menuItemId, 1);
+    }
+
+    void testMakeOrderSignalFlow() {
+        SalesModel model;
+        QSignalSpy totalSpy(&model, &SalesModel::totalChanged);
+
+        // Signal 1: addItemToOrder calls calculateTotal()
+        model.addItemToOrder(1);
+        QCOMPARE(totalSpy.count(), 1);
+
+        // Signal 2: makeOrder calls clearOrder, which calls calculateTotal()
+        QVERIFY(model.makeOrder());
+
+        QCOMPARE(model.rowCount(), 0);
+        QCOMPARE(totalSpy.count(), 2);
     }
 };
 
