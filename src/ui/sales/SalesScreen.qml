@@ -129,17 +129,15 @@ Rectangle {
                         }
                     }
 
+                    // SalesScreen.qml
                     onClicked: {
-                        if (root.cModel) {
-                            // Tell the SalesModel to clear current cart and load these specific details
-                            root.cModel.viewOrderDetails(model.orderId)
+                        // 1. Load data into the SEPARATE detail model
+                        globalOrderDetailModel.loadOrder(model.orderId)
 
-                            // Push to details screen
-                            contentStack.push(orderDetailsView, {
-                                "currentOrderId": model.orderId,
-                                "salesModel": root.cModel
-                            })
-                        }
+                        // 2. Navigate to the screen
+                        contentStack.push(orderDetailsView, {
+                            "currentOrderId": model.orderId
+                        })
                     }
                 }
 

@@ -3,6 +3,7 @@
 
 #include <QAbstractTableModel>
 #include <QSqlQuery>
+#include <orderitem.h>
 #include <QtQml/qqmlregistration.h>
 
 class HistoryModel : public QAbstractTableModel
@@ -14,7 +15,8 @@ public:
         OrderIdRole = Qt::UserRole,
         TableRole,
         DateRole,
-        DisplayTitleRole // For the "Order #1 (Table 1)" string
+        DisplayTitleRole,
+
     };
 
     explicit HistoryModel(QObject *parent = nullptr);

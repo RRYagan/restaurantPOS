@@ -25,7 +25,9 @@ ApplicationWindow {
     HistoryModel {
         id: globalHistoryModel
     }
-
+    OrderDetailModel {
+        id: globalOrderDetailModel
+    }
     property bool isFullScreen: false
 
     RowLayout {
@@ -103,7 +105,7 @@ ApplicationWindow {
                 id: orderDetailsView
                 OrderDetailsScreen {
                     // We use the cartModel's detail view logic here
-                    salesModel: globalCartModel
+                    detailsModel: globalOrderDetailModel
                 }
             }
 

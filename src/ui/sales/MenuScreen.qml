@@ -11,11 +11,11 @@ Rectangle {
     property string currentOrderId: ""
 
     MenuModel { id: menuModel }
-    StackView.onActivated: {
-            if (salesModel) {
-                salesModel.switchToCart(); // Ensure we aren't looking at old history
-            }
-        }
+    // StackView.onActivated: {
+    //         if (salesModel) {
+    //             salesModel.switchToCart(); // Ensure we aren't looking at old history
+    //         }
+    //     }
 
     SplitView {
         anchors.fill: parent
@@ -86,9 +86,8 @@ Rectangle {
                 }
                 Label {
                     // Dynamically change title based on whether we are viewing an old order or a new one
-                    text: (salesModel && salesModel.currentOrderId !== "")
-                          ? "Viewing Order #" + salesModel.currentOrderId
-                          : "Menu Items"
+                    text:  "Viewing Order"
+
                     font.pixelSize: 28
                     font.bold: true
                 }
@@ -201,60 +200,57 @@ Rectangle {
                 // This layout contains both buttons, ensuring they share the width properly
                 // Inside MenuScreen.qml - Right Panel ColumnLayout
                 // Inside the right-side panel ColumnLayout
-                // Inside the right side panel ColumnLayout
                 ColumnLayout {
-                    id: buttonContainer
+                    objectName: "makeOrderButton"
+                    id: buttonLayout
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: 10
                     Layout.topMargin: 10
-                        Layout.bottomMargin: 10
-                        Layout.leftMargin: 5
-                        Layout.rightMargin: 5
 
+                    // --- Place/Update Order Button ---
                     Button {
                         id: orderButton
                         Layout.fillWidth: true
-                        // Cap the height so the button doesn't expand excessively
+                        // Cap the height to prevent it from looking oversized
                         Layout.preferredHeight: 45
                         Layout.maximumHeight: 50
 
                         contentItem: Text {
-                            text: (salesModel && salesModel.currentOrderId !== "") ? "UPDATE ORDER" : "PLACE ORDER"
+                            // Text changes based on whether m_currentOrderId is set
+                            text: "PLACE ORDER"
                             color: "white"
                             font.bold: true
                             font.pixelSize: 14
 
-                            // This forces the text to stay within the blue/green box
+                            // Forces the text to shrink rather than expanding the button
                             fontSizeMode: Text.Fit
                             minimumPixelSize: 9
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
-                            leftPadding: 10
-                            rightPadding: 10
+                            leftPadding: 12
+                            rightPadding: 12
                         }
 
                         background: Rectangle {
-                            // Blue for Update, Green for New
+                            // Blue for Update, Green for New Order
                             color: orderButton.enabled
-                                ? (salesModel.currentOrderId !== "" ? "#3498db" : "#2ecc71")
+                                ? "#2ecc71"
                                 : "#bdc3c7"
                             radius: 4
                         }
 
-                        // Use totalFormatted so the totalChanged signal disables the button immediately
                         enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
                         onClicked: salesModel.makeOrder()
                     }
 
+                    // --- Clear Cart Button ---
                     Button {
                         id: clearButton
-                        text: "CLEAR CART"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
 
-                        // Secondary style for clear action
                         contentItem: Text {
-                            text: clearButton.text
+                            text: "CLEAR CART"
                             color: "white"
                             font.bold: true
                             font.pixelSize: 13
@@ -267,12 +263,10 @@ Rectangle {
                             radius: 4
                         }
 
-                        enabled: salesModel !== null && salesModel.totalFormatted !=="0.00"
+                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
                         onClicked: salesModel.clearOrder()
                     }
-                }
-
-                // Button {
+                }// Button {
                 //         text: ">"
                 //         font.bold: true
                 //         flat: true

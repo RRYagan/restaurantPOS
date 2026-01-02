@@ -7,7 +7,7 @@ Rectangle {
     id: root
     property string currentOrderId: ""
     onCurrentOrderIdChanged: console.log("New Order ID received in Details Screen:", currentOrderId)
-    property SalesModel salesModel: null
+    property OrderDetailModel detailsModel: null
     color: "#f8f9fa"
 
     ColumnLayout {
@@ -16,29 +16,40 @@ Rectangle {
         spacing: 20
 
         // Header with Back Button
+        // Header with Back Button and Locked Status
         RowLayout {
             Button {
                 text: "← Back"
                 onClicked: contentStack.pop()
             }
 
-            // OrderDetailsScreen.qml
-            Button {
-                text: "Open in Menu/Cart"
-                icon.name: "edit"
-                onClicked: {
-                    // Since salesModel already has the items loaded via viewOrderDetails,
-                    // we just need to switch the StackView index or push MenuScreen
-                    contentStack.push(menuView, { "salesModel": salesModel })
+            // New "Locked" Indicator
+            Rectangle {
+                color: "#ffebee"
+                border.color: "#ef5350"
+                radius: 4
+                implicitWidth: 80
+                implicitHeight: 30
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Text { text: "🔒"; font.pixelSize: 14 }
+                    Text {
+                        text: "LOCKED"
+                        color: "#c62828"
+                        font.bold: true
+                        font.pixelSize: 11
+                    }
                 }
             }
 
             Text {
                 text: "Order Details #" + currentOrderId
-                font.pixelSize: 22; font.bold: true
+                font.pixelSize: 22
+                font.bold: true
             }
         }
-
         // 1) Order Breakdown List
         Rectangle {
             Layout.fillWidth: true
@@ -50,7 +61,7 @@ Rectangle {
             ListView {
                 anchors.fill: parent
                 anchors.margins: 10
-                model: salesModel
+                model: detailsModel
                 clip: true
                 header: RowLayout {
                     width: parent.width
@@ -100,11 +111,11 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (currentOrderId !== "" && salesModel !== null) {
-                salesModel.viewOrderDetails(currentOrderId);
-            } else {
+        if (currentOrderId !== "" && detailsModel !== null) {
+            detailsModel.loadOrder(currentOrderId); // Use the new loadOrder method
+        } else {
             console.error("OrderDetailsScreen: salesModel is null or OrderID is invalid. " +
-                                  "ID: '" + currentOrderId + "', Model: " + salesModel);
+                                  "ID: '" + currentOrderId + "', Model: " + historyModel);
             }
     }
 }

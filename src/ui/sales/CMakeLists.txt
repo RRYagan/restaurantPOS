@@ -5,6 +5,7 @@ qt_add_qml_module(POS_Sales
     SOURCES
        salesmodel.h salesmodel.cpp
        historymodel.h historymodel.cpp
+       orderdetailmodel.h orderdetailmodel.cpp
 
     QML_FILES
         SalesScreen.qml
