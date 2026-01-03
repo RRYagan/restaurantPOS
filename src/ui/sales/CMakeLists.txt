@@ -3,12 +3,12 @@ qt_add_qml_module(POS_Sales
     URI POS.Sales
     VERSION 1.0
     SOURCES
-        # List the headers and sources
-        models/categorymodel.cpp models/categorymodel.h
-        models/historymodel.cpp  models/historymodel.h
-        models/menumodel.cpp     models/menumodel.h
-        models/orderdetailmodel.cpp models/orderdetailmodel.h
-        models/salesmodel.cpp    models/salesmodel.h
+       models/salesmodel.h models/salesmodel.cpp
+       models/historymodel.h models/historymodel.cpp
+       models/orderdetailmodel.h models/orderdetailmodel.cpp
+       models/categorymodel.h models/categorymodel.cpp
+       models/menumodel.h models/menumodel.cpp
+
     QML_FILES
         SalesScreen.qml
         Main.qml
@@ -21,15 +21,12 @@ qt_add_qml_module(POS_Sales
         "../assets/icons/default.png"
 )
 
-# CRITICAL: This allows the generated registration file to find your headers
-target_include_directories(POS_Sales PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/models"
-)
-
+target_include_directories(POS_Sales PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/models")
 target_link_libraries(POS_Sales
     PRIVATE
         Qt6::Quick
         Qt6::Sql
+        core_entities  # Link to the entities/order logic
+        # order          # Link to the order service
         database
-        core_entities
 )

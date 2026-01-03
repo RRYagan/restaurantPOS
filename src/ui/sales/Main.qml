@@ -5,42 +5,63 @@ import POS.Sales 1.0
 
 ApplicationWindow {
     id: window
-    width: 1080
-    height: 720
+    width: 1024
+    height: 768
     visible: true
     title: "Restaurant POS"
+    StackView.onActivated: {
+        if (salesModel) {
+            // Force the model to notify the view it has changed
+            salesModel.switchToCart();
+        }
+    }
+    // --- 1. Separate Model Instances ---
+    // Handles the active shopping cart (Menu Page)
+    SalesModel {
+        id: globalCartModel
+    }
 
-    // --- Global Model Instances ---
-    SalesModel { id: globalCartModel }
-    HistoryModel { id: globalHistoryModel }
-    OrderDetailModel { id: globalOrderDetailModel }
+    // Handles database lookups (History Page)
+    HistoryModel {
+        id: globalHistoryModel
+    }
+    OrderDetailModel {
+        id: globalOrderDetailModel
+    }
+    property bool isFullScreen: false
 
     RowLayout {
         anchors.fill: parent
         spacing: 0
 
-        // Sidebar Navigation
+        // --- Sidebar ---
         Rectangle {
+            id: sidebar
             Layout.fillHeight: true
-            Layout.preferredWidth: 200
+            Layout.preferredWidth: window.isFullScreen ? 0 : 200
             color: "#2c3e50"
+            clip: true
+
+            Behavior on Layout.preferredWidth {
+                NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 10
                 spacing: 15
+                opacity: window.isFullScreen ? 0 : 1
 
                 Label {
                     text: "POS SYSTEM"
                     color: "white"
-                    font.bold: true
                     font.pixelSize: 20
+                    font.bold: true
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.bottomMargin: 20
                 }
 
                 Button {
-                    text: "Menu / Order"
+                    text: "Menu / Ordering"
                     Layout.fillWidth: true
                     onClicked: contentStack.replace(menuView)
                 }
@@ -48,15 +69,10 @@ ApplicationWindow {
                 Button {
                     text: "Order History"
                     Layout.fillWidth: true
-                    onClicked: {
-                        globalHistoryModel.loadOrderHistory();
-                        contentStack.replace(salesView);
-
-                    }
+                    onClicked: contentStack.replace(salesView)
                 }
-
                 Button {
-                    text: "Settings"
+                    text: "⚙ System Setup"
                     Layout.fillWidth: true
                     onClicked: contentStack.replace(setupView)
                 }
@@ -65,17 +81,39 @@ ApplicationWindow {
             }
         }
 
-        // Main Content Area
+        // --- Main Content Area ---
         StackView {
             id: contentStack
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
             initialItem: menuView
 
-            Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
-            Component { id: salesView; SalesScreen { hModel: globalHistoryModel } }
-            Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
-            Component { id: setupView; SetupScreen { } }
+            // 2. Assign the appropriate model to each view
+                Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
+                Component { id: salesView; SalesScreen { hModel: globalHistoryModel } }
+                Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
+                Component { id: setupView; SetupScreen { } }
+
+            // Slide Transitions
+            replaceEnter: Transition {
+                PropertyAnimation {
+                    property: "x"
+                    from: contentStack.width
+                    to: 0
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
+            replaceExit: Transition {
+                PropertyAnimation {
+                    property: "x"
+                    from: 0
+                    to: -contentStack.width
+                    duration: 300
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
 }
