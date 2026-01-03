@@ -42,8 +42,26 @@ QHash<int, QByteArray> MenuModel::roleNames() const {
     roles[IconRole] = "icon_source";
     return roles;
 }
+
+void MenuModel::setCurrentCategory(const QString &category) {
+    if (m_currentCategory == category) return;
+
+    beginResetModel();
+    m_currentCategory = category;
+    m_data.clear();
+
+    for (const auto &item : m_allItems) {
+        if (m_currentCategory == "All" || item.category == m_currentCategory) {
+            m_data.append(item);
+        }
+    }
+    endResetModel();
+    emit currentCategoryChanged();
+}
+
 void MenuModel::refresh() {
     beginResetModel();
+    m_allItems.clear();
     m_data.clear();
 
     // Use the global instance to ensure we are on the same connection
@@ -56,7 +74,8 @@ void MenuModel::refresh() {
         item.category = query.value(2).toString();
         item.basePrice.cents = query.value(3).toLongLong();
         item.iconSource = query.value(4).toString();
-        m_data.append(item);
+        m_allItems.append(item);
     }
+    m_data = m_allItems;
     endResetModel();
 }

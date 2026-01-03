@@ -11,11 +11,6 @@ Rectangle {
     property string currentOrderId: ""
 
     MenuModel { id: menuModel }
-    // StackView.onActivated: {
-    //         if (salesModel) {
-    //             salesModel.switchToCart(); // Ensure we aren't looking at old history
-    //         }
-    //     }
 
     SplitView {
         anchors.fill: parent
@@ -42,6 +37,57 @@ Rectangle {
                     Item { Layout.fillWidth: true }
                 }
 
+                // Inside the Left Side ColumnLayout, before the GridView
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50 // Fixed height for the scrollable bar
+                    color: "transparent"
+
+                    ListView {
+                        id: categoryBar
+                        anchors.fill: parent
+                        orientation: ListView.Horizontal
+                        spacing: 12
+                        clip: true // Prevents categories from drawing outside the bounds while sliding
+
+                        // Hide scrollbar for a cleaner mobile/modern look
+                        ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOff }
+
+                        model: ["All", "Burgers", "Mains", "Appetizers", "Drinks", "Bar", "Desserts"]
+
+                        delegate: Button {
+                            id: catButton
+                            text: modelData
+                            padding: 15
+
+                            // Highlight logic using the property added to MenuModel
+                            contentItem: Text {
+                                text: catButton.text
+                                font.bold: true
+                                color: menuModel.currentCategory === modelData ? "white" : "#2c3e50"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            background: Rectangle {
+                                implicitWidth: 100
+                                implicitHeight: 38
+                                color: menuModel.currentCategory === modelData ? "#3498db" : "#ecf0f1"
+                                radius: 20
+
+                                // Subtle border for unselected items
+                                border.color: menuModel.currentCategory === modelData ? "#2980b9" : "#dcdde1"
+                                border.width: 1
+                            }
+
+                            onClicked: {
+                                menuModel.currentCategory = modelData
+                                // Optional: Smoothly scroll the clicked category into view
+                                categoryBar.positionViewAtIndex(index, ListView.Center);
+                            }
+                        }
+                    }
+                }
                 GridView {
                     id: grid
                     Layout.fillWidth: true

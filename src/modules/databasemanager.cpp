@@ -178,12 +178,42 @@ void DatabaseManager::seedDatabase() {
     q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
 
     auto addItem = [&](QString n, QString c, int p, QString i) {
-        q.addBindValue(n); q.addBindValue(c); q.addBindValue(p); q.addBindValue(i);
+        q.addBindValue(n);
+        q.addBindValue(c);
+        q.addBindValue(p);
+        q.addBindValue(i);
         q.exec();
     };
 
+    // --- BURGERS ---
     addItem("Classic Cheeseburger", "Burgers", 1250, "qrc:/assets/icons/burger.svg");
+    addItem("Bacon Blue Burger", "Burgers", 1450, "qrc:/assets/icons/burger.svg");
+    addItem("Veggies Delight Burger", "Burgers", 1100, "qrc:/assets/icons/burger.svg");
+
+    // --- MAINS ---
+    addItem("Grilled Ribeye Steak", "Mains", 2800, "qrc:/assets/icons/steak.svg");
+    addItem("Pan-Seared Salmon", "Mains", 2400, "qrc:/assets/icons/fish.svg");
+    addItem("Wild Mushroom Risotto", "Mains", 1850, "qrc:/assets/icons/pasta.svg");
+
+    // --- APPETIZERS / BAR SNACKS ---
+    addItem("Buffalo Wings (8pcs)", "Appetizers", 950, "qrc:/assets/icons/wings.svg");
+    addItem("Truffle Fries", "Appetizers", 650, "qrc:/assets/icons/fries.svg");
+    addItem("Calamari Rings", "Appetizers", 1100, "qrc:/assets/icons/seafood.svg");
+
+    // --- DRINKS (NON-ALCOHOLIC) ---
     addItem("Fresh Lemonade", "Drinks", 450, "qrc:/assets/icons/lemonade.svg");
-    // ... add others as needed
+    addItem("Sparkling Water", "Drinks", 300, "qrc:/assets/icons/water.svg");
+    addItem("Iced Peach Tea", "Drinks", 500, "qrc:/assets/icons/tea.svg");
+
+    // --- BAR (ALCOHOLIC) ---
+    addItem("Craft IPA Beer", "Bar", 750, "qrc:/assets/icons/beer.svg");
+    addItem("Old Fashioned Cocktail", "Bar", 1200, "qrc:/assets/icons/cocktail.svg");
+    addItem("Chardonnay (Glass)", "Bar", 900, "qrc:/assets/icons/wine.svg");
+    addItem("Cabernet Sauvignon (Bottle)", "Bar", 4500, "qrc:/assets/icons/wine_bottle.svg");
+
+    // --- DESSERTS ---
+    addItem("New York Cheesecake", "Desserts", 850, "qrc:/assets/icons/cake.svg");
+    addItem("Chocolate Lava Cake", "Desserts", 950, "qrc:/assets/icons/cake.svg");
+
     m_db.commit();
 }

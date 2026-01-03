@@ -11,6 +11,9 @@ class MenuModel : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
+
+    Q_PROPERTY(QString currentCategory READ currentCategory WRITE setCurrentCategory NOTIFY currentCategoryChanged)
+
 public:
     enum MenuRole {
         IdRole = Qt::UserRole + 1,
@@ -28,8 +31,16 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void refresh();
+    QString currentCategory() const { return m_currentCategory; }
+    void setCurrentCategory(const QString &category);
+
+signals:
+    void currentCategoryChanged();
+
 private:
     QVector<MenuItem> m_data;
+    QVector<MenuItem> m_allItems;
+    QString m_currentCategory = "All";
 };
 
 #endif // MENUMODEL_H
