@@ -51,7 +51,7 @@ signals:
 private:
     QList<OrderItem> m_items;
     QString m_currentOrderId = "";
-    bool m_isShowingHistory = false;
+    // bool m_isShowingHistory = false;
     void calculateTotal();
     Money m_totalMoney;
     bool m_isBusy = false;

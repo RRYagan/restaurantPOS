@@ -52,9 +52,6 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
 // --- Cart Actions ---
 
 void SalesModel::addItemToOrder(int menuItemId) {
-    // Safety: Don't allow adding items while looking at history
-    if (m_isShowingHistory) return;
-
     for (int i = 0; i < m_items.size(); i++) {
         if (m_items[i].menuItemId == menuItemId) {
             m_items[i].quantity += 1;
@@ -86,7 +83,7 @@ void SalesModel::addItemToOrder(int menuItemId) {
 }
 
 void SalesModel::removeItem(int index) {
-    if (m_isShowingHistory || index < 0 || index >= m_items.size()) return;
+    if (index < 0 || index >= m_items.size()) return;
 
     beginRemoveRows(QModelIndex(), index, index);
     m_items.removeAt(index);
@@ -96,7 +93,7 @@ void SalesModel::removeItem(int index) {
 }
 
 void SalesModel::updateQuantity(int index, int newQuantity) {
-    if (m_isShowingHistory || index < 0 || index >= m_items.size() || newQuantity <= 0) return;
+    if (index < 0 || index >= m_items.size() || newQuantity <= 0) return;
 
     m_items[index].quantity = newQuantity;
     QModelIndex idx = this->index(index, 0);
@@ -110,7 +107,6 @@ void SalesModel::clearOrder() {
     m_items.clear();
     m_currentOrderId = "";
     m_totalMoney.cents = 0;
-    m_isShowingHistory = false; // Reset view to cart mode
     endResetModel();
 
     emit currentOrderIdChanged();
@@ -121,13 +117,13 @@ void SalesModel::clearOrder() {
 // --- Database & Utility ---
 
 bool SalesModel::makeOrder() {
-    if (m_items.isEmpty() || m_isShowingHistory) return false;
+    if (m_items.isEmpty()) return false;
 
     m_isBusy = true;
     emit isBusyChanged();
 
     Order order;
-    order.orderId = m_currentOrderId;
+    order.orderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     order.items = m_items;
     order.tableNumber = 1;
     order.status = OrderStatus::Open;

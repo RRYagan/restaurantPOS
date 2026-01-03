@@ -91,10 +91,6 @@ bool DatabaseManager::initSchema() {
 
 // In databasemanager.cpp
 bool DatabaseManager::saveOrder(Order &order) {
-    // 1. Handle UUID generation if this is a new order
-    if (order.orderId.isEmpty()) {
-        order.orderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    }
 
     if (!m_db.transaction()) return false;
 
