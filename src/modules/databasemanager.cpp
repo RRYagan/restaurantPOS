@@ -61,13 +61,6 @@ bool DatabaseManager::initSchema() {
     QSqlQuery query;
     bool success = true;
 
-    // Menu Items
-    success &= query.exec("CREATE TABLE IF NOT EXISTS menu_items ("
-                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                          "name TEXT NOT NULL, "
-                          "category TEXT, "
-                          "base_price_cents INTEGER, "
-                          "icon_source TEXT)");
 
     // Orders
     success &= query.exec("CREATE TABLE IF NOT EXISTS orders ("
@@ -85,6 +78,20 @@ bool DatabaseManager::initSchema() {
                           "quantity INTEGER, "
                           "price_cents INTEGER, "
                           "FOREIGN KEY(order_id) REFERENCES orders(id))");
+
+    // Categories Table
+    success &= query.exec("CREATE TABLE IF NOT EXISTS categories ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "name TEXT NOT NULL UNIQUE)");
+
+    // Menu Items Table
+    success &= query.exec("CREATE TABLE IF NOT EXISTS menu_items ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "name TEXT NOT NULL, "
+                          "category TEXT, "
+                          "base_price_cents INTEGER, "
+                          "icon_source TEXT, "
+                          "FOREIGN KEY(category) REFERENCES categories(name))");
 
     return success;
 }
@@ -167,13 +174,155 @@ Order DatabaseManager::loadOrder(const QString& orderId) {
     return order;
 }
 
+//menu
+
+// databasemanager.cpp
+
+// --- ADD ITEM ---
+bool DatabaseManager::addMenuItem(const QString &name, const QString &category, int priceCents, const QString &icon) {
+    QSqlQuery q;
+    q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
+    q.addBindValue(name);
+    q.addBindValue(category);
+    q.addBindValue(priceCents);
+    q.addBindValue(icon);
+    return q.exec();
+}
+
+// --- EDIT / UPDATE ITEM ---
+bool DatabaseManager::updateMenuItem(int id, const QString &name, const QString &category, int priceCents, const QString &icon) {
+    QSqlQuery q;
+    q.prepare("UPDATE menu_items SET name = ?, category = ?, base_price_cents = ?, icon_source = ? WHERE id = ?");
+    q.addBindValue(name);
+    q.addBindValue(category);
+    q.addBindValue(priceCents);
+    q.addBindValue(icon);
+    q.addBindValue(id);
+    return q.exec();
+}
+
+// --- DELETE ITEM ---
+bool DatabaseManager::deleteMenuItem(int id) {
+    QSqlQuery q;
+    q.prepare("DELETE FROM menu_items WHERE id = ?");
+    q.addBindValue(id);
+    return q.exec();
+}
+
+QVector<MenuItem> DatabaseManager::fetchMenuItems(const QString &categoryFilter) {
+    QVector<MenuItem> items;
+    QSqlQuery query;
+
+    if (categoryFilter == "All") {
+        query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
+    } else {
+        query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items WHERE category = ?");
+        query.addBindValue(categoryFilter);
+    }
+
+    if (query.exec()) {
+        while (query.next()) {
+            MenuItem item;
+            item.id = query.value(0).toInt();
+            item.name = query.value(1).toString();
+            item.category = query.value(2).toString();
+            item.basePrice.cents = query.value(3).toLongLong();
+            item.iconSource = query.value(4).toString();
+            items.append(item);
+        }
+    }
+    return items;
+}
 
 
+// Categories
+QStringList DatabaseManager::fetchCategories() {
+    QStringList list;
+    list << "All";
+    QSqlQuery query("SELECT name FROM categories ORDER BY name ASC");
+    while (query.next()) {
+        list << query.value(0).toString();
+    }
+    return list;
+}
+bool DatabaseManager::deleteCategory(const QString& name) {
+    if (!m_db.transaction()) return false;
+
+    QSqlQuery q;
+    // 1. Delete all items associated with this category
+    q.prepare("DELETE FROM menu_items WHERE category = ?");
+    q.addBindValue(name);
+    if (!q.exec()) {
+        m_db.rollback();
+        return false;
+    }
+
+    // 2. Delete the category from the categories table
+    q.prepare("DELETE FROM categories WHERE name = ?");
+    q.addBindValue(name);
+    if (!q.exec()) {
+        m_db.rollback();
+        return false;
+    }
+
+    return m_db.commit();
+}
+
+bool DatabaseManager::addCategory(const QString& name) {
+    QSqlQuery q;
+    q.prepare("INSERT INTO categories (name) VALUES (?)");
+    q.addBindValue(name);
+
+    if (!q.exec()) {
+        qWarning() << "Error adding category:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool DatabaseManager::updateCategory(const QString& oldName, const QString& newName) {
+    if (!m_db.transaction()) return false;
+
+    QSqlQuery q;
+    // 1. Update the category name in the categories table
+    q.prepare("UPDATE categories SET name = ? WHERE name = ?");
+    q.addBindValue(newName);
+    q.addBindValue(oldName);
+
+    if (!q.exec()) {
+        m_db.rollback();
+        return false;
+    }
+
+    // 2. Update all menu items that were using the old category name
+    q.prepare("UPDATE menu_items SET category = ? WHERE category = ?");
+    q.addBindValue(newName);
+    q.addBindValue(oldName);
+
+    if (!q.exec()) {
+        m_db.rollback();
+        return false;
+    }
+
+    return m_db.commit();
+}
 void DatabaseManager::seedDatabase() {
-    QSqlQuery check("SELECT COUNT(*) FROM menu_items");
+    // 1. Check if we already have data
+    QSqlQuery check("SELECT COUNT(*) FROM categories");
     if (check.next() && check.value(0).toInt() > 0) return;
 
     m_db.transaction();
+
+    // 2. Seed Categories
+    QStringList categories = {"Burgers", "Mains", "Appetizers", "Drinks", "Bar", "Desserts"};
+    QSqlQuery catQuery;
+    catQuery.prepare("INSERT INTO categories (name) VALUES (?)");
+    for (const QString &cat : categories) {
+        catQuery.addBindValue(cat);
+        catQuery.exec();
+    }
+
+    // 3. Seed Menu Items using the seeded categories
     QSqlQuery q;
     q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
 
@@ -185,35 +334,17 @@ void DatabaseManager::seedDatabase() {
         q.exec();
     };
 
-    // --- BURGERS ---
+    // BURGERS
     addItem("Classic Cheeseburger", "Burgers", 1250, "qrc:/assets/icons/burger.svg");
     addItem("Bacon Blue Burger", "Burgers", 1450, "qrc:/assets/icons/burger.svg");
-    addItem("Veggies Delight Burger", "Burgers", 1100, "qrc:/assets/icons/burger.svg");
 
-    // --- MAINS ---
-    addItem("Grilled Ribeye Steak", "Mains", 2800, "qrc:/assets/icons/steak.svg");
-    addItem("Pan-Seared Salmon", "Mains", 2400, "qrc:/assets/icons/fish.svg");
-    addItem("Wild Mushroom Risotto", "Mains", 1850, "qrc:/assets/icons/pasta.svg");
-
-    // --- APPETIZERS / BAR SNACKS ---
-    addItem("Buffalo Wings (8pcs)", "Appetizers", 950, "qrc:/assets/icons/wings.svg");
-    addItem("Truffle Fries", "Appetizers", 650, "qrc:/assets/icons/fries.svg");
-    addItem("Calamari Rings", "Appetizers", 1100, "qrc:/assets/icons/seafood.svg");
-
-    // --- DRINKS (NON-ALCOHOLIC) ---
+    // DRINKS
     addItem("Fresh Lemonade", "Drinks", 450, "qrc:/assets/icons/lemonade.svg");
     addItem("Sparkling Water", "Drinks", 300, "qrc:/assets/icons/water.svg");
-    addItem("Iced Peach Tea", "Drinks", 500, "qrc:/assets/icons/tea.svg");
 
-    // --- BAR (ALCOHOLIC) ---
+    // BAR
     addItem("Craft IPA Beer", "Bar", 750, "qrc:/assets/icons/beer.svg");
-    addItem("Old Fashioned Cocktail", "Bar", 1200, "qrc:/assets/icons/cocktail.svg");
-    addItem("Chardonnay (Glass)", "Bar", 900, "qrc:/assets/icons/wine.svg");
-    addItem("Cabernet Sauvignon (Bottle)", "Bar", 4500, "qrc:/assets/icons/wine_bottle.svg");
-
-    // --- DESSERTS ---
-    addItem("New York Cheesecake", "Desserts", 850, "qrc:/assets/icons/cake.svg");
-    addItem("Chocolate Lava Cake", "Desserts", 950, "qrc:/assets/icons/cake.svg");
+    addItem("Old Fashioned", "Bar", 1200, "qrc:/assets/icons/cocktail.svg");
 
     m_db.commit();
 }

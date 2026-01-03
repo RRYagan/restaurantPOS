@@ -1,7 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "databasemanager.h"
-#include "../src/ui/sales/salesmodel.h"
+#include "salesmodel.h"
 
 class SalesModelTest : public QObject {
     Q_OBJECT

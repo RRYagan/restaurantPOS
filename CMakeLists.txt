@@ -12,6 +12,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 # 3. Add subdirectories (Definitions)
 add_subdirectory(src/modules)
+# add_subdirectory(src/ui/sales/models)
 add_subdirectory(src/ui/sales)
 add_subdirectory(tests)
 # 4. Create the main executable
@@ -31,8 +32,7 @@ target_link_libraries(RestaurantPOS
         POS_Salesplugin
         database
         core_entities
-        order
-        menu
+
 )
 
 # 6. OS Specific Properties

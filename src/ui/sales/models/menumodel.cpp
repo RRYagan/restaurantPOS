@@ -1,3 +1,4 @@
+#include "databasemanager.h"
 #include "menumodel.h"
 #include <QAbstractTableModel>
 #include <QVariant>
@@ -46,36 +47,32 @@ QHash<int, QByteArray> MenuModel::roleNames() const {
 void MenuModel::setCurrentCategory(const QString &category) {
     if (m_currentCategory == category) return;
 
-    beginResetModel();
     m_currentCategory = category;
-    m_data.clear();
-
-    for (const auto &item : m_allItems) {
-        if (m_currentCategory == "All" || item.category == m_currentCategory) {
-            m_data.append(item);
-        }
-    }
-    endResetModel();
+    refresh(); // This now does the heavy lifting via DB Manager
     emit currentCategoryChanged();
 }
 
 void MenuModel::refresh() {
     beginResetModel();
-    m_allItems.clear();
-    m_data.clear();
-
-    // Use the global instance to ensure we are on the same connection
-    QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
-
-    while (query.next()) {
-        MenuItem item;
-        item.id = query.value(0).toInt();
-        item.name = query.value(1).toString();
-        item.category = query.value(2).toString();
-        item.basePrice.cents = query.value(3).toLongLong();
-        item.iconSource = query.value(4).toString();
-        m_allItems.append(item);
-    }
-    m_data = m_allItems;
+    // Ask the DB Manager for the specific data we need right now
+    m_data = DatabaseManager::instance().fetchMenuItems(m_currentCategory);
     endResetModel();
+}
+// In menumodel.cpp
+
+bool MenuModel::addMenuItem(const QString &name, const QString &category, int price, const QString &icon) {
+    if (DatabaseManager::instance().addMenuItem(name, category, price, icon)) {
+        refresh(); // Refresh UI list
+        return true;
+    }
+    return false;
+}
+
+
+bool MenuModel::deleteItem(int itemId) {
+    if (DatabaseManager::instance().deleteMenuItem(itemId)) {
+        refresh();
+        return true;
+    }
+    return false;
 }

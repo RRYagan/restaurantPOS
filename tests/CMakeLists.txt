@@ -12,7 +12,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Sql Test Quick)
 function(add_restaurant_test TEST_NAME SOURCES)
     qt_add_executable(${TEST_NAME} ${SOURCES})
 
-    target_include_directories(${TEST_NAME} PRIVATE ../src)
+    target_include_directories(${TEST_NAME} PRIVATE
+        ../src
+        ../src/ui/sales/models
+    )
 
     target_link_libraries(${TEST_NAME} PRIVATE
         Qt6::Core
@@ -22,7 +25,7 @@ function(add_restaurant_test TEST_NAME SOURCES)
         database    # Linked as requested
         POS_Sales   # Linked as requested
         POS_Salesplugin
-        menu        # Linked as requested
+
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

@@ -5,7 +5,6 @@
 
 // Include your manager
 #include "databasemanager.h"
-#include "menumodel.h"
 
 // This macro is required for static linking of QML modules
 Q_IMPORT_QML_PLUGIN(POS_SalesPlugin)
@@ -32,7 +31,7 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
 
-    qmlRegisterType<MenuModel>("POS.Sales", 1, 0, "MenuModel");
+    // qmlRegisterType<MenuModel>("POS.Sales", 1, 0, "MenuModel");
 
     engine.addImportPath(app.applicationDirPath() + "/qml");
 

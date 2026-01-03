@@ -4,7 +4,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include "databasemanager.h"
-#include "../src/ui/sales/salesmodel.h"
+#include "salesmodel.h"
 #include "menumodel.h"
 
 class MenuScreenUITest : public QObject {
