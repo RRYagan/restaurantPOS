@@ -4,18 +4,20 @@ import QtQuick.Layouts
 import POS.Sales
 
 Rectangle {
-    id: setupRoot
+    id: menuSetupRoot
     color: "#f4f7f6"
 
+    property var itemDeleteDialog
+    property var catDeleteDialog
     // selectedCategory acts as the "bridge" between the two models
     property string selectedCategory: "All"
 
     // Use the registered types directly
-    CategoryModel { id: catModel }
-    MenuModel {
-        id: itemModel
-        currentCategory: setupRoot.selectedCategory
-    }
+    // CategoryModel { id: catModel }
+    // MenuModel {
+    //     id: itemModel
+    //     currentCategory: menuSetupRoot.selectedCategory
+    // }
 
     RowLayout {
         anchors.fill: parent
@@ -39,12 +41,32 @@ Rectangle {
                 RowLayout {
                     TextField {
                         id: catIn; placeholderText: "New..."; Layout.fillWidth: true
+                        color: "#000000"
+                        background: Rectangle {
+                                implicitWidth: 200
+                                implicitHeight: 40
+
+                                border.color: (catIn.text.trim() === "" && catIn.focus) ? "#e74c3c" : "#e0e0e0"
+                                border.width: 1
+                            }
                     }
+
                     Button {
-                        text: "+"; highlighted: true
+                        text: "+";
+                        highlighted: true
                         onClicked: {
-                            if(catModel.addCategory(catIn.text)) catIn.clear()
-                        }
+                                var input = catIn.text.trim()
+                                if (input !== "") {
+                                    if(catModel.addCategory(input)) catIn.clear()
+                                } else {
+                                    catErrorTip.show("Please enter a category name")
+                                }
+                            }
+                            ToolTip {
+                                id: catErrorTip
+                                timeout: 2000
+                                function show(msg) { text = msg; open(); }
+                            }
                     }
                 }
 
@@ -56,8 +78,8 @@ Rectangle {
                     spacing: 2
                     delegate: ItemDelegate {
                         width: catList.width
-                        highlighted: setupRoot.selectedCategory === model.name
-                        onClicked: setupRoot.selectedCategory = model.name
+                        highlighted: menuSetupRoot.selectedCategory === model.name
+                        onClicked: menuSetupRoot.selectedCategory = model.name
 
                         contentItem: RowLayout {
                             Text {
@@ -66,10 +88,17 @@ Rectangle {
                                 font.bold: highlighted
                             }
                             Button {
-                                text: "×"; visible: model.name !== "All"
-                                flat: true; palette.buttonText: "red"
-                                onClicked: catModel.deleteCategory(model.name)
-                            }
+                                    text: "🗑"
+                                    onClicked: {
+                                        if (menuSetupRoot.catDeleteDialog !== null) {
+                                        menuSetupRoot.catDeleteDialog.catNameToDelete = model.name
+                                        menuSetupRoot.catDeleteDialog.open()
+                                        } else {
+                                            console.log("Error: catDeleteDialog not linked!");
+
+                                        }
+                                    }
+                                }
                         }
                     }
                 }
@@ -117,32 +146,102 @@ Rectangle {
                             }
                             Item { Layout.fillHeight: true }
                             Button {
-                                text: "Delete"; palette.buttonText: "red"
-                                Layout.alignment: Qt.AlignRight
-                                onClicked: itemModel.deleteItem(model.id)
-                            }
+                                    text: "Delete Item"
+                                    onClicked: {
+                                        if (menuSetupRoot.itemDeleteDialog !== null) {
+                                                        menuSetupRoot.itemDeleteDialog.itemIdToDelete = model.id;
+                                                        menuSetupRoot.itemDeleteDialog.open();
+                                                    } else {
+                                                        console.log("Error: itemDeleteDialog not linked!");
+                                                    }
+                                    }
+                                }
                         }
                     }
                 }
             }
         }
     }
-
     Dialog {
         id: addItemDialog
-        title: "Add to " + selectedCategory; modal: true
+        title: "Add to " + selectedCategory
+        modal: true
+        // width: 350
         anchors.centerIn: parent
-        standardButtons: Dialog.Save | Dialog.Cancel
+        // Do NOT use standardButtons: Dialog.Save here
 
         ColumnLayout {
-            TextField { id: nameIn; placeholderText: "Item Name"; Layout.fillWidth: true }
-            TextField { id: priceIn; placeholderText: "Price (Cents)"; Layout.fillWidth: true }
+            spacing: 10
+            anchors.fill: parent
+            anchors.margins: 10
+
+            TextField {
+                id: nameIn
+                placeholderText: "Item Name"
+                color: "black" // Font color black
+                Layout.fillWidth: true
+                background: Rectangle {
+                    border.color: (validationError.visible && nameIn.text.trim() === "") ? "#e74c3c" : "#bdc3c7"
+                    border.width: 1
+                }
+            }
+
+            TextField {
+                id: priceIn
+                placeholderText: "Price (Cents)"
+                color: "black" // Font color black
+                Layout.fillWidth: true
+                inputMethodHints: Qt.ImhDigitsOnly
+                background: Rectangle {
+                    border.color: (validationError.visible && (priceIn.text.trim() === "" || isNaN(parseInt(priceIn.text)))) ? "#e74c3c" : "#bdc3c7"
+                    border.width: 1
+                }
+            }
+
+            Text {
+                            id: validationError
+                            text: "Please enter a valid name and price."
+                            color: "#e74c3c"
+                            visible: false
+                            font.pixelSize: 12
+                            font.italic: true
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap // Ensures error text doesn't push dialog wider
+                        }
         }
 
-        onAccepted: {
-            if (itemModel.addMenuItem(nameIn.text, selectedCategory, parseInt(priceIn.text), "qrc:/assets/icons/default.svg")) {
-                nameIn.clear(); priceIn.clear();
+        footer: DialogButtonBox {
+            // Use a standard Button but avoid the automatic "AcceptRole" if it still closes
+            Button {
+                text: "Save"
+                onClicked: {
+                    var name = nameIn.text.trim();
+                    var priceStr = priceIn.text.trim();
+                    var price = parseInt(priceStr);
+
+                    // Validation: Check for null/empty and positive number
+                    if (name !== "" && priceStr !== "" && !isNaN(price) && price > 0) {
+                        if (itemModel.addMenuItem(name, selectedCategory, price, "qrc:/assets/icons/default.svg")) {
+                            nameIn.clear();
+                            priceIn.clear();
+                            validationError.visible = false;
+                            addItemDialog.close(); // Manual close only on success
+                        }
+                    } else {
+                        validationError.visible = true; // Show message, dialog stays open
+                    }
+                }
+            }
+            Button {
+                text: "Cancel"
+                onClicked: {
+                    nameIn.clear();
+                    priceIn.clear();
+                    validationError.visible = false;
+                    addItemDialog.close();
+                }
             }
         }
     }
+
 }

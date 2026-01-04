@@ -10,6 +10,12 @@ Rectangle {
     // Navigation State
     property int currentSubMenu: 0
     property bool sidebarCollapsed: false
+    CategoryModel { id: catModel }
+    MenuModel {
+            id: itemModel
+            // Ensure this property matches your MenuModel's expected category filter
+            currentCategory: "All"
+        }
 
     RowLayout {
         anchors.fill: parent
@@ -23,7 +29,6 @@ Rectangle {
             color: "#ecf0f1"
             border.color: "#e0e0e0"
 
-            // Smooth transition for collapsing
             Behavior on Layout.preferredWidth {
                 NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
             }
@@ -33,7 +38,6 @@ Rectangle {
                 anchors.margins: 5
                 spacing: 10
 
-                // Toggle Button
                 Button {
                     text: setupRoot.sidebarCollapsed ? "☰" : "◀ Collapse"
                     Layout.fillWidth: true
@@ -41,7 +45,6 @@ Rectangle {
                     onClicked: setupRoot.sidebarCollapsed = !setupRoot.sidebarCollapsed
                 }
 
-                // Sub-menu Items
                 Repeater {
                     model: [
                         { name: "Menu", icon: "🍴" },
@@ -54,7 +57,6 @@ Rectangle {
                         flat: setupRoot.currentSubMenu !== index
                         highlighted: setupRoot.currentSubMenu === index
 
-                        // Show only icon when collapsed, name + icon when expanded
                         contentItem: Text {
                             text: setupRoot.sidebarCollapsed ? modelData.icon : modelData.icon + "  " + modelData.name
                             horizontalAlignment: Text.AlignLeft
@@ -65,7 +67,6 @@ Rectangle {
                         onClicked: setupRoot.currentSubMenu = index
                     }
                 }
-
                 Item { Layout.fillHeight: true }
             }
         }
@@ -76,10 +77,63 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // Nested Views
-            MenuSetup { } // Your existing logic [cite: 8, 21]
+            MenuSetup {
+                itemDeleteDialog: confirmDeleteItemDialog
+                catDeleteDialog: confirmDeleteCatDialog
+            }
             TableSetup { }
             ThemeSetup { }
+        }
+    }
+
+    // --- Fixed Confirmation Dialogs ---
+    Dialog {
+        id: confirmDeleteItemDialog
+        title: "Confirm Deletion"
+        width: 350
+        standardButtons: Dialog.Yes | Dialog.No
+        anchors.centerIn: parent
+        modal: true
+        property int itemIdToDelete: -1
+
+        // Use a ColumnLayout to manage content without binding loops
+        contentItem: ColumnLayout {
+            spacing: 20
+            Label {
+                text: "Are you sure you want to delete this item? This action cannot be undone."
+                wrapMode: Text.WordWrap
+                Layout.preferredWidth: 300 // Set a fixed width to break the loop
+            }
+        }
+
+        onAccepted: {
+            if (itemIdToDelete !== -1) {
+                itemModel.deleteItem(itemIdToDelete) // itemModel must be defined in SetupScreen.qml
+            }
+        }
+    }
+    Dialog {
+        id: confirmDeleteCatDialog
+        title: "Delete Category"
+        width: 350
+        standardButtons: Dialog.Yes | Dialog.No
+        anchors.centerIn: parent
+        modal: true
+        property string catNameToDelete: ""
+
+        contentItem: ColumnLayout {
+            spacing: 20
+            Label {
+                text: "Delete '" + confirmDeleteCatDialog.catNameToDelete + "'? All items in this category will be affected."
+                wrapMode: Text.WordWrap
+                Layout.preferredWidth: 300
+            }
+        }
+
+        onAccepted: {
+            if (catNameToDelete !== "") {
+                catModel.deleteCategory(catNameToDelete) // catModel must be defined in SetupScreen.qml
+            }
         }
     }
 }
