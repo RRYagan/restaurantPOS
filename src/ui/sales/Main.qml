@@ -22,8 +22,31 @@ ApplicationWindow {
     OrderDetailModel {
         id: globalOrderDetailModel
     }
-    property bool isFullScreen: false
+    UserModel { id: globalUserModel }
+        InventoryModel { id: globalInventoryModel }
 
+    property bool isFullScreen: false
+        StackView {
+                id: rootStack
+                anchors.fill: parent
+
+                // Use the separate file as initial item
+                initialItem: loginScreenComponent
+
+                replaceEnter: Transition {
+                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 400 }
+                }
+            }
+
+            // Component wrapper for the external file
+            Component {
+                id: loginScreenComponent
+                LoginScreen {
+                    onLoginSuccess: rootStack.replace(mainLayout)
+                }
+            }
+            Component {
+                    id: mainLayout
     RowLayout {
         anchors.fill: parent
         spacing: 0
@@ -70,6 +93,18 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     onClicked: contentStack.replace(setupView)
                 }
+                Button {
+                    text: "👤 User Management"
+                    Layout.fillWidth: true
+                    // Only show if the current session is a manager
+                    // visible: globalUserModel.isAdmin()
+                    onClicked: contentStack.replace(userMgmtView)
+                }
+                Button {
+                    text: "📦 Inventory"
+                    Layout.fillWidth: true
+                    onClicked: contentStack.replace(inventoryView)
+                }
 
                 Item { Layout.fillHeight: true }
             }
@@ -88,6 +123,8 @@ ApplicationWindow {
                 Component { id: salesView; SalesScreen { hModel: globalHistoryModel } }
                 Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                 Component { id: setupView; SetupScreen { } }
+                Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
+                Component { id: inventoryView; InventoryManagement { invModel: globalInventoryModel; usrModel: globalUserModel } }
 
             // Slide Transitions
             replaceEnter: Transition {
@@ -110,4 +147,5 @@ ApplicationWindow {
             }
         }
     }
+}
 }

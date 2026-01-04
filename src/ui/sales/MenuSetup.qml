@@ -11,13 +11,7 @@ Rectangle {
     property var catDeleteDialog
     // selectedCategory acts as the "bridge" between the two models
     property string selectedCategory: "All"
-
-    // Use the registered types directly
-    // CategoryModel { id: catModel }
-    // MenuModel {
-    //     id: itemModel
-    //     currentCategory: menuSetupRoot.selectedCategory
-    // }
+    readonly property bool isManager: globalUserModel.isAdmin
 
     RowLayout {
         anchors.fill: parent
@@ -42,6 +36,7 @@ Rectangle {
                     TextField {
                         id: catIn; placeholderText: "New..."; Layout.fillWidth: true
                         color: "#000000"
+                        // visible:menuSetupRoot.isManager && selectedCategory !== "All"
                         background: Rectangle {
                                 implicitWidth: 200
                                 implicitHeight: 40
@@ -54,6 +49,7 @@ Rectangle {
                     Button {
                         text: "+";
                         highlighted: true
+                        visible: menuSetupRoot.isManager
                         onClicked: {
                                 var input = catIn.text.trim()
                                 if (input !== "") {
@@ -89,6 +85,7 @@ Rectangle {
                             }
                             Button {
                                     text: "🗑"
+                                    visible: menuSetupRoot.isManager && model.name !=="All"
                                     onClicked: {
                                         if (menuSetupRoot.catDeleteDialog !== null) {
                                         menuSetupRoot.catDeleteDialog.catNameToDelete = model.name
@@ -122,7 +119,7 @@ Rectangle {
                     Item { Layout.fillWidth: true }
                     Button {
                         text: "Add New Item"; highlighted: true
-                        enabled: selectedCategory !== "All"
+                        enabled: menuSetupRoot.isManager && selectedCategory !== "All"
                         onClicked: addItemDialog.open()
                     }
                 }
@@ -147,6 +144,9 @@ Rectangle {
                             Item { Layout.fillHeight: true }
                             Button {
                                     text: "Delete Item"
+                                    visible: menuSetupRoot.isManager
+                                    enabled: menuSetupRoot.isManager && selectedCategory !== "All"
+
                                     onClicked: {
                                         if (menuSetupRoot.itemDeleteDialog !== null) {
                                                         menuSetupRoot.itemDeleteDialog.itemIdToDelete = model.id;

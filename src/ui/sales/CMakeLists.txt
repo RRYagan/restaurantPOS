@@ -8,6 +8,8 @@ qt_add_qml_module(POS_Sales
        models/orderdetailmodel.h models/orderdetailmodel.cpp
        models/categorymodel.h models/categorymodel.cpp
        models/menumodel.h models/menumodel.cpp
+       models/inventorymodel.h models/inventorymodel.cpp
+       models/usermodel.h models/usermodel.cpp
 
     QML_FILES
         SalesScreen.qml
@@ -20,9 +22,14 @@ qt_add_qml_module(POS_Sales
         MenuSetup.qml
         TableSetup.qml
         ThemeSetup.qml
+        InventoryManagement.qml
+        UserManagement.qml
+        LoginScreen.qml
+
     RESOURCES
         "../assets/icons/default.png"
 )
+
 
 target_include_directories(POS_Sales PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/models")
 target_link_libraries(POS_Sales

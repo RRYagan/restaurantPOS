@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <usersession.h>
 #include "order.h"
 #include "menuitem.h"
 
@@ -39,12 +40,28 @@ public:
     bool addCategory(const QString& name);
     bool updateCategory(const QString& oldName, const QString& newName);
 
+    // Inventory
+    bool addInventoryItem(const QString &name, int quantity, const QString &unit);
+    bool updateInventoryItem(int id, const QString &name, int quantity, const QString &unit);
+    bool deleteInventoryItem(int id);
+    QVariantList fetchInventory(); // Returns a list of maps or a custom struct
+
+    // Users
+    bool addUser(const QString &username, const QString &password, const QString &role);
+    bool updateUser(int id, const QString &username, const QString &role);
+    bool deleteUser(int id);
+    bool verifyUser(const QString &username, const QString &password);
+    UserSession currentUser() const { return m_session; }
+    void logout() { m_session = UserSession(); }
+    bool isAdmin() const { return m_session.role == "manager"; }
+
 private:
     explicit DatabaseManager(QObject *parent = nullptr);
     bool initSchema();
     void seedDatabase();
-
     QSqlDatabase m_db;
+    UserSession m_session;
+    QString hashPassword(const QString& password, const QString& salt); // New helper
 };
 
 #endif

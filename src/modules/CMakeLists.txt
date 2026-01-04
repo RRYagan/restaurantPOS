@@ -2,8 +2,12 @@
 add_library(core_entities
     core/entities/menuitem.h
     core/entities/order.h
+    core/entities/orderitem.h
     core/entities/table.h
     core/entities/money.h
+    core/entities/usersession.h
+    core/entities/inventoryitem.h
+    core/entities/user.h
 
 )
 target_include_directories(core_entities PUBLIC core/entities)

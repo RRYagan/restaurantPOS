@@ -4,6 +4,8 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QSqlRecord>
+#include <QCryptographicHash>
+#include <QUuid>
 
 DatabaseManager::DatabaseManager(QObject *parent) : QObject(parent) {}
 
@@ -93,7 +95,82 @@ bool DatabaseManager::initSchema() {
                           "icon_source TEXT, "
                           "FOREIGN KEY(category) REFERENCES categories(name))");
 
+    // Inventory Table
+    success &= query.exec("CREATE TABLE IF NOT EXISTS inventory ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "name TEXT NOT NULL, "
+                          "quantity INTEGER DEFAULT 0, "
+                          "unit TEXT)");
+
+    // Users Table (Basic auth)
+    success &= query.exec("CREATE TABLE IF NOT EXISTS users ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "username TEXT NOT NULL UNIQUE, "
+                          "password_hash TEXT NOT NULL, "
+                          "salt TEXT NOT NULL, "
+                          "role TEXT)");
+
     return success;
+}
+void DatabaseManager::seedDatabase() {
+    // 1. Check if we already have data
+    QSqlQuery check("SELECT COUNT(*) FROM categories");
+    if (check.next() && check.value(0).toInt() > 0) return;
+
+    m_db.transaction();
+
+    // 2. Seed Categories
+    QStringList categories = {"Burgers", "Mains", "Appetizers", "Drinks", "Bar", "Desserts"};
+    QSqlQuery catQuery;
+    catQuery.prepare("INSERT INTO categories (name) VALUES (?)");
+    for (const QString &cat : categories) {
+        catQuery.addBindValue(cat);
+        catQuery.exec();
+    }
+
+    // 3. Seed Menu Items using the seeded categories
+    QSqlQuery q;
+    q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
+
+    auto addItem = [&](QString n, QString c, int p, QString i) {
+        q.addBindValue(n);
+        q.addBindValue(c);
+        q.addBindValue(p);
+        q.addBindValue(i);
+        q.exec();
+    };
+
+    // BURGERS
+    addItem("Classic Cheeseburger", "Burgers", 1250, "qrc:/assets/icons/burger.svg");
+    addItem("Bacon Blue Burger", "Burgers", 1450, "qrc:/assets/icons/burger.svg");
+
+    // DRINKS
+    addItem("Fresh Lemonade", "Drinks", 450, "qrc:/assets/icons/lemonade.svg");
+    addItem("Sparkling Water", "Drinks", 300, "qrc:/assets/icons/water.svg");
+
+    // BAR
+    addItem("Craft IPA Beer", "Bar", 750, "qrc:/assets/icons/beer.svg");
+    addItem("Old Fashioned", "Bar", 1200, "qrc:/assets/icons/cocktail.svg");
+
+    // Seed Inventory
+    QSqlQuery inv;
+    inv.prepare("INSERT INTO inventory (name, quantity, unit) VALUES (?, ?, ?)");
+    auto addInv = [&](QString n, int q, QString u) {
+        inv.addBindValue(n); inv.addBindValue(q); inv.addBindValue(u);
+        inv.exec();
+    };
+    addInv("Beef Patties", 100, "pcs");
+    addInv("Burger Buns", 120, "pcs");
+    addInv("Milk", 50, "liters");
+
+    // Seed Users
+    // QSqlQuery userQ;
+    // userQ.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+
+    addUser("admin", "admin123", "manager");
+    addUser("waiter1", "password", "staff");
+
+    m_db.commit();
 }
 
 // In databasemanager.cpp
@@ -175,8 +252,6 @@ Order DatabaseManager::loadOrder(const QString& orderId) {
 }
 
 //menu
-
-// databasemanager.cpp
 
 // --- ADD ITEM ---
 bool DatabaseManager::addMenuItem(const QString &name, const QString &category, int priceCents, const QString &icon) {
@@ -306,45 +381,84 @@ bool DatabaseManager::updateCategory(const QString& oldName, const QString& newN
 
     return m_db.commit();
 }
-void DatabaseManager::seedDatabase() {
-    // 1. Check if we already have data
-    QSqlQuery check("SELECT COUNT(*) FROM categories");
-    if (check.next() && check.value(0).toInt() > 0) return;
 
-    m_db.transaction();
+// inventory
+bool DatabaseManager::addInventoryItem(const QString &name, int quantity, const QString &unit) {
+    QSqlQuery q;
+    q.prepare("INSERT INTO inventory (name, quantity, unit) VALUES (?, ?, ?)");
+    q.addBindValue(name);
+    q.addBindValue(quantity);
+    q.addBindValue(unit);
+    return q.exec();
+}
 
-    // 2. Seed Categories
-    QStringList categories = {"Burgers", "Mains", "Appetizers", "Drinks", "Bar", "Desserts"};
-    QSqlQuery catQuery;
-    catQuery.prepare("INSERT INTO categories (name) VALUES (?)");
-    for (const QString &cat : categories) {
-        catQuery.addBindValue(cat);
-        catQuery.exec();
+bool DatabaseManager::updateInventoryItem(int id, const QString &name, int quantity, const QString &unit) {
+    QSqlQuery q;
+    q.prepare("UPDATE inventory SET name = ?, quantity = ?, unit = ? WHERE id = ?");
+    q.addBindValue(name);
+    q.addBindValue(quantity);
+    q.addBindValue(unit);
+    q.addBindValue(id);
+    return q.exec();
+}
+
+bool DatabaseManager::deleteInventoryItem(int id) {
+    QSqlQuery q;
+    q.prepare("DELETE FROM inventory WHERE id = ?");
+    q.addBindValue(id);
+    return q.exec();
+}
+
+
+// usser
+bool DatabaseManager::addUser(const QString &username, const QString &password, const QString &role) {
+    QString salt = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8); // Generate 8-char salt
+    QString hash = hashPassword(password, salt);
+
+    QSqlQuery q;
+    q.prepare("INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)");
+    q.addBindValue(username);
+    q.addBindValue(hash);
+    q.addBindValue(salt);
+    q.addBindValue(role);
+    return q.exec();
+}
+
+bool DatabaseManager::verifyUser(const QString &username, const QString &password) {
+    QSqlQuery q;
+    // We select id and role as well to populate the session
+    q.prepare("SELECT id, password_hash, salt, role FROM users WHERE username = ?");
+    q.addBindValue(username);
+
+    if (q.exec() && q.next()) {
+        int id = q.value(0).toInt();
+        QString storedHash = q.value(1).toString();
+        QString salt = q.value(2).toString();
+        QString role = q.value(3).toString();
+
+        if (hashPassword(password, salt) == storedHash) {
+            // Populate session data
+            m_session.userId = id;
+            m_session.username = username;
+            m_session.role = role;
+            m_session.isValid = true;
+            return true;
+        }
     }
 
-    // 3. Seed Menu Items using the seeded categories
+    m_session = UserSession(); // Reset session on failure
+    return false;
+}
+
+// Helper to hash password with a salt
+QString DatabaseManager::hashPassword(const QString& password, const QString& salt) {
+    QByteArray saltedPassword = (password + salt).toUtf8();
+    QByteArray hash = QCryptographicHash::hash(saltedPassword, QCryptographicHash::Sha256);
+    return QString(hash.toHex());
+}
+bool DatabaseManager::deleteUser(int id) {
     QSqlQuery q;
-    q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
-
-    auto addItem = [&](QString n, QString c, int p, QString i) {
-        q.addBindValue(n);
-        q.addBindValue(c);
-        q.addBindValue(p);
-        q.addBindValue(i);
-        q.exec();
-    };
-
-    // BURGERS
-    addItem("Classic Cheeseburger", "Burgers", 1250, "qrc:/assets/icons/burger.svg");
-    addItem("Bacon Blue Burger", "Burgers", 1450, "qrc:/assets/icons/burger.svg");
-
-    // DRINKS
-    addItem("Fresh Lemonade", "Drinks", 450, "qrc:/assets/icons/lemonade.svg");
-    addItem("Sparkling Water", "Drinks", 300, "qrc:/assets/icons/water.svg");
-
-    // BAR
-    addItem("Craft IPA Beer", "Bar", 750, "qrc:/assets/icons/beer.svg");
-    addItem("Old Fashioned", "Bar", 1200, "qrc:/assets/icons/cocktail.svg");
-
-    m_db.commit();
+    q.prepare("DELETE FROM users WHERE id = ?");
+    q.addBindValue(id);
+    return q.exec();
 }
