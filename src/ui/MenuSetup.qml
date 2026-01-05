@@ -12,6 +12,8 @@ Rectangle {
     // selectedCategory acts as the "bridge" between the two models
     property string selectedCategory: "All"
     readonly property bool isManager: globalUserModel.isAdmin
+    CategoryView { id: catModel }
+    MenuView { id: itemModel }
 
     RowLayout {
         anchors.fill: parent
