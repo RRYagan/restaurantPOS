@@ -13,7 +13,9 @@ Rectangle {
     property string selectedCategory: "All"
     readonly property bool isManager: globalUserModel.isAdmin
     CategoryView { id: catModel }
-    MenuView { id: itemModel }
+    MenuView { id: itemModel
+            currentCategory: menuSetupRoot.selectedCategory
+        }
 
     RowLayout {
         anchors.fill: parent

@@ -77,6 +77,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+
             MenuSetup {
                 itemDeleteDialog: confirmDeleteItemDialog
                 catDeleteDialog: confirmDeleteCatDialog
