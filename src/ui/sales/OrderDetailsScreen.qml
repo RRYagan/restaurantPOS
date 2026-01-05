@@ -61,6 +61,7 @@ Rectangle {
             ListView {
                 anchors.fill: parent
                 anchors.margins: 10
+                Layout.fillWidth: true
                 model: detailsModel
                 clip: true
                 header: RowLayout {

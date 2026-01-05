@@ -12,16 +12,18 @@ qt_add_qml_module(POS_Sales
        models/usermodel.h models/usermodel.cpp
 
     QML_FILES
-        SalesScreen.qml
+        OrdersScreen.qml
         Main.qml
         MenuScreen.qml
         Card.qml
         OrderDetailsScreen.qml
         PaymentPage.qml
+        # setup pages
         SetupScreen.qml
         MenuSetup.qml
         TableSetup.qml
         ThemeSetup.qml
+
         InventoryManagement.qml
         UserManagement.qml
         LoginScreen.qml

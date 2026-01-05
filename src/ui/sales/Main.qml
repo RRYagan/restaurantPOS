@@ -120,7 +120,7 @@ ApplicationWindow {
 
             // 2. Assign the appropriate model to each view
                 Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
-                Component { id: salesView; SalesScreen { hModel: globalHistoryModel } }
+                Component { id: salesView; OrdersScreen { hModel: globalHistoryModel } }
                 Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                 Component { id: setupView; SetupScreen { } }
                 Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
