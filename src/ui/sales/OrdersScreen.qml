@@ -10,8 +10,8 @@ Rectangle {
     // PROPERTIES: Use specific names to avoid QML Binding Loops
     // hModel is the HistoryModel (QAbstractTableModel)
     // cModel is the SalesModel (used here only for fetching details)
-    property HistoryModel hModel: null
-    property SalesModel cModel: null
+    property HistoryView hModel: null
+    property SalesView cModel: null
 
     ColumnLayout {
         anchors.fill: parent

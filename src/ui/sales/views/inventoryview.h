@@ -6,12 +6,12 @@
 #include <inventoryitem.h>
 #include <QtQml/qqmlregistration.h>
 
-class InventoryModel : public QAbstractListModel {
+class InventoryView : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
 public:
     enum InventoryRoles { IdRole = Qt::UserRole + 1, NameRole, QuantityRole, UnitRole };
-    explicit InventoryModel(QObject *parent = nullptr);
+    explicit InventoryView(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;

@@ -6,7 +6,7 @@
 #include <QtQml/qqmlregistration.h>
 #include "money.h"
 
-class SalesModel : public QAbstractTableModel
+class SalesView : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
@@ -23,7 +23,7 @@ public:
         MenuIdRole
     };
 
-    explicit SalesModel(QObject *parent = nullptr);
+    explicit SalesView(QObject *parent = nullptr);
 
     // Table Model overrides
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

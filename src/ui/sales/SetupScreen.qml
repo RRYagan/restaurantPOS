@@ -10,10 +10,10 @@ Rectangle {
     // Navigation State
     property int currentSubMenu: 0
     property bool sidebarCollapsed: false
-    CategoryModel { id: catModel }
-    MenuModel {
+    CategoryView { id: catModel }
+
+    MenuView {
             id: itemModel
-            // Ensure this property matches your MenuModel's expected category filter
             currentCategory: "All"
         }
 

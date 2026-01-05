@@ -7,8 +7,8 @@ Rectangle {
     id: inventoryPage
     color: "#f4f7f6"
 
-    property InventoryModel invModel
-    property UserModel usrModel
+    property InventoryView invModel
+    property UserView usrModel
     readonly property bool isManager: usrModel.isAdmin
 
     ColumnLayout {

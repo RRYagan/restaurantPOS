@@ -1,30 +1,31 @@
-#include "categorymodel.h"
+#include "categoryview.h"
 
-CategoryModel::CategoryModel(QObject *parent) : QAbstractListModel(parent) {
+CategoryView::CategoryView(QObject *parent) : QAbstractListModel(parent) {
     refresh();
 }
 
-int CategoryModel::rowCount(const QModelIndex &parent) const {
+int CategoryView::rowCount(const QModelIndex &parent) const {
     return m_categories.size();
 }
 
-QVariant CategoryModel::data(const QModelIndex &index, int role) const {
+QVariant CategoryView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_categories.size()) return QVariant();
     return m_categories.at(index.row());
 }
 
-QHash<int, QByteArray> CategoryModel::roleNames() const {
+QHash<int, QByteArray> CategoryView::roleNames() const {
     return { {NameRole, "name"} };
 }
 
-void CategoryModel::refresh() {
+void CategoryView::refresh() {
     beginResetModel();
+    m_categories.clear();
     // Logic moved to DB Manager
     m_categories = DatabaseManager::instance().fetchCategories();
     endResetModel();
 }
 
-bool CategoryModel::addCategory(const QString &name) {
+bool CategoryView::addCategory(const QString &name) {
     if (DatabaseManager::instance().addCategory(name)) {
         refresh(); // Refresh locally
         return true;
@@ -33,7 +34,7 @@ bool CategoryModel::addCategory(const QString &name) {
 }
 
 
-bool CategoryModel::editCategory(const QString &oldName, const QString &newName) {
+bool CategoryView::editCategory(const QString &oldName, const QString &newName) {
     if (newName.trimmed().isEmpty() || oldName == newName) return false;
     if (DatabaseManager::instance().updateCategory(oldName, newName)) {
         refresh();
@@ -42,7 +43,7 @@ bool CategoryModel::editCategory(const QString &oldName, const QString &newName)
     return false;
 }
 
-bool CategoryModel::deleteCategory(const QString &name) {
+bool CategoryView::deleteCategory(const QString &name) {
     if (name == "All") return false; // Protected system default
     if (DatabaseManager::instance().deleteCategory(name)) {
         refresh();

@@ -5,7 +5,7 @@ import POS.Sales 1.0
 
 Rectangle {
     id: root
-    property SalesModel salesModel: null
+    property SalesView salesModel: null
     property int orderId: -1
     color: "white"
 

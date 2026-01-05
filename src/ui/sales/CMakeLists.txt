@@ -3,13 +3,13 @@ qt_add_qml_module(POS_Sales
     URI POS.Sales
     VERSION 1.0
     SOURCES
-       models/salesmodel.h models/salesmodel.cpp
-       models/historymodel.h models/historymodel.cpp
-       models/orderdetailmodel.h models/orderdetailmodel.cpp
-       models/categorymodel.h models/categorymodel.cpp
-       models/menumodel.h models/menumodel.cpp
-       models/inventorymodel.h models/inventorymodel.cpp
-       models/usermodel.h models/usermodel.cpp
+       views/salesview.h views/salesview.cpp
+       views/historyview.h views/historyview.cpp
+       views/orderdetailview.h views/orderdetailview.cpp
+       views/categoryview.h views/categoryview.cpp
+       views/menuview.h views/menuview.cpp
+       views/inventoryview.h views/inventoryview.cpp
+       views/userview.h views/userview.cpp
 
     QML_FILES
         OrdersScreen.qml
@@ -33,7 +33,7 @@ qt_add_qml_module(POS_Sales
 )
 
 
-target_include_directories(POS_Sales PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/models")
+target_include_directories(POS_Sales PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
 target_link_libraries(POS_Sales
     PRIVATE
         Qt6::Quick

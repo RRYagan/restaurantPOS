@@ -5,7 +5,7 @@
 #include "menuitem.h"
 #include <QtQml/qqmlregistration.h>
 
-class MenuModel : public QAbstractTableModel {
+class MenuView : public QAbstractTableModel {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QString currentCategory READ currentCategory WRITE setCurrentCategory NOTIFY currentCategoryChanged)
@@ -13,7 +13,7 @@ class MenuModel : public QAbstractTableModel {
 public:
     enum MenuRole { IdRole = Qt::UserRole + 1, NameRole, CategoryRole, PriceRole, IconRole };
 
-    explicit MenuModel(QObject *parent = nullptr);
+    explicit MenuView(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;

@@ -1,9 +1,9 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "databasemanager.h"
-#include "salesmodel.h"
+#include "salesview.h"
 
-class SalesModelTest : public QObject {
+class SalesViewTest : public QObject {
     Q_OBJECT
 
 private slots:
@@ -26,7 +26,7 @@ private slots:
     // --- UNIT TESTS ---
 
     void testAddItemIncrementsRows() {
-        SalesModel model;
+        SalesView model;
         QCOMPARE(model.rowCount(), 0);
 
         // Adding a new item (ID 1: Classic Cheeseburger)
@@ -35,12 +35,12 @@ private slots:
 
         // Verify data at row 0
         QModelIndex idx = model.index(0, 0);
-        QCOMPARE(model.data(idx, SalesModel::QuantityRole).toInt(), 1);
-        QCOMPARE(model.data(idx, SalesModel::NameRole).toString(), QString("Classic Cheeseburger"));
+        QCOMPARE(model.data(idx, SalesView::QuantityRole).toInt(), 1);
+        QCOMPARE(model.data(idx, SalesView::NameRole).toString(), QString("Classic Cheeseburger"));
     }
 
     void testAddItemIncrementsQuantity() {
-        SalesModel model;
+        SalesView model;
 
         // Add same item twice
         model.addItemToOrder(1);
@@ -48,23 +48,23 @@ private slots:
 
         // Row count stays 1, but quantity increases
         QCOMPARE(model.rowCount(), 1);
-        QCOMPARE(model.data(model.index(0,0), SalesModel::QuantityRole).toInt(), 2);
+        QCOMPARE(model.data(model.index(0,0), SalesView::QuantityRole).toInt(), 2);
     }
 
     void testUpdateQuantityAndTotal() {
-        SalesModel model;
-        QSignalSpy spy(&model, &SalesModel::totalChanged);
+        SalesView model;
+        QSignalSpy spy(&model, &SalesView::totalChanged);
 
         model.addItemToOrder(1); // Price 12.50
         model.updateQuantity(0, 3); // Total should be 37.50
 
-        QCOMPARE(model.data(model.index(0,0), SalesModel::QuantityRole).toInt(), 3);
+        QCOMPARE(model.data(model.index(0,0), SalesView::QuantityRole).toInt(), 3);
         QCOMPARE(model.totalFormatted(), QString("37.50"));
         QVERIFY(spy.count() >= 2); // Once for add, once for update
     }
 
     void testRemoveItem() {
-        SalesModel model;
+        SalesView model;
         model.addItemToOrder(1);
         model.addItemToOrder(2);
         QCOMPARE(model.rowCount(), 2);
@@ -76,7 +76,7 @@ private slots:
     }
 
     void testClearOrder() {
-        SalesModel model;
+        SalesView model;
         model.addItemToOrder(1);
 
         model.clearOrder();
@@ -86,7 +86,7 @@ private slots:
     }
 
     void testCartStatePersistence() {
-        SalesModel model;
+        SalesView model;
 
         // 1. Setup: Add an item to the "Active Cart"
         model.addItemToOrder(1);
@@ -109,5 +109,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(SalesModelTest)
+QTEST_MAIN(SalesViewTest)
 #include "tst_salesmodel.moc"

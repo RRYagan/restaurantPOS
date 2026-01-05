@@ -1,23 +1,23 @@
 #include "databasemanager.h"
-#include "menumodel.h"
+#include "menuview.h"
 #include <QAbstractTableModel>
 #include <QVariant>
 #include <QSqlQuery>
 #include <QSqlError>
 
-MenuModel::MenuModel(QObject *parent) : QAbstractTableModel(parent) {
+MenuView::MenuView(QObject *parent) : QAbstractTableModel(parent) {
     refresh();
 }
 
-int MenuModel::rowCount(const QModelIndex &parent) const {
+int MenuView::rowCount(const QModelIndex &parent) const {
     return m_data.size();
 }
 
-int MenuModel::columnCount(const QModelIndex &parent) const {
+int MenuView::columnCount(const QModelIndex &parent) const {
     return 4; // id, name, price, icon
 }
 
-QVariant MenuModel::data(const QModelIndex &index, int role) const {
+QVariant MenuView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_data.size())
         return QVariant();
 
@@ -34,7 +34,7 @@ QVariant MenuModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> MenuModel::roleNames() const {
+QHash<int, QByteArray> MenuView::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[IdRole] = "id";
     roles[NameRole] = "name";
@@ -44,7 +44,7 @@ QHash<int, QByteArray> MenuModel::roleNames() const {
     return roles;
 }
 
-void MenuModel::setCurrentCategory(const QString &category) {
+void MenuView::setCurrentCategory(const QString &category) {
     if (m_currentCategory == category) return;
 
     m_currentCategory = category;
@@ -52,15 +52,15 @@ void MenuModel::setCurrentCategory(const QString &category) {
     emit currentCategoryChanged();
 }
 
-void MenuModel::refresh() {
+void MenuView::refresh() {
     beginResetModel();
     // Ask the DB Manager for the specific data we need right now
     m_data = DatabaseManager::instance().fetchMenuItems(m_currentCategory);
     endResetModel();
 }
-// In menumodel.cpp
+// In menuview.cpp
 
-bool MenuModel::addMenuItem(const QString &name, const QString &category, int price, const QString &icon) {
+bool MenuView::addMenuItem(const QString &name, const QString &category, int price, const QString &icon) {
     if (DatabaseManager::instance().addMenuItem(name, category, price, icon)) {
         refresh(); // Refresh UI list
         return true;
@@ -69,7 +69,7 @@ bool MenuModel::addMenuItem(const QString &name, const QString &category, int pr
 }
 
 
-bool MenuModel::deleteItem(int itemId) {
+bool MenuView::deleteItem(int itemId) {
     if (DatabaseManager::instance().deleteMenuItem(itemId)) {
         refresh();
         return true;

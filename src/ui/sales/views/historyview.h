@@ -6,7 +6,7 @@
 #include <orderitem.h>
 #include <QtQml/qqmlregistration.h>
 
-class HistoryModel : public QAbstractTableModel
+class HistoryView : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
@@ -19,7 +19,7 @@ public:
 
     };
 
-    explicit HistoryModel(QObject *parent = nullptr);
+    explicit HistoryView(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;

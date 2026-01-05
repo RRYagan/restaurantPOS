@@ -7,7 +7,7 @@ Rectangle {
     id: root
     property string currentOrderId: ""
     onCurrentOrderIdChanged: console.log("New Order ID received in Details Screen:", currentOrderId)
-    property OrderDetailModel detailsModel: null
+    property OrderDetailView detailsModel: null
     color: "#f8f9fa"
 
     ColumnLayout {

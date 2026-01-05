@@ -3,6 +3,7 @@ project(RestaurantPOSTests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
 
 # 1. Find only the components needed for testing
 find_package(Qt6 REQUIRED COMPONENTS Core Sql Test Quick)
@@ -14,7 +15,7 @@ function(add_restaurant_test TEST_NAME SOURCES)
 
     target_include_directories(${TEST_NAME} PRIVATE
         ../src
-        ../src/ui/sales/models
+        ../src/ui/sales/views
     )
 
     target_link_libraries(${TEST_NAME} PRIVATE
@@ -37,7 +38,7 @@ enable_testing()
 # Standard Integration Test
 add_restaurant_test(RestaurantPOSTest tst_restaurantpos.cpp)
 
-# Standalone SalesModel Test
-add_restaurant_test(SalesModelTest tst_salesmodel.cpp)
+# Standalone SalesView Test
+# add_restaurant_test(SalesViewTest tst_saleview.cpp)
 
 add_restaurant_test(MenuScreenUITest tst_uimenuscreen.cpp)

@@ -10,10 +10,10 @@ Rectangle {
 
 
 
-    property SalesModel salesModel: null
+    property SalesView salesModel: null
 
-    CategoryModel { id: catModel }
-    MenuModel {
+    CategoryView { id: catModel }
+    MenuView {
         id: menuModel
         currentCategory: "All"
         }

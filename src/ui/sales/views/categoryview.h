@@ -7,13 +7,13 @@
 #include <QDebug>
 #include "databasemanager.h"
 
-class CategoryModel : public QAbstractListModel {
+class CategoryView : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
 public:
     enum Roles { NameRole = Qt::UserRole + 1 };
 
-    explicit CategoryModel(QObject *parent = nullptr);
+    explicit CategoryView(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;

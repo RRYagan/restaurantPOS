@@ -4,8 +4,8 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include "databasemanager.h"
-#include "salesmodel.h"
-#include "menumodel.h"
+#include "salesview.h"
+#include "menuview.h"
 
 class MenuScreenUITest : public QObject {
     Q_OBJECT
@@ -17,7 +17,7 @@ private slots:
 
         // Register the C++ types that the QML engine expects to see
         // qmlRegisterType<MenuModel>("POS.Menu", 1, 0, "MenuModel");
-        // qmlRegisterType<SalesModel>("POS.Sales", 1, 0, "SalesModel");
+        // qmlRegisterType<SalesView>("POS.Sales", 1, 0, "SalesView");
     }
 
     void cleanupTestCase() {
@@ -45,7 +45,7 @@ private slots:
         QVERIFY2(view.status() == QQuickView::Ready, "QML failed to load. Check qDebug output for errors.");
 
         // In your test function after QVERIFY(view.status() == QQuickView::Ready)
-        SalesModel* testModel = new SalesModel(&view);
+        SalesView* testModel = new SalesView(&view);
         view.rootObject()->setProperty("salesModel", QVariant::fromValue(testModel));
 
         // Now test the logic

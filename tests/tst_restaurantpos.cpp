@@ -1,8 +1,8 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "databasemanager.h"
-#include "salesmodel.h"
-#include "menumodel.h"
+#include "salesview.h"
+#include "menuview.h"
 #include "money.h"
 #include "order.h"
 
@@ -61,9 +61,9 @@ private slots:
     }
 
     // --- SALES MODEL STATE & SIGNALS (salesmodel.cpp) ---
-    void testSalesModelSignalsAndState() {
-        SalesModel model;
-        QSignalSpy spy(&model, &SalesModel::totalChanged);
+    void testSalesViewSignalsAndState() {
+        SalesView model;
+        QSignalSpy spy(&model, &SalesView::totalChanged);
 
         // Test addItemToOrder (Uses DB fetch)
         model.addItemToOrder(1); // Classic Cheeseburger (12.50)
@@ -72,7 +72,7 @@ private slots:
 
         // Test Quantity Update logic
         model.updateQuantity(0, 3);
-        QCOMPARE(model.data(model.index(0,0), SalesModel::QuantityRole).toInt(), 3);
+        QCOMPARE(model.data(model.index(0,0), SalesView::QuantityRole).toInt(), 3);
         QCOMPARE(model.totalFormatted(), QString("37.50"));
 
         // Test Removal
@@ -83,11 +83,11 @@ private slots:
 
     // --- INTEGRATION: DB PERSISTENCE ---
     void testFullPersistenceCycle() {
-        SalesModel model;
+        SalesView model;
         model.addItemToOrder(1);
 
         // Capture the ID before making the order (or from the model after)
-        // Assuming you've updated SalesModel to expose the ID of the pending order
+        // Assuming you've updated SalesView to expose the ID of the pending order
         // Or check the database for the last inserted record.
 
         QVERIFY(model.makeOrder());
@@ -106,8 +106,8 @@ private slots:
     }
 
     void testMakeOrderSignalFlow() {
-        SalesModel model;
-        QSignalSpy totalSpy(&model, &SalesModel::totalChanged);
+        SalesView model;
+        QSignalSpy totalSpy(&model, &SalesView::totalChanged);
 
         // Signal 1: addItemToOrder calls calculateTotal()
         model.addItemToOrder(1);

@@ -8,7 +8,7 @@ Rectangle {
     color: "#f4f7f6" // Matches the UI theme [cite: 1]
 
     // Instantiate the UserModel to handle the staff list
-    property UserModel staffModel
+    property UserView staffModel
 
     // Reference the global DatabaseManager to check permissions [cite: 1]
     readonly property bool isManager: staffModel.isAdmin

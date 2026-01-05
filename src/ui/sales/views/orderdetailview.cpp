@@ -1,16 +1,16 @@
-#include "orderdetailmodel.h"
+#include "orderdetailview.h"
 
-OrderDetailModel::OrderDetailModel(QObject *parent) : QAbstractTableModel(parent) {}
+OrderDetailView::OrderDetailView(QObject *parent) : QAbstractTableModel(parent) {}
 
-int OrderDetailModel::rowCount(const QModelIndex &parent) const {
+int OrderDetailView::rowCount(const QModelIndex &parent) const {
     return m_items.size();
 }
 
-int OrderDetailModel::columnCount(const QModelIndex &parent) const {
+int OrderDetailView::columnCount(const QModelIndex &parent) const {
     return 3;
 }
 
-QVariant OrderDetailModel::data(const QModelIndex &index, int role) const {
+QVariant OrderDetailView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_items.size())
         return QVariant();
 
@@ -23,7 +23,7 @@ QVariant OrderDetailModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> OrderDetailModel::roleNames() const {
+QHash<int, QByteArray> OrderDetailView::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[QuantityRole] = "quantity";
@@ -31,7 +31,7 @@ QHash<int, QByteArray> OrderDetailModel::roleNames() const {
     return roles;
 }
 
-void OrderDetailModel::loadOrder(const QString& orderId) {
+void OrderDetailView::loadOrder(const QString& orderId) {
     beginResetModel();
     m_items.clear();
 

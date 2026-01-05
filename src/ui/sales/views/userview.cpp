@@ -1,16 +1,16 @@
-#include "usermodel.h"
+#include "userview.h"
 #include "databasemanager.h"
 #include <QSqlQuery>
 
-UserModel::UserModel(QObject *parent) : QAbstractListModel(parent) {
+UserView::UserView(QObject *parent) : QAbstractListModel(parent) {
     refresh();
 }
 
-int UserModel::rowCount(const QModelIndex &parent) const {
+int UserView::rowCount(const QModelIndex &parent) const {
     return parent.isValid() ? 0 : m_users.size();
 }
 
-QVariant UserModel::data(const QModelIndex &index, int role) const {
+QVariant UserView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_users.size()) return QVariant();
     const auto &user = m_users[index.row()];
     if (role == UsernameRole) return user.username;
@@ -19,11 +19,11 @@ QVariant UserModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> UserModel::roleNames() const {
+QHash<int, QByteArray> UserView::roleNames() const {
     return { {UsernameRole, "username"}, {RoleRole, "role"}, {IdRole, "id"} };
 }
 
-void UserModel::refresh() {
+void UserView::refresh() {
     beginResetModel();
     m_users.clear();
     QSqlQuery query("SELECT id, username, role FROM users");
@@ -34,7 +34,7 @@ void UserModel::refresh() {
 }
 
 // Call DatabaseManager methods
-bool UserModel::addUser(const QString &user, const QString &pass, const QString &role) {
+bool UserView::addUser(const QString &user, const QString &pass, const QString &role) {
     if (DatabaseManager::instance().addUser(user, pass, role)) {
         refresh();
         return true;
@@ -42,19 +42,19 @@ bool UserModel::addUser(const QString &user, const QString &pass, const QString 
     return false;
 }
 
-// usermodel.cpp
+// userview.cpp
 
-bool UserModel::isLoggedIn() const {
+bool UserView::isLoggedIn() const {
     return DatabaseManager::instance().currentUser().isValid;
 }
 
-QString UserModel::currentUserRole() const {
+QString UserView::currentUserRole() const {
     return DatabaseManager::instance().currentUser().role;
 }
-bool UserModel::isAdmin() const {
+bool UserView::isAdmin() const {
     return DatabaseManager::instance().isAdmin();
 }
-bool UserModel::login(const QString &username, const QString &password) {
+bool UserView::login(const QString &username, const QString &password) {
     if (DatabaseManager::instance().verifyUser(username, password)) {
         emit sessionChanged();
         return true;
@@ -62,12 +62,12 @@ bool UserModel::login(const QString &username, const QString &password) {
     return false;
 }
 
-void UserModel::logout() {
+void UserView::logout() {
     DatabaseManager::instance().logout();
     emit sessionChanged();
 }
 
-bool UserModel::deleteUser(int id) {
+bool UserView::deleteUser(int id) {
     // Session check: Only managers can delete users
     if (currentUserRole() != "manager") {
         qDebug() << "Unauthorized: Manager role required to delete users.";

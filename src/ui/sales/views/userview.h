@@ -5,7 +5,7 @@
 #include <user.h>
 #include <QtQml/qqmlregistration.h>
 
-class UserModel : public QAbstractListModel {
+class UserView : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
 
@@ -14,7 +14,7 @@ class UserModel : public QAbstractListModel {
 
 public:
     enum UserRoles { IdRole = Qt::UserRole + 1, UsernameRole, RoleRole };
-    explicit UserModel(QObject *parent = nullptr);
+    explicit UserView(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;

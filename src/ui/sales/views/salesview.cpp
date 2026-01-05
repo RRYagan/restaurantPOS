@@ -1,4 +1,4 @@
-#include "salesmodel.h"
+#include "salesview.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -6,18 +6,18 @@
 #include <order.h>
 #include <databasemanager.h>
 
-SalesModel::SalesModel(QObject *parent) : QAbstractTableModel(parent) {}
+SalesView::SalesView(QObject *parent) : QAbstractTableModel(parent) {}
 
-int SalesModel::columnCount(const QModelIndex &parent) const {
+int SalesView::columnCount(const QModelIndex &parent) const {
     return 3; // Quantity, Name, Price
 }
 
-int SalesModel::rowCount(const QModelIndex &parent) const {
+int SalesView::rowCount(const QModelIndex &parent) const {
     // Determine row count based on the current active view mode
     return m_items.size();
 }
 
-QVariant SalesModel::data(const QModelIndex &index, int role) const {
+QVariant SalesView::data(const QModelIndex &index, int role) const {
     if (!index.isValid())
         return QVariant();
 
@@ -39,7 +39,7 @@ QVariant SalesModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> SalesModel::roleNames() const {
+QHash<int, QByteArray> SalesView::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[QuantityRole] = "quantity";
     roles[NameRole] = "name";
@@ -51,7 +51,7 @@ QHash<int, QByteArray> SalesModel::roleNames() const {
 
 // --- Cart Actions ---
 
-void SalesModel::addItemToOrder(int menuItemId) {
+void SalesView::addItemToOrder(int menuItemId) {
     for (int i = 0; i < m_items.size(); i++) {
         if (m_items[i].menuItemId == menuItemId) {
             m_items[i].quantity += 1;
@@ -82,7 +82,7 @@ void SalesModel::addItemToOrder(int menuItemId) {
     }
 }
 
-void SalesModel::removeItem(int index) {
+void SalesView::removeItem(int index) {
     if (index < 0 || index >= m_items.size()) return;
 
     beginRemoveRows(QModelIndex(), index, index);
@@ -92,7 +92,7 @@ void SalesModel::removeItem(int index) {
     calculateTotal();
 }
 
-void SalesModel::updateQuantity(int index, int newQuantity) {
+void SalesView::updateQuantity(int index, int newQuantity) {
     if (index < 0 || index >= m_items.size() || newQuantity <= 0) return;
 
     m_items[index].quantity = newQuantity;
@@ -102,7 +102,7 @@ void SalesModel::updateQuantity(int index, int newQuantity) {
     calculateTotal();
 }
 
-void SalesModel::clearOrder() {
+void SalesView::clearOrder() {
     beginResetModel();
     m_items.clear();
     m_currentOrderId = "";
@@ -116,7 +116,7 @@ void SalesModel::clearOrder() {
 
 // --- Database & Utility ---
 
-bool SalesModel::makeOrder() {
+bool SalesView::makeOrder() {
     if (m_items.isEmpty()) return false;
 
     m_isBusy = true;
@@ -140,7 +140,7 @@ bool SalesModel::makeOrder() {
     return success;
 }
 
-void SalesModel::calculateTotal() {
+void SalesView::calculateTotal() {
     int64_t total = 0;
     // Calculate total based on whichever list is currently being viewed
     const QList<OrderItem> &currentList = m_items;
@@ -152,6 +152,6 @@ void SalesModel::calculateTotal() {
     emit totalChanged();
 }
 
-QString SalesModel::totalFormatted() const {
+QString SalesView::totalFormatted() const {
     return m_totalMoney.toString();
 }

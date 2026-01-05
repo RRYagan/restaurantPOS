@@ -11,19 +11,19 @@ ApplicationWindow {
     title: "Restaurant POS"
     // --- 1. Separate Model Instances ---
     // Handles the active shopping cart (Menu Page)
-    SalesModel {
+    SalesView {
         id: globalCartModel
     }
 
     // Handles database lookups (History Page)
-    HistoryModel {
+    HistoryView {
         id: globalHistoryModel
     }
-    OrderDetailModel {
+    OrderDetailView {
         id: globalOrderDetailModel
     }
-    UserModel { id: globalUserModel }
-        InventoryModel { id: globalInventoryModel }
+    UserView{ id: globalUserModel }
+        InventoryView { id: globalInventoryModel }
 
     property bool isFullScreen: false
         StackView {

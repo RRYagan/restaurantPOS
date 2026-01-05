@@ -1,16 +1,16 @@
-#include "inventorymodel.h"
+#include "inventoryview.h"
 #include "databasemanager.h"
 #include <QSqlQuery>
 
-InventoryModel::InventoryModel(QObject *parent) : QAbstractListModel(parent) {
+InventoryView::InventoryView(QObject *parent) : QAbstractListModel(parent) {
     refresh();
 }
 
-int InventoryModel::rowCount(const QModelIndex &parent) const {
+int InventoryView::rowCount(const QModelIndex &parent) const {
     return parent.isValid() ? 0 : m_items.size();
 }
 
-QVariant InventoryModel::data(const QModelIndex &index, int role) const {
+QVariant InventoryView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_items.size()) return QVariant();
     const auto &item = m_items[index.row()];
     switch (role) {
@@ -22,11 +22,11 @@ QVariant InventoryModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> InventoryModel::roleNames() const {
+QHash<int, QByteArray> InventoryView::roleNames() const {
     return { {NameRole, "name"}, {QuantityRole, "quantity"}, {UnitRole, "unit"}, {IdRole, "id"} };
 }
 
-void InventoryModel::refresh() {
+void InventoryView::refresh() {
     beginResetModel();
     m_items.clear();
     QSqlQuery query("SELECT id, name, quantity, unit FROM inventory");
@@ -38,7 +38,7 @@ void InventoryModel::refresh() {
 }
 
 // Call DatabaseManager methods
-bool InventoryModel::addStock(const QString &name, int qty, const QString &unit) {
+bool InventoryView::addStock(const QString &name, int qty, const QString &unit) {
     if (DatabaseManager::instance().addInventoryItem(name, qty, unit)) {
         refresh();
         return true;
@@ -46,7 +46,7 @@ bool InventoryModel::addStock(const QString &name, int qty, const QString &unit)
     return false;
 }
 
-bool InventoryModel::updateStock(int id, const QString &name, int qty, const QString &unit) {
+bool InventoryView::updateStock(int id, const QString &name, int qty, const QString &unit) {
     if (DatabaseManager::instance().updateInventoryItem(id, name, qty, unit)) {
         refresh();
         return true;
