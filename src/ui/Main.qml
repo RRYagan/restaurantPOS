@@ -8,144 +8,86 @@ ApplicationWindow {
     width: 1024
     height: 768
     visible: true
-    title: "Restaurant POS"
-    // --- 1. Separate Model Instances ---
-    // Handles the active shopping cart (Menu Page)
-    SalesView {
-        id: globalCartModel
-    }
+    title: "Premium POS System"
 
-    // Handles database lookups (History Page)
-    HistoryView {
-        id: globalHistoryModel
-    }
-    OrderDetailView {
-        id: globalOrderDetailModel
-    }
-    UserView{ id: globalUserModel }
-        InventoryView { id: globalInventoryModel }
+    // Model Logic
+    SalesView { id: globalCartModel }
+    HistoryView { id: globalHistoryModel }
+    OrderDetailView { id: globalOrderDetailModel }
+    UserView { id: globalUserModel }
+    InventoryView { id: globalInventoryModel }
 
-    property bool isFullScreen: false
-        StackView {
-                id: rootStack
-                anchors.fill: parent
+    property bool sidebarCollapsed: width < 900
 
-                // Use the separate file as initial item
-                initialItem: loginScreenComponent
-
-                replaceEnter: Transition {
-                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 400 }
-                }
-            }
-
-            // Component wrapper for the external file
-            Component {
-                id: loginScreenComponent
-                LoginScreen {
-                    onLoginSuccess: rootStack.replace(mainLayout)
-                }
-            }
-            Component {
-                    id: mainLayout
-    RowLayout {
+    StackView {
+        id: rootStack
         anchors.fill: parent
-        spacing: 0
+        initialItem: loginScreenComponent
+    }
 
-        // --- Sidebar ---
+    Component {
+        id: loginScreenComponent
+        LoginScreen { onLoginSuccess: rootStack.replace(mainLayout) }
+    }
+
+    Component {
+        id: mainLayout
         Rectangle {
-            id: sidebar
-            Layout.fillHeight: true
-            Layout.preferredWidth: window.isFullScreen ? 0 : 200
-            color: "#2c3e50"
-            clip: true
+            color: "#0a1118"
+            anchors.fill: parent
 
-            Behavior on Layout.preferredWidth {
-                NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
-            }
-
-            ColumnLayout {
+            RowLayout {
                 anchors.fill: parent
-                anchors.margins: 10
-                spacing: 15
-                opacity: window.isFullScreen ? 0 : 1
+                spacing: 0
 
-                Label {
-                    text: "POS SYSTEM"
-                    color: "white"
-                    font.pixelSize: 20
-                    font.bold: true
-                    Layout.alignment: Qt.AlignHCenter
+                SideBar {
+                    id: sideNav
+                    isCollapsed: window.sidebarCollapsed
+                    targetStack: contentStack
+
+                    menuModel: [
+                        { name: "Menu / Ordering", view: menuView, icon: "🍴" },
+                        { name: "Order History", view: salesView, icon: "📋" },
+                        {
+                            name: "System Setup",
+                            icon: "⚙",
+                            subItems: [
+                                { name: "Menu Setup", view: menuSetupView },
+                                { name: "Table Setup", view: tableSetupView },
+                                { name: "Theme Setup", view: themeSetupView }
+                            ]
+                        },
+                        { name: "User Management", view: userMgmtView, icon: "👤" },
+                        { name: "Inventory", view: inventoryView, icon: "📦" }
+                    ]
                 }
 
-                Button {
-                    text: "Menu / Ordering"
+                // Ensure the sub-views are defined in the contentStack area
+                Component { id: menuSetupView; MenuSetup { objectName: "Menu Setup" } }
+                Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
+                Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
+
+                // --- MAIN VIEWPORT ---
+                // Now stretches edge-to-edge without a top bar
+                StackView {
+                    id: contentStack
                     Layout.fillWidth: true
-                    onClicked: contentStack.replace(menuView)
-                }
+                    Layout.fillHeight: true
+                    clip: true
+                    initialItem: menuView
 
-                Button {
-                    text: "Order History"
-                    Layout.fillWidth: true
-                    onClicked: contentStack.replace(salesView)
-                }
-                Button {
-                    text: "⚙ System Setup"
-                    Layout.fillWidth: true
-                    onClicked: contentStack.replace(setupView)
-                }
-                Button {
-                    text: "👤 User Management"
-                    Layout.fillWidth: true
-                    // Only show if the current session is a manager
-                    // visible: globalUserModel.isAdmin()
-                    onClicked: contentStack.replace(userMgmtView)
-                }
-                Button {
-                    text: "📦 Inventory"
-                    Layout.fillWidth: true
-                    onClicked: contentStack.replace(inventoryView)
-                }
+                    Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
+                    Component { id: salesView; OrdersScreen { hModel: globalHistoryModel } }
+                    Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
+                    Component { id: setupView; SetupScreen { } }
+                    Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
+                    Component { id: inventoryView; InventoryManagement { invModel: globalInventoryModel; usrModel: globalUserModel } }
 
-                Item { Layout.fillHeight: true }
-            }
-        }
-
-        // --- Main Content Area ---
-        StackView {
-            id: contentStack
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            initialItem: menuView
-
-            // 2. Assign the appropriate model to each view
-                Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
-                Component { id: salesView; OrdersScreen { hModel: globalHistoryModel } }
-                Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
-                Component { id: setupView; SetupScreen { } }
-                Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
-                Component { id: inventoryView; InventoryManagement { invModel: globalInventoryModel; usrModel: globalUserModel } }
-
-            // Slide Transitions
-            replaceEnter: Transition {
-                PropertyAnimation {
-                    property: "x"
-                    from: contentStack.width
-                    to: 0
-                    duration: 300
-                    easing.type: Easing.OutCubic
-                }
-            }
-            replaceExit: Transition {
-                PropertyAnimation {
-                    property: "x"
-                    from: 0
-                    to: -contentStack.width
-                    duration: 300
-                    easing.type: Easing.OutCubic
+                    // Smooth Fade transition for cleaner feel
+                    replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 } }
+                    replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 } }
                 }
             }
         }
     }
-}
 }
