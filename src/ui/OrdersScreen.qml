@@ -5,168 +5,68 @@ import POS.UI 1.0
 
 Rectangle {
     id: root
-    color: "#f8f9fa"
+    color: "transparent"
 
-    // PROPERTIES: Use specific names to avoid QML Binding Loops
-    // hModel is the HistoryModel (QAbstractTableModel)
-    // cModel is the SalesModel (used here only for fetching details)
     property HistoryView hModel: null
     property SalesView cModel: null
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
-        spacing: 15
+        anchors.fill: parent; anchors.margins: 20; spacing: 15
 
-        // --- Header Section ---
         RowLayout {
             Layout.fillWidth: true
-
             ColumnLayout {
                 spacing: 2
-                Text {
-                    text: "Order History"
-                    font.pixelSize: 28
-                    font.bold: true
-                    color: "#2c3e50"
-                }
-                Text {
-                    text: "View and manage past transactions"
-                    font.pixelSize: 14
-                    color: "#7f8c8d"
-                }
+                Text { text: "Order History"; font.pixelSize: 28; font.bold: true; color: "white" }
+                Text { text: "View and manage past transactions"; font.pixelSize: 14; color: "#bdc3c7" }
             }
-
             Item { Layout.fillWidth: true }
-
             Button {
                 text: "↻ Refresh List"
-                flat: false
                 onClicked: if (root.hModel) root.hModel.loadOrderHistory()
             }
         }
 
-        // --- History Table/List ---
         Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "white"
-            radius: 8
-            border.color: "#e0e0e0"
+            Layout.fillWidth: true; Layout.fillHeight: true
+            color: Qt.rgba(0, 0, 0, 0.4)
+            radius: 12
+            border.color: Qt.rgba(255, 255, 255, 0.1)
             clip: true
 
             ListView {
                 id: historyListView
-                anchors.fill: parent
+                anchors.fill: parent; anchors.margins: 1
                 model: root.hModel
-                boundsBehavior: Flickable.StopAtBounds
-
-                // Header for the list columns
                 headerPositioning: ListView.OverlayHeader
                 header: Rectangle {
-                    width: historyListView.width
-                    height: 40
-                    color: "#f1f2f6"
-                    z: 2
+                    width: historyListView.width; height: 45; color: Qt.rgba(1, 1, 1, 0.1); z: 2
                     RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        anchors.rightMargin: 15
-                        Text { text: "Order Reference"; font.bold: true; Layout.fillWidth: true }
-                        Text { text: "Date & Time"; font.bold: true; Layout.preferredWidth: 150 }
-                        Text { text: "Action"; font.bold: true; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                        anchors.fill: parent; anchors.margins: 15
+                        Text { text: "Order Reference"; font.bold: true; color: "white"; Layout.fillWidth: true }
+                        Text { text: "Date & Time"; font.bold: true; color: "white"; Layout.preferredWidth: 150 }
                     }
                 }
 
                 delegate: ItemDelegate {
-                    width: historyListView.width
-                    height: 60
-
+                    width: historyListView.width; height: 60
                     background: Rectangle {
-                        color: hovered ? "#f9f9f9" : "transparent"
-                        Rectangle {
-                            anchors.bottom: parent.bottom
-                            width: parent.width
-                            height: 1
-                            color: "#eeeeee"
-                        }
+                        color: hovered ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.05) }
                     }
-
                     contentItem: RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        anchors.rightMargin: 15
-
-                        ColumnLayout {
-                            spacing: 2
-                            Layout.fillWidth: true
-                            Text {
-                                // Using displayTitle role from HistoryModel
-                                text: model.displayTitle
-                                font.pixelSize: 16
-                                font.bold: true
-                                color: "#34495e"
-                            }
-                            Text {
-                                text: "ID: " + model.orderId
-                                font.pixelSize: 11
-                                color: "#95a5a6"
-                            }
-                        }
-
-                        Text {
-                            text: model.date
-                            Layout.preferredWidth: 150
-                            color: "#7f8c8d"
-                        }
-
-                        Image {
-                            source: "assets/icons/details.png" // Replace with your icon
-                            Layout.preferredWidth: 20
-                            Layout.preferredHeight: 20
-                            fillMode: Image.PreserveAspectFit
-                            opacity: 0.5
-                        }
+                        anchors.fill: parent; anchors.margins: 15
+                        Text { text: model.displayTitle; color: "white"; font.bold: true; Layout.fillWidth: true }
+                        Text { text: model.date; color: "#bdc3c7"; Layout.preferredWidth: 150 }
                     }
-
-                    // SalesScreen.qml
                     onClicked: {
-                        // 1. Load data into the SEPARATE detail model
                         globalOrderDetailModel.loadOrder(model.orderId)
-
-                        // 2. Navigate to the screen
-                        contentStack.push(orderDetailsView, {
-                            "currentOrderId": model.orderId
-                        })
+                        contentStack.push(orderDetailsView, { "currentOrderId": model.orderId })
                     }
                 }
-
-                // Placeholder when list is empty
-                Label {
-                    anchors.centerIn: parent
-                    text: "No orders found in database."
-                    visible: historyListView.count === 0
-                    color: "#bdc3c7"
-                    font.pixelSize: 18
-                }
-            }
-        }
-
-        // --- Footer Info ---
-        RowLayout {
-            Layout.fillWidth: true
-            Text {
-                color: "#95a5a6"
-                font.pixelSize: 12
-                text: "Total Database Records: " + (root.hModel ? root.hModel.rowCount() : 0)
             }
         }
     }
 
-    // Automatically load history when the component is created
-    Component.onCompleted: {
-        if (root.hModel) {
-            root.hModel.loadOrderHistory()
-        }
-    }
+    Component.onCompleted: if (root.hModel) root.hModel.loadOrderHistory()
 }

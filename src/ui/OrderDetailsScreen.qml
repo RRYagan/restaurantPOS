@@ -6,117 +6,68 @@ import POS.UI 1.0
 Rectangle {
     id: root
     property string currentOrderId: ""
-    onCurrentOrderIdChanged: console.log("New Order ID received in Details Screen:", currentOrderId)
     property OrderDetailView detailsModel: null
-    color: "#f8f9fa"
+    color: "transparent"
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 25
-        spacing: 20
+        anchors.fill: parent; anchors.margins: 25; spacing: 20
 
-        // Header with Back Button
-        // Header with Back Button and Locked Status
         RowLayout {
+            spacing: 15
             Button {
                 text: "← Back"
                 onClicked: contentStack.pop()
             }
 
-            // New "Locked" Indicator
             Rectangle {
-                color: "#ffebee"
+                color: Qt.rgba(1, 0, 0, 0.2)
                 border.color: "#ef5350"
                 radius: 4
-                implicitWidth: 80
-                implicitHeight: 30
-
+                implicitWidth: 90; implicitHeight: 32
                 Row {
-                    anchors.centerIn: parent
-                    spacing: 5
+                    anchors.centerIn: parent; spacing: 5
                     Text { text: "🔒"; font.pixelSize: 14 }
-                    Text {
-                        text: "LOCKED"
-                        color: "#c62828"
-                        font.bold: true
-                        font.pixelSize: 11
-                    }
+                    Text { text: "LOCKED"; color: "white"; font.bold: true; font.pixelSize: 11 }
                 }
             }
 
-            Text {
-                text: "Order Details #" + currentOrderId
-                font.pixelSize: 22
-                font.bold: true
-            }
+            Text { text: "Order Details #" + currentOrderId; font.pixelSize: 24; font.bold: true; color: "white" }
+            Item { Layout.fillWidth: true }
         }
-        // 1) Order Breakdown List
+
         Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "white"
-            border.color: "#ddd"
-            radius: 4
-
-            ListView {
-                anchors.fill: parent
-                anchors.margins: 10
-                Layout.fillWidth: true
-                model: detailsModel
-                clip: true
-                header: RowLayout {
-                    width: parent.width
-                    Text { text: "Item"; font.bold: true; Layout.fillWidth: true }
-                    Text { text: "Qty"; font.bold: true; Layout.preferredWidth: 40 }
-                    Text { text: "Price"; font.bold: true; Layout.preferredWidth: 80 }
+            Layout.fillWidth: true; Layout.fillHeight: true
+            color: Qt.rgba(0, 0, 0, 0.4); radius: 12; border.color: Qt.rgba(255, 255, 255, 0.1)
+            ColumnLayout {
+                anchors.fill: parent; anchors.margins: 20; spacing: 10
+                RowLayout {
+                    Text { text: "Item"; font.bold: true; color: "#bdc3c7"; Layout.fillWidth: true }
+                    Text { text: "Qty"; font.bold: true; color: "#bdc3c7"; Layout.preferredWidth: 60; horizontalAlignment: Text.AlignHCenter }
+                    Text { text: "Price"; font.bold: true; color: "#bdc3c7"; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
                 }
-                delegate: ItemDelegate {
-                    width: parent.width
-                    contentItem: RowLayout {
-                        Text { text: model.name; Layout.fillWidth: true }
-                        Text { text: model.quantity.toString(); Layout.preferredWidth: 40 }
-                        Text { text: model.price.formatted; Layout.preferredWidth: 80 }
+                Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.1) }
+                ListView {
+                    id: detailsList; Layout.fillWidth: true; Layout.fillHeight: true; model: detailsModel; clip: true; spacing: 5
+                    delegate: ItemDelegate {
+                        width: detailsList.width; height: 45
+                        background: Rectangle { color: hovered ? Qt.rgba(1, 1, 1, 0.05) : "transparent" }
+                        contentItem: RowLayout {
+                            Text { text: model.name; color: "white"; font.pixelSize: 15; Layout.fillWidth: true }
+                            Text { text: model.quantity.toString(); color: "white"; Layout.preferredWidth: 60; horizontalAlignment: Text.AlignHCenter }
+                            Text { text: model.price ? model.price.formatted : "0.00"; color: "#2ecc71"; font.bold: true; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
+                        }
                     }
                 }
             }
         }
 
-        // 2) Action Buttons
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 15
-
-            Button {
-                text: "Print Kitchen Receipt"
-                Layout.fillWidth: true
-                onClicked: console.log("Printing Kitchen Copy for Order:", currentOrderId)
-            }
-
-            Button {
-                text: "Print Customer Receipt"
-                highlighted: true
-                Layout.fillWidth: true
-                onClicked: console.log("Printing Customer Copy for Order:", currentOrderId)
-            }
-            Button {
-                    text: "Proceed to Payment >"
-                    highlighted: true
-                    palette.button: "#2ecc71"
-                    Layout.fillWidth: true
-                    onClicked: contentStack.push("PaymentPage.qml", {
-                        "salesModel": salesModel,
-                        "orderId": currentOrderId
-                    })
-                }
+            Layout.fillWidth: true; spacing: 15
+            Button { text: "Print Kitchen Receipt"; Layout.fillWidth: true; Layout.preferredHeight: 50 }
+            Button { text: "Print Customer Receipt"; highlighted: true; Layout.fillWidth: true; Layout.preferredHeight: 50 }
+            Button { text: "Proceed to Payment >"; highlighted: true; palette.button: "#2ecc71"; Layout.fillWidth: true; Layout.preferredHeight: 50 }
         }
     }
 
-    Component.onCompleted: {
-        if (currentOrderId !== "" && detailsModel !== null) {
-            detailsModel.loadOrder(currentOrderId); // Use the new loadOrder method
-        } else {
-            console.error("OrderDetailsScreen: salesModel is null or OrderID is invalid. " +
-                                  "ID: '" + currentOrderId + "', Model: " + historyModel);
-            }
-    }
+    Component.onCompleted: if (currentOrderId !== "" && detailsModel !== null) detailsModel.loadOrder(currentOrderId)
 }
