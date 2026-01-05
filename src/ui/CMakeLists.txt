@@ -2,6 +2,7 @@ qt_add_qml_module(POS_UI
     STATIC
     URI POS.UI
     VERSION 1.0
+
     SOURCES
        views/salesview.h views/salesview.cpp
        views/historyview.h views/historyview.cpp
@@ -29,6 +30,8 @@ qt_add_qml_module(POS_UI
         UserManagement.qml
         LoginScreen.qml
 
+        SideBar.qml
+
     RESOURCES
         "assets/icons/default.png"
 )
@@ -38,6 +41,7 @@ target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
 target_link_libraries(POS_UI
     PRIVATE
         Qt6::Quick
+        Qt6::QuickControls2
         Qt6::Sql
         PosCoreEntities
         PosCoreDatabase

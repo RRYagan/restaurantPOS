@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. Find Qt6 components
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql)
 
 # 2. Modern Qt Setup
 qt_standard_project_setup(REQUIRES 6.8)
@@ -28,6 +28,7 @@ target_link_libraries(RestaurantPOS
     PRIVATE
         Qt6::Quick
         Qt6::Sql
+        Qt6::QuickControls2
         POS_UI
         POS_UIplugin
         PosCoreDatabase
