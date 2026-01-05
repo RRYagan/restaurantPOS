@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import POS.Sales 1.0
+import POS.UI 1.0
 
 ApplicationWindow {
     id: window

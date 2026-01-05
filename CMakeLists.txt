@@ -11,9 +11,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 qt_standard_project_setup(REQUIRES 6.8)
 
 # 3. Add subdirectories (Definitions)
-add_subdirectory(src/modules)
-add_subdirectory(src/ui/sales)
+add_subdirectory(src/modules/core)
+add_subdirectory(src/ui)
 add_subdirectory(tests)
+
 # 4. Create the main executable
 qt_add_executable(RestaurantPOS
     src/main.cpp
@@ -27,10 +28,10 @@ target_link_libraries(RestaurantPOS
     PRIVATE
         Qt6::Quick
         Qt6::Sql
-        POS_Sales
-        POS_Salesplugin
-        database
-        core_entities
+        POS_UI
+        POS_UIplugin
+        PosCoreDatabase
+        PosCoreEntities
 
 )
 

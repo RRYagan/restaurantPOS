@@ -4,9 +4,9 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <menuitem.h>
+#include <order.h>
 #include <usersession.h>
-#include "order.h"
-#include "menuitem.h"
 
 class DatabaseManager : public QObject
 {

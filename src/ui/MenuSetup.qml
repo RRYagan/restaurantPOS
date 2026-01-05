@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import POS.Sales
+import POS.UI
 
 Rectangle {
     id: menuSetupRoot

@@ -1,6 +1,6 @@
-qt_add_qml_module(POS_Sales
+qt_add_qml_module(POS_UI
     STATIC
-    URI POS.Sales
+    URI POS.UI
     VERSION 1.0
     SOURCES
        views/salesview.h views/salesview.cpp
@@ -18,6 +18,7 @@ qt_add_qml_module(POS_Sales
         Card.qml
         OrderDetailsScreen.qml
         PaymentPage.qml
+
         # setup pages
         SetupScreen.qml
         MenuSetup.qml
@@ -29,16 +30,15 @@ qt_add_qml_module(POS_Sales
         LoginScreen.qml
 
     RESOURCES
-        "../assets/icons/default.png"
+        "assets/icons/default.png"
 )
 
 
-target_include_directories(POS_Sales PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
-target_link_libraries(POS_Sales
+target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
+target_link_libraries(POS_UI
     PRIVATE
         Qt6::Quick
         Qt6::Sql
-        core_entities  # Link to the entities/order logic
-        # order          # Link to the order service
-        database
+        PosCoreEntities
+        PosCoreDatabase
 )

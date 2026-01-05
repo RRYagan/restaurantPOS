@@ -14,8 +14,8 @@ function(add_restaurant_test TEST_NAME SOURCES)
     qt_add_executable(${TEST_NAME} ${SOURCES})
 
     target_include_directories(${TEST_NAME} PRIVATE
-        ../src
-        ../src/ui/sales/views
+        ../src/core
+        ../src/ui/views
     )
 
     target_link_libraries(${TEST_NAME} PRIVATE
@@ -23,9 +23,9 @@ function(add_restaurant_test TEST_NAME SOURCES)
         Qt6::Sql
         Qt6::Test
         Qt6::Quick
-        database    # Linked as requested
-        POS_Sales   # Linked as requested
-        POS_Salesplugin
+        PosCoreDatabase
+        POS_UI   
+        POS_UIplugin
 
     )
 
