@@ -31,6 +31,7 @@ Rectangle {
                 TextField {
                     id: userIn
                     placeholderText: "Username"
+                    text: "admin"
                     Layout.fillWidth: true
                     focus: true
                     // Enter moves to password
@@ -40,6 +41,7 @@ Rectangle {
                 TextField {
                     id: passIn
                     placeholderText: "Password"
+                    text:"admin123"
                     Layout.fillWidth: true
                     echoMode: TextInput.Password
                     // Enter triggers login

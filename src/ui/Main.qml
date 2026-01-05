@@ -33,9 +33,19 @@ ApplicationWindow {
     Component {
         id: mainLayout
         Rectangle {
-            color: "#0a1118"
-            anchors.fill: parent
+            id: mainBackground
+            color: "#1a0505"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
+            Image {
+                            id: backgroundImage
+                            source: "qrc:/qt/qml/POS/UI/assets/images/bg.png"
+                            anchors.fill: parent
+                            fillMode: Image.PreserveAspectCrop
+                            opacity: 0.3 // Adjust opacity to ensure UI text remains readable
+                            asynchronous: true
+                        }
             RowLayout {
                 anchors.fill: parent
                 spacing: 0
@@ -44,6 +54,7 @@ ApplicationWindow {
                     id: sideNav
                     isCollapsed: window.sidebarCollapsed
                     targetStack: contentStack
+                    Layout.rightMargin: 15
 
                     menuModel: [
                         { name: "Menu / Ordering", view: menuView, icon: "🍴" },

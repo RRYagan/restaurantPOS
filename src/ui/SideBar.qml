@@ -9,13 +9,15 @@ Rectangle {
     property bool isCollapsed: false
     property string activeCategory: ""
 
-    readonly property color accentColor: "#00b4ff"
-    readonly property color sidebarColor: "#05080c"
-    readonly property color activeBg: "#1a2634"
+    readonly property color accentColor: "#e74c3c" // Restaurant red accent
+    readonly property color sidebarColor: Qt.rgba(0, 0, 0, 0.4) // Semi-transparent black
+    readonly property color activeBg: Qt.rgba(1, 1, 1, 0.1) // Light glass highlight for active items
 
     Layout.preferredWidth: isCollapsed ? 70 : 240
     Layout.fillHeight: true
     color: sidebarColor
+    border.color: Qt.rgba(255, 255, 255, 0.05)
+    border.width: 1
     clip: true
 
     Behavior on Layout.preferredWidth { NumberAnimation { duration: 350; easing.type: Easing.InOutQuad } }
@@ -55,7 +57,8 @@ Rectangle {
                 // Main Menu Item
                 Rectangle {
                     Layout.fillWidth: true; height: 50
-                    color: targetStack.currentItem && targetStack.currentItem.objectName === modelData.name ? activeBg : "transparent"
+                    color: targetStack.currentItem && targetStack.currentItem.objectName === modelData.name ?
+                               activeBg : "transparent"
 
                     RowLayout {
                         anchors.fill: parent; spacing: 0

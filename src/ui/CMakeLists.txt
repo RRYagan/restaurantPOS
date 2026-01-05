@@ -34,6 +34,7 @@ qt_add_qml_module(POS_UI
 
     RESOURCES
         "assets/icons/default.png"
+        "assets/images/bg.png"
 )
 
 

@@ -6,7 +6,7 @@ import POS.UI 1.0
 
 Rectangle {
     id: root
-    color: "#f8f9fa"
+    color: "transparent"
 
 
 
@@ -103,7 +103,7 @@ Rectangle {
                     clip: true
                     model: menuModel
                     cellWidth: 180
-                    cellHeight: 200
+                    cellHeight: 230
 
                     delegate: Card {
                         itemName: model.name
@@ -125,8 +125,8 @@ Rectangle {
             id: orderSidePanel
             SplitView.preferredWidth: 350
             SplitView.minimumWidth: 300
-            color: "white"
-            border.color: "#e0e0e0"
+            color: "transparent"
+            border.color: "#1affffff"
 
             ColumnLayout {
                 anchors.fill: parent
@@ -136,13 +136,6 @@ Rectangle {
                 Text {
                     text: "Current Order"
                     font.pixelSize: 22
-                    font.bold: true
-                }
-                Label {
-                    // Dynamically change title based on whether we are viewing an old order or a new one
-                    text:  "Viewing Order"
-
-                    font.pixelSize: 28
                     font.bold: true
                 }
 
@@ -167,7 +160,7 @@ Rectangle {
                                 text: "×"
                                 font.pixelSize: 20
                                 font.bold: true
-                                palette.buttonText: "#e74c3c" // Red color
+                                palette.buttonText: "#ff7675"
                                 flat: true
                                 Layout.preferredWidth: 30
                                 onClicked: salesModel.removeItem(index)
@@ -182,11 +175,12 @@ Rectangle {
                                     font.bold: true
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
+                                    color: "white"
                                 }
                                 Text {
                                     text: (model.price ? model.price.formatted : "0.00") + " Ksh."
                                     font.pixelSize: 12
-                                    color: "#7f8c8d"
+                                    color: "#bdc3c7"
                                 }
                             }
 
@@ -211,6 +205,7 @@ Rectangle {
                                     text: model.quantity
                                     font.bold: true
                                     font.pixelSize: 14
+                                    color: "white"
                                     horizontalAlignment: Text.AlignHCenter
                                     Layout.preferredWidth: 20
                                 }
@@ -226,8 +221,10 @@ Rectangle {
 
                         // Add a subtle background highlight
                         background: Rectangle {
-                            color: hovered ? "#f1f2f6" : "transparent"
-                            radius: 4
+                            color: hovered ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                                    radius: 6
+                                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
                         }
                     }
                 }
@@ -248,12 +245,26 @@ Rectangle {
                         font.bold: true; font.pixelSize: 18; color: "#27ae60"
                     }
                 }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: "Tax:"; font.bold: true; font.pixelSize: 18 }
+                    Item { Layout.fillWidth: true }
+                    Text {
+                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
+                        font.bold: true; font.pixelSize: 18; color: "#27ae60"
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: "Final Total:"; font.bold: true; font.pixelSize: 18 }
+                    Item { Layout.fillWidth: true }
+                    Text {
+                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
+                        font.bold: true; font.pixelSize: 18; color: "#27ae60"
+                    }
+                }
 
-                // Inside MenuScreen.qml - Right Side Panel objectName: "makeOrderButton"=
-                // Inside MenuScreen.qml
-                // This layout contains both buttons, ensuring they share the width properly
-                // Inside MenuScreen.qml - Right Panel ColumnLayout
-                // Inside the right-side panel ColumnLayout
+
                 ColumnLayout {
                     objectName: "makeOrderButton"
                     id: buttonLayout
@@ -297,14 +308,14 @@ Rectangle {
                         onClicked: salesModel.makeOrder()
                     }
 
-                    // --- Clear Cart Button ---
+                    // --- Cancel order ---
                     Button {
                         id: clearButton
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
 
                         contentItem: Text {
-                            text: "CLEAR CART"
+                            text: "CANCEL ORDER"
                             color: "white"
                             font.bold: true
                             font.pixelSize: 13
