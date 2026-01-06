@@ -32,10 +32,16 @@ qt_add_qml_module(POS_UI
 
         SideBar.qml
 
+        # dialogs
+        AddItemDialog.qml
+        ConfirmDeleteDialog.qml
+
+
     RESOURCES
         "assets/icons/default.png"
         "assets/images/bg.png"
 )
+
 
 
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
