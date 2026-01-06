@@ -7,6 +7,7 @@ Dialog {
     modal: true
     anchors.centerIn: parent
     standardButtons: Dialog.Yes | Dialog.No
+    property var onConfirmed: null
 
     // --- Dynamic Properties ---
     property string itemLabel: ""      // The name of the thing being deleted (e.g., "Pizza")
@@ -48,13 +49,13 @@ Dialog {
 
     // --- Unified Logic Execution ---
     onAccepted: {
-        if (targetModel && targetId !== null && deleteMethod !== "") {
-            // Dynamically call the C++ method (deleteItem or deleteCategory)
-            targetModel[deleteMethod](targetId);
-
-            // Cleanup after deletion
-            root.targetId = null;
-            root.itemLabel = "";
-        }
+        if (onConfirmed) {
+                onConfirmed();
+            } else if (targetModel && targetId !== null && deleteMethod !== "") {
+            console.log("delete method",deleteMethod)
+            console.log("target model",targetModel)
+            console.log("terget id",targetId)
+                targetModel[deleteMethod](targetId);
+            }
     }
 }
