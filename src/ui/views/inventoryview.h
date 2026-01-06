@@ -1,28 +1,31 @@
-#ifndef INVENTORYMODEL_H
-#define INVENTORYMODEL_H
+#ifndef INVENTORYVIEW_H
+#define INVENTORYVIEW_H
 
-#include <QAbstractListModel>
-#include <QVector>
-#include <inventoryitem.h>
+#include <QObject>
 #include <QtQml/qqmlregistration.h>
+#include "basemodel.h"
+#include "universalfilterproxy.h"
 
-class InventoryView : public QAbstractListModel {
+class InventoryView : public QObject {
     Q_OBJECT
     QML_ELEMENT
+    // Expose the proxy so QML can bind to 'inventoryModel.proxy'
+    Q_PROPERTY(UniversalFilterProxy* proxy READ proxy CONSTANT)
+
 public:
-    enum InventoryRoles { IdRole = Qt::UserRole + 1, NameRole, QuantityRole, UnitRole };
     explicit InventoryView(QObject *parent = nullptr);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    UniversalFilterProxy* proxy() const { return m_proxy; }
 
-    Q_INVOKABLE void refresh(); // Pulls latest from DB
+    // Keep your CRUD methods
     Q_INVOKABLE bool addStock(const QString &name, int qty, const QString &unit);
     Q_INVOKABLE bool updateStock(int id, const QString &name, int qty, const QString &unit);
+    Q_INVOKABLE bool deleteStock(int id);
+    Q_INVOKABLE void refresh();
 
 private:
-    QVector<InventoryItem> m_items;
+    BaseModel *m_sourceModel;
+    UniversalFilterProxy *m_proxy;
 };
 
 #endif
