@@ -16,8 +16,9 @@ target_link_libraries(PosCoreEntities PUBLIC Qt6::Core)
 # --- Database Module ---
 # This remains the single source of truth for database logic
 add_library(PosCoreDatabase
-    databasemanager.cpp
-    databasemanager.h
+    databasemanager.h databasemanager.cpp
+    universalfilterproxy.h universalfilterproxy.cpp
+    basemodel.h basemodel.cpp
 )
 target_include_directories(PosCoreDatabase PUBLIC .) # Expose current dir for headers
 target_link_libraries(PosCoreDatabase

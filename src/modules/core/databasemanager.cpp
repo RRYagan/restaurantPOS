@@ -1,4 +1,5 @@
 #include "databasemanager.h"
+#include "inventoryitem.h"
 #include <QSqlError>
 #include <QDebug>
 #include <QStandardPaths>
@@ -383,6 +384,21 @@ bool DatabaseManager::updateCategory(const QString& oldName, const QString& newN
 }
 
 // inventory
+
+QVariantList DatabaseManager::fetchInventory() {
+    QVariantList items;
+    QSqlQuery query("SELECT id, name, quantity, unit FROM inventory");
+    while (query.next()) {
+        QVariantMap item;
+        item["id"] = query.value(0).toInt();
+        item["name"] = query.value(1).toString();
+        item["quantity"] = query.value(2).toInt();
+        item["unit"] = query.value(3).toString();
+        items.append(item);
+    }
+    return items;
+}
+
 bool DatabaseManager::addInventoryItem(const QString &name, int quantity, const QString &unit) {
     QSqlQuery q;
     q.prepare("INSERT INTO inventory (name, quantity, unit) VALUES (?, ?, ?)");

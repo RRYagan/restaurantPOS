@@ -1,6 +1,8 @@
 #ifndef DATABASEMANAGER_H
 #define DATABASEMANAGER_H
 
+#include "inventoryitem.h"
+
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
