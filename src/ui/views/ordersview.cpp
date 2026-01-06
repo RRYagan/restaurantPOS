@@ -1,16 +1,16 @@
-#include "historyview.h"
+#include "ordersview.h"
 
-HistoryView::HistoryView(QObject *parent) : QAbstractTableModel(parent) {}
+OrdersView::OrdersView(QObject *parent) : QAbstractTableModel(parent) {}
 
-int HistoryView::rowCount(const QModelIndex &parent) const {
+int OrdersView::rowCount(const QModelIndex &parent) const {
     return m_history.size();
 }
 
-int HistoryView::columnCount(const QModelIndex &parent) const {
+int OrdersView::columnCount(const QModelIndex &parent) const {
     return 3; // ID, Table, Date
 }
 
-QVariant HistoryView::data(const QModelIndex &index, int role) const {
+QVariant OrdersView::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_history.size())
         return QVariant();
 
@@ -29,7 +29,7 @@ QVariant HistoryView::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-QHash<int, QByteArray> HistoryView::roleNames() const {
+QHash<int, QByteArray> OrdersView::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[OrderIdRole] = "orderId";
     roles[TableRole] = "tableNumber";
@@ -38,7 +38,7 @@ QHash<int, QByteArray> HistoryView::roleNames() const {
     return roles;
 }
 
-void HistoryView::loadOrderHistory() {
+void OrdersView::loadOrderHistory() {
     beginResetModel();
     m_history.clear();
 

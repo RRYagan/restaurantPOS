@@ -12,7 +12,7 @@ ApplicationWindow {
 
     // Model Logic
     SalesView { id: globalCartModel }
-    HistoryView { id: globalHistoryModel }
+    OrdersView { id: globalOrdersModel }
     OrderDetailView { id: globalOrderDetailModel }
     UserView { id: globalUserModel }
     InventoryView { id: globalInventoryModel }
@@ -88,7 +88,7 @@ ApplicationWindow {
                     initialItem: salesView
 
                     Component { id: salesView; SalesScreen { salesModel: globalCartModel } }
-                    Component { id: ordersView; OrdersScreen { hModel: globalHistoryModel } }
+                    Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
                     Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                     Component { id: setupView; SetupScreen { } }
                     Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }

@@ -7,7 +7,7 @@ Rectangle {
     id: root
     color: "transparent"
 
-    property HistoryView hModel: null
+    property OrdersView ordsModel: null
     property SalesView cModel: null
 
     ColumnLayout {
@@ -23,7 +23,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
             Button {
                 text: "↻ Refresh List"
-                onClicked: if (root.hModel) root.hModel.loadOrderHistory()
+                onClicked: if (root.ordsModel) root.ordsModel.loadOrderHistory()
             }
         }
 
@@ -37,7 +37,7 @@ Rectangle {
             ListView {
                 id: historyListView
                 anchors.fill: parent; anchors.margins: 1
-                model: root.hModel
+                model: root.ordsModel
                 headerPositioning: ListView.OverlayHeader
                 header: Rectangle {
                     width: historyListView.width; height: 45; color: Qt.rgba(1, 1, 1, 0.1); z: 2
@@ -68,5 +68,5 @@ Rectangle {
         }
     }
 
-    Component.onCompleted: if (root.hModel) root.hModel.loadOrderHistory()
+    Component.onCompleted: if (root.ordsModel) root.ordsModel.loadOrderHistory()
 }

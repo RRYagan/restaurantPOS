@@ -5,7 +5,7 @@ qt_add_qml_module(POS_UI
 
     SOURCES
        views/salesview.h views/salesview.cpp
-       views/historyview.h views/historyview.cpp
+       views/ordersview.h views/ordersview.cpp
        views/orderdetailview.h views/orderdetailview.cpp
        views/categoryview.h views/categoryview.cpp
        views/menuview.h views/menuview.cpp
