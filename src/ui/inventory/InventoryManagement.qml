@@ -12,10 +12,25 @@ Rectangle {
     readonly property bool isManager: usrModel ? usrModel.isAdmin : false
 
     // Unified Delete Dialog instance
-    ConfirmDialog {
-        id: invDeleteDialog
+
+    Loader {
+        id: confirmLoader
+        active: false
+        anchors.fill: parent
+        sourceComponent: ConfirmDialog {
+            id: invDeleteDialog
+            // The dialog will automatically close and 'active' stays true
+            // until we manually reset it or change pages
+        }
     }
-    StockDialog { id: stockDialog }
+
+    // Loader for the Add/Edit Stock Dialog
+    Loader {
+        id: stockLoader
+        anchors.fill: parent
+        active: false
+        sourceComponent: StockDialog { id: internalStockDialog }
+    }
 
 
     ColumnLayout {
@@ -54,7 +69,17 @@ Rectangle {
                     border.color: searchBar.activeFocus ? "#c0392b" : Qt.rgba(1, 1, 1, 0.2)
                 }
             }
-
+            // Near your Search Bar RowLayout
+            ComboBox {
+                id: filterStatus
+                model: ["All Items", "Low Stock", "Out of Stock"]
+                Layout.preferredHeight: 45
+                Layout.preferredWidth: 150
+                onCurrentIndexChanged: {
+                        // Assuming invModel is your InventoryView which exposes the proxy
+                        invModel.filterMode = currentIndex
+                    }
+            }
             Button {
                 id: addBtn
                 text: "+ Add Stock"
@@ -76,7 +101,10 @@ Rectangle {
                     radius: 8
                 }
 
-                onClicked: stockDialog.openForAdd()
+                onClicked: {
+                    stockLoader.active = true
+                    stockLoader.item.openForAdd()
+                }
             }
         }
 
@@ -84,6 +112,7 @@ Rectangle {
         Loader {
             id: menuLoader
             active: false
+            visible: false
             source: "InventoryContextMenu.qml"
 
             Connections {
@@ -92,6 +121,9 @@ Rectangle {
 
                 // --- ACTION: DELETE ---
                 function onDeleteRequested(data) {
+                    confirmLoader.active = true
+                    var invDeleteDialog = confirmLoader.item
+
                     invDeleteDialog.title = "Delete Stock Item"
                     invDeleteDialog.itemLabel = data.name
                     // Use your existing property-based logic
@@ -104,6 +136,9 @@ Rectangle {
 
                 // --- ACTION: QUICK UPDATE (+1 Stock) ---
                 function onUpdateRequested(data) {
+                    confirmLoader.active = true
+                    var invDeleteDialog = confirmLoader.item
+
                     invDeleteDialog.title = "Confirm Stock Update"
                     invDeleteDialog.itemLabel = "+1 to " + data.name
 
@@ -123,7 +158,9 @@ Rectangle {
                 function onEditRequested(data) {
                     // console.log("data on edit", data)
                     if (data) {
-                    stockDialog.openForEdit(data)
+                        stockLoader.active = true
+
+                        stockLoader.item.openForEdit(data)
                 }
                 }
             }
@@ -135,6 +172,7 @@ Rectangle {
             model: invModel
             clip: true
             spacing: 12
+
 
 
             delegate: Rectangle {

@@ -8,6 +8,7 @@ Dialog {
     title: isEditMode ? "Edit Stock Item" : "Add New Stock"
     modal: true
     anchors.centerIn: parent
+
     standardButtons: Dialog.Save | Dialog.Cancel
 
     // Properties for reusability [cite: 52]

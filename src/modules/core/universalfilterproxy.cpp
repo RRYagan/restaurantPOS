@@ -3,54 +3,47 @@
 
 UniversalFilterProxy::UniversalFilterProxy(QObject *parent)
     : QSortFilterProxyModel(parent) {
+    setDynamicSortFilter(true);
     setFilterCaseSensitivity(Qt::CaseInsensitive);
 }
 
-void UniversalFilterProxy::setFilterDate(const QDate &d) {
-    if (m_filterDate != d) { m_filterDate = d; invalidateFilter(); emit filterChanged(); }
-}
 
-void UniversalFilterProxy::setDateActive(bool a) {
-    if (m_dateActive != a) { m_dateActive = a; invalidateFilter(); emit filterChanged(); }
+void UniversalFilterProxy::setSearchString(const QString &str) {
+    if (m_searchString == str) return;
+    m_searchString = str;
+    // This tells the view to re-run the filter logic immediately
+    invalidateFilter();
+    emit searchStringChanged();
 }
-
-void UniversalFilterProxy::setFilterTable(int n) {
-    if (m_tableNumber != n) { m_tableNumber = n; invalidateFilter(); emit filterChanged(); }
-}
-
-void UniversalFilterProxy::setSearchString(const QString &s) {
-    if (m_searchString != s) { m_searchString = s; invalidateFilter(); emit filterChanged(); }
+// universalfilterproxy.cpp
+void UniversalFilterProxy::setFilterMode(int mode) {
+    if (m_filterMode == mode) return;
+    m_filterMode = mode;
+    invalidateFilter(); // Re-run filter engine
+    emit filterModeChanged();
 }
 
 bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
     QModelIndex index = sourceModel()->index(source_row, 0, source_parent);
+    QVariantMap item = sourceModel()->data(index, BaseModel::DataRole).toMap();
 
-    // Use BaseModel::DataRole to get the variant map
-    QVariantMap row = sourceModel()->data(index, BaseModel::DataRole).toMap();
-
-    // 1. Hierarchy Level: Date
-    if (m_dateActive && m_filterDate.isValid()) {
-        QVariant dateVal = row.value("created_at");
-        if (dateVal.isNull()) dateVal = row.value("date");
-
-        if (dateVal.toDateTime().date() != m_filterDate) return false;
-    }
-
-    // 2. Hierarchy Level: Table Number
-    if (m_tableNumber != -1) {
-        if (row.value("table_number").toInt() != m_tableNumber) return false;
-    }
-
-    // 3. Hierarchy Level: Search (ID or Name)
+    // --- 1. Text Filter Logic ---
+    bool matchesText = true;
     if (!m_searchString.isEmpty()) {
-        QString id = row.value("id").toString();
-        QString name = row.value("name").toString();
-
-        bool matches = id.contains(m_searchString, Qt::CaseInsensitive) ||
-                       name.contains(m_searchString, Qt::CaseInsensitive);
-
-        if (!matches) return false;
+        QString name = item.value("name").toString();
+        matchesText = name.contains(m_searchString, Qt::CaseInsensitive);
     }
 
-    return true;
+    // --- 2. Stock Filter Logic ---
+    bool matchesStock = true;
+    int qty = item.value("quantity").toInt();
+
+    if (m_filterMode == LowStock) {
+        matchesStock = (qty > 0 && qty <= 10); // Adjust threshold as needed
+    } else if (m_filterMode == OutOfStock) {
+        matchesStock = (qty <= 0);
+    }
+
+    // Row is shown only if BOTH filters pass
+    return matchesText && matchesStock;
 }
