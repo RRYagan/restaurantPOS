@@ -29,6 +29,7 @@ qt_add_qml_module(POS_UI
         # inventory management
         inventory/InventoryManagement.qml
         inventory/InventoryContextMenu.qml
+        inventory/StockDialog.qml
 
 
         UserManagement.qml

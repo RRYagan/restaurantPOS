@@ -15,6 +15,8 @@ Rectangle {
     ConfirmDialog {
         id: invDeleteDialog
     }
+    StockDialog { id: stockDialog }
+
 
     ColumnLayout {
         anchors.fill: parent
@@ -31,23 +33,50 @@ Rectangle {
         // Search and Filter Header
         RowLayout {
             Layout.fillWidth: true
+            spacing: 15 // Adds clean gap between the two elements
+
             TextField {
                 id: searchBar
                 placeholderText: "Search inventory..."
                 Layout.fillWidth: true
+                // Set a fixed height for uniformity
+                Layout.preferredHeight: 45
                 color: "white"
+                verticalAlignment: TextInput.AlignVCenter
+                leftPadding: 15
+
+                // --- LOGIC: Connect to the UniversalFilterProxy ---
+                onTextChanged: invModel.searchString = text
+
                 background: Rectangle {
                     color: Qt.rgba(1, 1, 1, 0.1)
                     radius: 8
-                    border.color: Qt.rgba(1, 1, 1, 0.2)
+                    border.color: searchBar.activeFocus ? "#c0392b" : Qt.rgba(1, 1, 1, 0.2)
                 }
             }
+
             Button {
+                id: addBtn
                 text: "+ Add Stock"
                 visible: inventoryPage.isManager
-                palette.button: "#c0392b"
-                palette.buttonText: "white"
-                // onClicked: addStockDialog.open()
+                // Match the height of the TextField
+                Layout.preferredHeight: 45
+                Layout.preferredWidth: 140
+
+                contentItem: Text {
+                    text: addBtn.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                }
+
+                background: Rectangle {
+                    color: addBtn.pressed ? "#a03023" : (addBtn.hovered ? "#d35400" : "#c0392b")
+                    radius: 8
+                }
+
+                onClicked: stockDialog.openForAdd()
             }
         }
 
@@ -92,10 +121,10 @@ Rectangle {
 
                 // --- ACTION: EDIT ---
                 function onEditRequested(data) {
-                    // Usually, Edit opens a different specialized dialog (like AddStockDialog)
-                    // But if you want to confirm opening the editor:
-                    console.log("Opening editor for:", data.name)
-                    // editStockDialog.openWithData(data)
+                    // console.log("data on edit", data)
+                    if (data) {
+                    stockDialog.openForEdit(data)
+                }
                 }
             }
         }// Inventory List
@@ -106,6 +135,7 @@ Rectangle {
             model: invModel
             clip: true
             spacing: 12
+
 
             delegate: Rectangle {
                 width: invList.width
