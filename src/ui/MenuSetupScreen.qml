@@ -13,7 +13,7 @@ Rectangle {
     MenuView { id: itemModel; currentCategory: menuSetupRoot.selectedCategory }
 
     // Dialog Instances
-    ConfirmDeleteDialog { id: deleteDialog }
+    ConfirmDialog { id: deleteDialog }
     AddItemDialog {
         id: addItemDialog
         category: menuSetupRoot.selectedCategory
@@ -79,10 +79,15 @@ Rectangle {
                             Button {
                                 text: "🗑"; flat: true; visible: model.name !== "All"
                                 onClicked: {
+                                    deleteDialog.title = "Delete Category"
                                     deleteDialog.itemLabel = model.name;
                                     deleteDialog.targetId = model.name;
                                     deleteDialog.targetModel = catModel;
                                     deleteDialog.deleteMethod = "deleteCategory";
+                                    deleteDialog.onConfirmed = function() {
+                                                itemModel.deleteCategory(model.id)
+                                                console.log(model.name + " was removed.")
+                                            }
                                     deleteDialog.open();
                                 }
                             }
@@ -123,10 +128,15 @@ Rectangle {
                         Button {
                             text: "Delete"
                             onClicked: {
+                                deleteDialog.title = "Delete Menu Item"
                                 deleteDialog.itemLabel = model.name;
                                 deleteDialog.targetId = model.id;
                                 deleteDialog.targetModel = itemModel;
                                 deleteDialog.deleteMethod = "deleteItem";
+                                deleteDialog.onConfirmed = function() {
+                                            itemModel.deleteMenuItem(model.id)
+                                            console.log(model.name + " was removed.")
+                                        }
                                 deleteDialog.open();
                             }
                         }

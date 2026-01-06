@@ -11,7 +11,7 @@ Rectangle {
     readonly property bool isManager: staffModel ? staffModel.isAdmin : false
 
     // --- External Components ---
-    ConfirmDeleteDialog { id: userDeleteDialog }
+    ConfirmDialog { id: userDeleteDialog }
 
     ColumnLayout {
         anchors.fill: parent
@@ -117,10 +117,15 @@ Rectangle {
                                 text: "🗑 Remove Staff"
                                 contentItem: Text { text: parent.text; color: "#ff7675" }
                                 onClicked: {
+                                    userDeleteDialog.title = "Delete User"
                                     userDeleteDialog.itemLabel = model.username;
                                     userDeleteDialog.targetId = model.id;
                                     userDeleteDialog.targetModel = staffModel;
                                     userDeleteDialog.deleteMethod = "deleteUser";
+                                    deleteDialog.onConfirmed = function() {
+                                                itemModel.deleteUser(model.id)
+                                                console.log(model.name + " was removed.")
+                                            }
                                     userDeleteDialog.open();
                                 }
                             }

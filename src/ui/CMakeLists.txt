@@ -26,7 +26,11 @@ qt_add_qml_module(POS_UI
         TableSetup.qml
         ThemeSetup.qml
 
-        InventoryManagement.qml
+        # inventory management
+        inventory/InventoryManagement.qml
+        inventory/InventoryContextMenu.qml
+
+
         UserManagement.qml
         LoginScreen.qml
 
@@ -34,7 +38,7 @@ qt_add_qml_module(POS_UI
 
         # dialogs
         AddItemDialog.qml
-        ConfirmDeleteDialog.qml
+        ConfirmDialog.qml
 
 
     RESOURCES
