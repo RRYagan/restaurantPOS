@@ -15,14 +15,14 @@ qt_add_qml_module(POS_UI
     QML_FILES
         OrdersScreen.qml
         Main.qml
-        MenuScreen.qml
+        SalesScreen.qml
         Card.qml
         OrderDetailsScreen.qml
         PaymentPage.qml
 
         # setup pages
         SetupScreen.qml
-        MenuSetup.qml
+        MenuSetupScreen.qml
         TableSetup.qml
         ThemeSetup.qml
 

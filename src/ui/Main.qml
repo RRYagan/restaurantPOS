@@ -57,8 +57,8 @@ ApplicationWindow {
                     Layout.rightMargin: 15
 
                     menuModel: [
-                        { name: "Menu / Ordering", view: menuView, icon: "🍴" },
-                        { name: "Order History", view: salesView, icon: "📋" },
+                        { name: "Menu / Ordering", view: salesView, icon: "🍴" },
+                        { name: "Order History", view: ordersView, icon: "📋" },
                         {
                             name: "System Setup",
                             icon: "⚙",
@@ -74,7 +74,7 @@ ApplicationWindow {
                 }
 
                 // Ensure the sub-views are defined in the contentStack area
-                Component { id: menuSetupView; MenuSetup { objectName: "Menu Setup" } }
+                Component { id: menuSetupView; MenuSetupScreen { objectName: "Menu Setup" } }
                 Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
                 Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
 
@@ -85,10 +85,10 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    initialItem: menuView
+                    initialItem: salesView
 
-                    Component { id: menuView; MenuScreen { salesModel: globalCartModel } }
-                    Component { id: salesView; OrdersScreen { hModel: globalHistoryModel } }
+                    Component { id: salesView; SalesScreen { salesModel: globalCartModel } }
+                    Component { id: ordersView; OrdersScreen { hModel: globalHistoryModel } }
                     Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                     Component { id: setupView; SetupScreen { } }
                     Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }

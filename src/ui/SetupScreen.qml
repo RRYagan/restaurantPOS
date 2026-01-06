@@ -30,11 +30,7 @@ Rectangle {
             Layout.fillHeight: true
 
 
-            MenuSetup {
-                // itemDeleteDialog: confirmDeleteItemDialog
-                // catDeleteDialog: confirmDeleteCatDialog
-
-            }
+            MenuSetupScreen { }
             TableSetup { }
             ThemeSetup { }
         }
