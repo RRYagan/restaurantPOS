@@ -1,17 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import POS.UI 1.0
+import POS.UI
 
 Rectangle {
     id: userMgmtRoot
-    color: "#f4f7f6" // Matches the UI theme [cite: 1]
+    color: "transparent" // Reveal main app background
 
-    // Instantiate the UserModel to handle the staff list
-    property UserView staffModel
+    property var staffModel
+    readonly property bool isManager: staffModel ? staffModel.isAdmin : false
 
-    // Reference the global DatabaseManager to check permissions [cite: 1]
-    readonly property bool isManager: staffModel.isAdmin
+    // --- External Components ---
+    ConfirmDeleteDialog { id: userDeleteDialog }
 
     ColumnLayout {
         anchors.fill: parent
@@ -23,21 +23,21 @@ Rectangle {
             Layout.fillWidth: true
             ColumnLayout {
                 Text {
-                    text: "Staff Management";
-                    font.pixelSize: 24; font.bold: true; color: "#2c3e50"
+                    text: "Staff Management"
+                    font.pixelSize: 24; font.bold: true; color: "white"
                 }
                 Text {
-                    text: "Manage system access and roles";
-                    font.pixelSize: 14; color: "#7f8c8d"
+                    text: "Manage system access and roles"
+                    font.pixelSize: 14; color: "#bdc3c7"
                 }
             }
             Item { Layout.fillWidth: true }
 
-            // Add Staff button is restricted to managers
             Button {
-                text: "Add New Staff"
-                highlighted: true
+                text: "+ Add New Staff"
                 visible: userMgmtRoot.isManager
+                palette.button: "#c0392b"
+                palette.buttonText: "white"
                 onClicked: addUserDialog.open()
             }
         }
@@ -49,59 +49,112 @@ Rectangle {
             Layout.fillHeight: true
             model: staffModel
             clip: true
-            spacing: 10
+            spacing: 12
 
             delegate: Rectangle {
                 width: userListView.width
-                height: 70
-                color: "white"
-                radius: 8
-                border.color: "#dcdde1"
+                height: 80
+                color: Qt.rgba(0.15, 0.02, 0.02, 0.8) // Dark red glassy
+                radius: 12
+                border.color: Qt.rgba(1, 1, 1, 0.1)
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 15
+                    spacing: 20
 
-                    // User Info display using model roles
-                    ColumnLayout {
-                        Layout.fillWidth: true
+                    // Avatar Circle
+                    Rectangle {
+                        width: 45; height: 45; radius: 22.5
+                        color: Qt.rgba(1, 1, 1, 0.1)
                         Text {
-                            text: model.username;
-                            font.bold: true; font.pixelSize: 16
-                        }
-                        Text {
-                            text: "Role: " + model.role;
-                            color: "#666"; font.pixelSize: 12
+                            anchors.centerIn: parent
+                            text: model.username ? model.username.charAt(0).toUpperCase() : "?"
+                            color: "white"; font.bold: true
                         }
                     }
 
-                    // Remove button with permission check and ID-based deletion [cite: 3, 8]
+                    ColumnLayout {
+                        Layout.fillWidth: true; spacing: 2
+                        Text {
+                            text: model.username; color: "white"
+                            font.bold: true; font.pixelSize: 16
+                        }
+                        Text {
+                            text: "Role: " + (model.role || "staff")
+                            color: "#95a5a6"; font.pixelSize: 12
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true } // Spacer
+
+                    // --- Action Menu Button ---
                     Button {
-                        text: "Remove"
+                        id: userOptBtn
+                        text: "⋮"
+                        flat: true; font.pixelSize: 22; palette.buttonText: "white"
                         visible: userMgmtRoot.isManager && model.username !== "admin"
-                        onClicked: staffModel.deleteUser(model.id)
+                        onClicked: userMenu.open()
+
+                        Menu {
+                            id: userMenu
+                            y: userOptBtn.height
+                            x: -width + userOptBtn.width
+
+                            background: Rectangle {
+                                color: "#2c0202"
+                                border.color: Qt.rgba(1, 1, 1, 0.2)
+                                radius: 8
+                            }
+
+                            MenuItem {
+                                text: "📝 Edit Permissions"
+                                contentItem: Text { text: parent.text; color: "white" }
+                                onClicked: console.log("Edit user:", model.username)
+                            }
+
+                            MenuItem {
+                                text: "🗑 Remove Staff"
+                                contentItem: Text { text: parent.text; color: "#ff7675" }
+                                onClicked: {
+                                    userDeleteDialog.itemLabel = model.username;
+                                    userDeleteDialog.targetId = model.id;
+                                    userDeleteDialog.targetModel = staffModel;
+                                    userDeleteDialog.deleteMethod = "deleteUser";
+                                    userDeleteDialog.open();
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // --- Add User Dialog ---
+    // --- Add Staff Dialog ---
     Dialog {
         id: addUserDialog
         title: "Create Staff Account"
         anchors.centerIn: parent
         modal: true
-        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: Math.min(parent.width * 0.4, 400)
 
-        ColumnLayout {
-            spacing: 15
+        background: Rectangle {
+            color: Qt.rgba(0.2, 0.02, 0.02, 0.95); radius: 15
+            border.color: Qt.rgba(1, 1, 1, 0.2)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 15; Layout.margins: 20
             TextField {
                 id: nameIn; placeholderText: "Username"; Layout.fillWidth: true
+                color: "white"
+                background: Rectangle { color: Qt.rgba(1, 1, 1, 0.1); radius: 8 }
             }
             TextField {
-                id: passIn; placeholderText: "Password";
-                echoMode: TextInput.Password; Layout.fillWidth: true
+                id: passIn; placeholderText: "Password"; Layout.fillWidth: true
+                echoMode: TextInput.Password; color: "white"
+                background: Rectangle { color: Qt.rgba(1, 1, 1, 0.1); radius: 8 }
             }
             ComboBox {
                 id: roleIn; Layout.fillWidth: true
@@ -109,10 +162,16 @@ Rectangle {
             }
         }
 
-        onAccepted: {
-            // Calls invokable C++ method which handles hashing
-            staffModel.addUser(nameIn.text, passIn.text, roleIn.currentText)
-            nameIn.clear(); passIn.clear();
+        footer: DialogButtonBox {
+            background: Rectangle { color: "transparent" }
+            Button {
+                text: "Save Account"; highlighted: true; palette.button: "#c0392b"
+                onClicked: {
+                    if (staffModel.addUser(nameIn.text, passIn.text, roleIn.currentText)) {
+                        nameIn.clear(); passIn.clear(); addUserDialog.close();
+                    }
+                }
+            }
         }
     }
 }
