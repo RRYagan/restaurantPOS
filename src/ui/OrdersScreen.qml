@@ -23,7 +23,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
             Button {
                 text: "↻ Refresh List"
-                onClicked: if (root.ordsModel) root.ordsModel.loadOrderHistory()
+                onClicked: if (root.ordsModel) root.ordsModel.loadOrders()
             }
         }
 
@@ -68,5 +68,5 @@ Rectangle {
         }
     }
 
-    Component.onCompleted: if (root.ordsModel) root.ordsModel.loadOrderHistory()
+    Component.onCompleted: if (root.ordsModel) root.ordsModel.loadOrders()
 }

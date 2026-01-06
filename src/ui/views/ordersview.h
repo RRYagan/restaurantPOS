@@ -26,15 +26,15 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void loadOrderHistory();
+    Q_INVOKABLE void loadOrders();
 
 private:
-    struct HistoryRecord {
+    struct OrdersRecord {
         QString id;
         int tableNumber;
         QString createdAt;
     };
-    QList<HistoryRecord> m_history;
+    QList<OrdersRecord> m_history;
 };
 
 #endif

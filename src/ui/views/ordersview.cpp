@@ -38,7 +38,7 @@ QHash<int, QByteArray> OrdersView::roleNames() const {
     return roles;
 }
 
-void OrdersView::loadOrderHistory() {
+void OrdersView::loadOrders() {
     beginResetModel();
     m_history.clear();
 
