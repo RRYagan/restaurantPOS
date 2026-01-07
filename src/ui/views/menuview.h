@@ -2,37 +2,38 @@
 #define MENUMODEL_H
 
 #include <QAbstractTableModel>
+#include <basemodel.h>
+#include <databasemanager.h>
+#include <universalfilterproxy.h>
 #include "menuitem.h"
 #include <QtQml/qqmlregistration.h>
 
-class MenuView : public QAbstractTableModel {
+class MenuView : public QObject {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(QString currentCategory READ currentCategory WRITE setCurrentCategory NOTIFY currentCategoryChanged)
+    Q_PROPERTY(UniversalFilterProxy* proxy READ proxy CONSTANT)
+    Q_PROPERTY(QStringList categories READ categories NOTIFY categoriesChanged)
 
 public:
     enum MenuRole { IdRole = Qt::UserRole + 1, NameRole, CategoryRole, PriceRole, IconRole };
 
     explicit MenuView(QObject *parent = nullptr);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    UniversalFilterProxy* proxy() const { return m_proxy; }
 
-    QString currentCategory() const { return m_currentCategory; }
-    void setCurrentCategory(const QString &category);
+    QStringList categories() const {
+        return DatabaseManager::instance().fetchCategories(); // Returns list from DB
+    }
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool addMenuItem(const QString &name, const QString &category, int price, const QString &icon);
     Q_INVOKABLE bool deleteItem(int itemId);
-
 signals:
-    void currentCategoryChanged();
+    void categoriesChanged();
 
 private:
-    QVector<MenuItem> m_data;
-    QString m_currentCategory = "All";
+    BaseModel *m_sourceModel;
+    UniversalFilterProxy *m_proxy;
 };
 
 #endif

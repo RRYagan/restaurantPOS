@@ -7,10 +7,15 @@ Rectangle {
     id: menuSetupRoot
     color: "transparent"
     property string selectedCategory: "All"
+    onSelectedCategoryChanged: {
+        if (itemModel.proxy) {
+            itemModel.proxy.categoryFilter = selectedCategory;
+        }
+    }
     readonly property bool isManager: globalUserModel.isAdmin
 
     CategoryView { id: catModel }
-    MenuView { id: itemModel; currentCategory: menuSetupRoot.selectedCategory }
+    MenuView { id: itemModel }
 
     // Dialog Instances
     ConfirmDialog { id: deleteDialog }
@@ -85,8 +90,9 @@ Rectangle {
                                     deleteDialog.targetModel = catModel;
                                     deleteDialog.deleteMethod = "deleteCategory";
                                     deleteDialog.onConfirmed = function() {
-                                                itemModel.deleteCategory(model.id)
-                                                console.log(model.name + " was removed.")
+
+                                                catModel.deleteCategory(model.name)
+                                                // console.log(model.name + " was removed.")
                                             }
                                     deleteDialog.open();
                                 }
@@ -118,13 +124,13 @@ Rectangle {
             }
             GridView {
                 Layout.fillWidth: true; Layout.fillHeight: true
-                model: itemModel; cellWidth: 220; cellHeight: 180
+                model: itemModel.proxy; cellWidth: 220; cellHeight: 180
                 delegate: Rectangle {
                     width: 200; height: 160; color: Qt.rgba(1,1,1,0.1); radius: 10
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 10
-                        Text { text: model.name; color: "white"; font.bold: true }
-                        Text { text: (model.base_price_cents/100).toFixed(2) + " Ksh"; color: "#2ecc71" }
+                        Text { text: model.displayData.name; color: "white"; font.bold: true }
+                        Text { text: (model.displayData.base_price_cents/100).toFixed(2) + " Ksh"; color: "#2ecc71" }
                         Button {
                             text: "Delete"
                             onClicked: {

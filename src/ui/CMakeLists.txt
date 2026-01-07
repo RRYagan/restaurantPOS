@@ -30,6 +30,7 @@ qt_add_qml_module(POS_UI
         inventory/InventoryManagement.qml
         inventory/InventoryContextMenu.qml
         inventory/StockDialog.qml
+        inventory/InventoryDetails.qml
 
 
         UserManagement.qml
@@ -46,6 +47,7 @@ qt_add_qml_module(POS_UI
         "assets/icons/default.png"
         "assets/images/bg.png"
 )
+
 
 
 

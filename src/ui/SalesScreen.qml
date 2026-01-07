@@ -12,10 +12,16 @@ Rectangle {
 
     property SalesView salesModel: null
 
+    property string currentCategory: "All"
+    // onSelectedCategoryChanged: {
+    //     if (itemModel.proxy) {
+    //         itemModel.proxy.categoryFilter = currentCategory;
+    //     }
+    // }
     CategoryView { id: catModel }
     MenuView {
         id: menuModel
-        currentCategory: "All"
+
         }
     property string currentOrderId: ""
 
@@ -72,7 +78,7 @@ Rectangle {
                             contentItem: Text {
                                 text: catButton.text
                                 font.bold: true
-                                color: menuModel.currentCategory === modelData ? "white" : "#2c3e50"
+                                color: menuModel.proxy.currentCategory === modelData ? "white" : "#2c3e50"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -80,7 +86,7 @@ Rectangle {
                             background: Rectangle {
                                 implicitWidth: 100
                                 implicitHeight: 38
-                                color: menuModel.currentCategory === modelData ? "#3498db" : "#ecf0f1"
+                                color: menuModel.proxy.currentCategory === modelData ? "#3498db" : "#ecf0f1"
                                 radius: 20
 
                                 // Subtle border for unselected items
@@ -89,7 +95,7 @@ Rectangle {
                             }
 
                             onClicked: {
-                                menuModel.currentCategory = modelData
+                                menuModel.proxy.currentCategory = modelData
                                 // Optional: Smoothly scroll the clicked category into view
                                 categoryBar.positionViewAtIndex(index, ListView.Center);
                             }
@@ -101,18 +107,18 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: menuModel
+                    model: menuModel.proxy
                     cellWidth: 180
                     cellHeight: 230
 
                     delegate: Card {
-                        itemName: model.name
-                        priceCents: model.base_price_cents
+                        itemName: model.displayData.name
+                        priceCents: model.displayData.base_price_cents
 
                         onClicked: {
                             if (salesModel !== null) {
                                 // Logic: This only updates the memory list, not the DB
-                                salesModel.addItemToOrder(model.id);
+                                salesModel.addItemToOrder(model.displayData.id);
                             }
                         }
                     }
