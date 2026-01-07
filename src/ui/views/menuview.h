@@ -28,6 +28,7 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool addMenuItem(const QString &name, const QString &category, int price, const QString &icon);
     Q_INVOKABLE bool deleteItem(int itemId);
+    Q_INVOKABLE bool updateMenuItem(int id, const QString &name, const QString &category, int priceCents, const QString &icon);
 signals:
     void categoriesChanged();
 

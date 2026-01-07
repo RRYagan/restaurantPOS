@@ -5,11 +5,15 @@ import QtQuick.Dialogs
 
 Dialog {
     id: root
-    title: "Add to " + category
+    title: isEditMode ? ("Edit " + itemData.name) : ("Add to " + category)
     modal: true
 
     property string category: "All"
     property var itemModel
+
+    property var itemData: null
+    readonly property bool isEditMode: itemData !== null
+
     property string selectedImagePath: "qrc:/assets/icons/default.svg"
 
     width: Math.min(Math.max(parent.width * 0.5, 450), 850)
@@ -55,6 +59,7 @@ Dialog {
         TextField {
             id: nameIn
             placeholderText: "Item Name"
+            text: isEditMode ? itemData.name : ""
             color: "white"
             Layout.fillWidth: true
             background: Rectangle { color: Qt.rgba(1, 1, 1, 0.1); radius: 8 }
@@ -62,7 +67,8 @@ Dialog {
 
         TextField {
             id: priceIn
-            placeholderText: "Price (Cents)"
+            placeholderText: "Price (KSH)"
+            text: isEditMode ? ((itemData.price_cents)/100).toString() : ""
             color: "white"
             Layout.fillWidth: true
             inputMethodHints: Qt.ImhDigitsOnly
@@ -87,7 +93,7 @@ Dialog {
             highlighted: true
             onClicked: {
                 if (nameIn.text.trim() !== "" && !isNaN(parseInt(priceIn.text))) {
-                    if (itemModel.addMenuItem(nameIn.text, category, parseInt(priceIn.text), root.selectedImagePath)) {
+                    if (itemModel.addMenuItem(nameIn.text, category, parseInt(priceIn.text)*100, root.selectedImagePath)) {
                         nameIn.clear(); priceIn.clear();
                         root.selectedImagePath = "qrc:/assets/icons/default.svg";
                         root.close();

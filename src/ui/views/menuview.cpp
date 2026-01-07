@@ -33,3 +33,16 @@ bool MenuView::deleteItem(int itemId) {
     }
     return false;
 }
+
+bool MenuView::updateMenuItem(int id, const QString &name, const QString &category, int priceCents, const QString &icon) {
+    // 1. Update the Database
+    bool success = DatabaseManager::instance().updateMenuItem(id, name, category, priceCents, icon);
+
+    if (success) {
+        // 2. Trigger the internal BaseModel to re-fetch data
+        // This ensures the GridView in QML updates instantly
+        m_sourceModel->refresh();
+    }
+
+    return success;
+}

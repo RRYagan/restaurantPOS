@@ -123,29 +123,87 @@ Rectangle {
                 }
             }
             GridView {
-                Layout.fillWidth: true; Layout.fillHeight: true
-                model: itemModel.proxy; cellWidth: 220; cellHeight: 180
+                id: menuGrid
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                model: itemModel.proxy
+                cellWidth: 220
+                cellHeight: 180
+                clip: true
+
                 delegate: Rectangle {
-                    width: 200; height: 160; color: Qt.rgba(1,1,1,0.1); radius: 10
+                    width: 200
+                    height: 160
+                    color: Qt.rgba(1, 1, 1, 0.1)
+                    radius: 10
+                    border.color: Qt.rgba(255, 255, 255, 0.05)
+
                     ColumnLayout {
-                        anchors.fill: parent; anchors.margins: 10
-                        Text { text: model.displayData.name; color: "white"; font.bold: true }
-                        Text { text: (model.displayData.price_cents)/100 + " Ksh"; color: "#2ecc71" }
-                        Button {
-                            text: "Delete"
-                            onClicked: {
-                                deleteDialog.title = "Delete Menu Item"
-                                deleteDialog.itemLabel = model.displayData.name;
-                                deleteDialog.targetId = model.displayData.id;
-                                deleteDialog.targetModel = itemModel;
-                                deleteDialog.deleteMethod = "deleteItem";
-                                deleteDialog.onConfirmed = function() {
-                                            itemModel.deleteItem(model.displayData.id)
-                                            // console.log(model.displayData.name + " was removed.")
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 5
+
+                        // Top Row: Menu Options Button
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Item { Layout.fillWidth: true } // Spacer to push button to right
+
+                            Button {
+                                id: optionsButton
+                                text: "⋮" // Vertical ellipsis
+                                flat: true
+                                font.pixelSize: 20
+                                palette.buttonText: "white"
+                                Layout.preferredWidth: 30
+                                Layout.preferredHeight: 30
+
+                                onClicked: optionsMenu.open()
+
+                                Menu {
+                                    id: optionsMenu
+                                    y: optionsButton.height
+
+                                    MenuItem {
+                                        text: "Edit"
+                                        onTriggered: {
+                                            // Set the shared dialog to 'Edit' mode
+                                            addItemDialog.itemData = model.displayData;
+                                            addItemDialog.open();
                                         }
-                                deleteDialog.open();
+                                    }
+
+                                    MenuItem {
+                                        text: "Delete"
+                                        onTriggered: {
+                                            deleteDialog.title = "Delete Menu Item"
+                                            deleteDialog.itemLabel = model.displayData.name;
+                                            deleteDialog.onConfirmed = function() {
+                                                itemModel.deleteItem(model.displayData.id)
+                                            }
+                                            deleteDialog.open();
+                                        }
+                                    }
+                                }
                             }
                         }
+
+                        // Middle: Item Details
+                        Text {
+                            text: model.displayData.name
+                            color: "white"
+                            font.bold: true
+                            font.pixelSize: 16
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: (model.displayData.price_cents / 100).toFixed(2) + " Ksh"
+                            color: "#2ecc71"
+                            font.pixelSize: 14
+                        }
+
+                        Item { Layout.fillHeight: true } // Spacer
                     }
                 }
             }
