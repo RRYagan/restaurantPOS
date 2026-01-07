@@ -111,6 +111,42 @@ bool DatabaseManager::initSchema() {
                           "salt TEXT NOT NULL, "
                           "role TEXT)");
 
+    // 1. Create Inventory History Table
+    success &= query.exec(
+        "CREATE TABLE IF NOT EXISTS inventory_history ("
+        "history_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "item_id INTEGER, "
+        "item_name TEXT, "
+        "action TEXT, "          // 'ADD' or 'UPDATE'
+        "old_quantity INTEGER, "
+        "new_quantity INTEGER, "
+        "change_details TEXT, "
+        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, "
+        "FOREIGN KEY(item_id) REFERENCES inventory(id) ON DELETE SET NULL)"
+        );
+
+    // 2. Add Trigger for New Item Additions
+    success &=query.exec(
+        "CREATE TRIGGER IF NOT EXISTS log_inventory_insert AFTER INSERT ON inventory "
+        "BEGIN "
+        "  INSERT INTO inventory_history (item_id, item_name, action, new_quantity, change_details) "
+        "  VALUES (NEW.id, NEW.name, 'ADD', NEW.quantity, 'Initial stock added'); "
+        "END;"
+        );
+
+    // 3. Add Trigger for Stock Updates
+    success &=query.exec(
+        "CREATE TRIGGER IF NOT EXISTS log_inventory_update AFTER UPDATE ON inventory "
+        "WHEN OLD.quantity <> NEW.quantity "
+        "BEGIN "
+        "  INSERT INTO inventory_history (item_id, item_name, action, old_quantity, new_quantity, change_details) "
+        "  VALUES (NEW.id, NEW.name, 'UPDATE', OLD.quantity, NEW.quantity, "
+        "  'Stock adjusted from ' || OLD.quantity || ' to ' || NEW.quantity); "
+        "END;"
+        );
+
+
+
     return success;
 }
 void DatabaseManager::seedDatabase() {
@@ -425,7 +461,25 @@ bool DatabaseManager::deleteInventoryItem(int id) {
     return q.exec();
 }
 
+// databasemanager.cpp
+QVariantList DatabaseManager::fetchAllInventoryHistory() {
+    QVariantList history;
+    // We fetch everything so the proxy can handle the "live" filtering in memory
+    QSqlQuery query("SELECT timestamp, action, change_details, item_id, old_quantity, new_quantity "
+                    "FROM inventory_history ORDER BY timestamp DESC");
 
+    while (query.next()) {
+        QVariantMap entry;
+        entry["timestamp"] = query.value(0).toDateTime().toString("yyyy-MM-dd HH:mm");
+        entry["action"] = query.value(1).toString();
+        entry["details"] = query.value(2).toString();
+        entry["item_id"] = query.value(3).toInt(); // Crucial for proxy filtering
+        entry["oldQty"] = query.value(4).toInt();
+        entry["newQty"] = query.value(5).toInt();
+        history.append(entry);
+    }
+    return history;
+}
 // usser
 bool DatabaseManager::addUser(const QString &username, const QString &password, const QString &role) {
     QString salt = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8); // Generate 8-char salt

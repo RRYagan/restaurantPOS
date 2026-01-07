@@ -8,9 +8,7 @@
 class UniversalFilterProxy : public QSortFilterProxyModel {
     Q_OBJECT
 
-    // Q_PROPERTY(QDate filterDate READ filterDate WRITE setFilterDate NOTIFY filterChanged)
-    // Q_PROPERTY(bool dateActive READ dateActive WRITE setDateActive NOTIFY filterChanged)
-    // Q_PROPERTY(int filterTable READ filterTable WRITE setFilterTable NOTIFY filterChanged)
+    Q_PROPERTY(int filterId READ filterId WRITE setFilterId NOTIFY filterIdChanged)
     Q_PROPERTY(QString searchString READ searchString WRITE setSearchString NOTIFY searchStringChanged)
     Q_PROPERTY(int filterMode READ filterMode WRITE setFilterMode NOTIFY filterModeChanged)
 
@@ -24,7 +22,8 @@ public:
 
     explicit UniversalFilterProxy(QObject *parent = nullptr);
 
-
+    int filterId() const { return m_filterId; }
+    void setFilterId(int id);
 
     QString searchString() const { return m_searchString; }
     void setSearchString(const QString &str);
@@ -39,11 +38,13 @@ signals:
     // void filterChanged();
     void searchStringChanged();
     void filterModeChanged();
+    void filterIdChanged();
 
 private:
 
     QString m_searchString;
     int m_filterMode = All;
+    int m_filterId = -1;
 };
 
 #endif // UNIVERSALFILTERPROXY_H

@@ -23,6 +23,14 @@ void UniversalFilterProxy::setFilterMode(int mode) {
     emit filterModeChanged();
 }
 
+void UniversalFilterProxy::setFilterId(int id)
+{
+    if (m_filterId != id) {
+        m_filterId = id;
+        emit filterIdChanged();
+        invalidateFilter();
+    }
+}
 bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
     QModelIndex index = sourceModel()->index(source_row, 0, source_parent);
     QVariantMap item = sourceModel()->data(index, BaseModel::DataRole).toMap();
@@ -32,6 +40,12 @@ bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &s
     if (!m_searchString.isEmpty()) {
         QString name = item.value("name").toString();
         matchesText = name.contains(m_searchString, Qt::CaseInsensitive);
+    }
+    // id check
+    if (m_filterId != -1) {
+        if (item.contains("item_id") && item["item_id"].toInt() != m_filterId) {
+            return false;
+        }
     }
 
     // --- 2. Stock Filter Logic ---
