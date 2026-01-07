@@ -106,12 +106,15 @@ Rectangle {
                     Layout.fillHeight: true
                     clip: true
                     model: menuModel.proxy
-                    cellWidth: 180
+                    cellWidth: 230
                     cellHeight: 230
 
                     delegate: Card {
                         itemName: model.displayData.name
                         priceCents: model.displayData.price_cents
+                        width: grid.cellWidth - 30
+                        height: grid.cellHeight - 30
+                        // anchors.horizontalCenter: parent ? grid.horizontalCenter : undefined
 
                         onClicked: {
                             if (salesModel !== null) {

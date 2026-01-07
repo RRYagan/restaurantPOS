@@ -9,9 +9,10 @@ Button {
     property string iconSource: ""
 
     // Set fixed dimensions to ensure all cards fit the view uniformly
-    implicitWidth: 160
-    implicitHeight: 210
-
+    // implicitWidth: 180
+    // implicitHeight: 210
+    property real cardWidth: 180
+    property real cardHeight: 210
 
 
     background: Rectangle {
