@@ -321,30 +321,30 @@ bool DatabaseManager::deleteMenuItem(int id) {
     return q.exec();
 }
 
-QVector<MenuItem> DatabaseManager::fetchMenuItems(const QString &categoryFilter) {
-    QVector<MenuItem> items;
-    QSqlQuery query;
+// QVector<MenuItem> DatabaseManager::fetchMenuItems(const QString &categoryFilter) {
+//     QVector<MenuItem> items;
+//     QSqlQuery query;
 
-    if (categoryFilter == "All") {
-        query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
-    } else {
-        query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items WHERE category = ?");
-        query.addBindValue(categoryFilter);
-    }
+//     if (categoryFilter == "All") {
+//         query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
+//     } else {
+//         query.prepare("SELECT id, name, category, base_price_cents, icon_source FROM menu_items WHERE category = ?");
+//         query.addBindValue(categoryFilter);
+//     }
 
-    if (query.exec()) {
-        while (query.next()) {
-            MenuItem item;
-            item.id = query.value(0).toInt();
-            item.name = query.value(1).toString();
-            item.category = query.value(2).toString();
-            item.basePrice.cents = query.value(3).toLongLong();
-            item.iconSource = query.value(4).toString();
-            items.append(item);
-        }
-    }
-    return items;
-}
+//     if (query.exec()) {
+//         while (query.next()) {
+//             MenuItem item;
+//             item.id = query.value(0).toInt();
+//             item.name = query.value(1).toString();
+//             item.category = query.value(2).toString();
+//             item.basePrice.cents = query.value(3).toLongLong();
+//             item.iconSource = query.value(4).toString();
+//             items.append(item);
+//         }
+//     }
+//     return items;
+// }
 QVariantList DatabaseManager::getAllMenuItems() {
     QVariantList list;
     QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");

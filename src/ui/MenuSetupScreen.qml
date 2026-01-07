@@ -130,18 +130,18 @@ Rectangle {
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 10
                         Text { text: model.displayData.name; color: "white"; font.bold: true }
-                        Text { text: (model.displayData.base_price_cents/100).toFixed(2) + " Ksh"; color: "#2ecc71" }
+                        Text { text: (model.displayData.price_cents)/100 + " Ksh"; color: "#2ecc71" }
                         Button {
                             text: "Delete"
                             onClicked: {
                                 deleteDialog.title = "Delete Menu Item"
-                                deleteDialog.itemLabel = model.name;
-                                deleteDialog.targetId = model.id;
+                                deleteDialog.itemLabel = model.displayData.name;
+                                deleteDialog.targetId = model.displayData.id;
                                 deleteDialog.targetModel = itemModel;
                                 deleteDialog.deleteMethod = "deleteItem";
                                 deleteDialog.onConfirmed = function() {
-                                            itemModel.deleteMenuItem(model.id)
-                                            console.log(model.name + " was removed.")
+                                            itemModel.deleteItem(model.displayData.id)
+                                            // console.log(model.displayData.name + " was removed.")
                                         }
                                 deleteDialog.open();
                             }
