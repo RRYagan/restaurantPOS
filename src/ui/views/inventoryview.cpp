@@ -2,19 +2,23 @@
 #include "databasemanager.h"
 
 InventoryView::InventoryView(QObject *parent) : QObject(parent) {
+    // Inventory Setup
     m_sourceModel = new BaseModel(this);
     m_proxy = new UniversalFilterProxy(this);
-
-    // Wire the source model to the DB fetch function
-    m_sourceModel->setDataProvider([]() {
-        return DatabaseManager::instance().fetchInventory();
-    });
-
+    m_sourceModel->setDataProvider([]() { return DatabaseManager::instance().fetchInventory(); });
     m_proxy->setSourceModel(m_sourceModel);
+
+    // History Setup (The Proxy-based approach)
+    m_historySourceModel = new BaseModel(this);
+    m_historyProxy = new UniversalFilterProxy(this);
+    m_historySourceModel->setDataProvider([]() { return DatabaseManager::instance().fetchAllInventoryHistory(); });
+    m_historyProxy->setSourceModel(m_historySourceModel);
+
 }
 
 void InventoryView::refresh() {
     m_sourceModel->refresh();
+    m_historySourceModel->refresh();
 }
 
 bool InventoryView::addStock(const QString &name, int qty, const QString &unit) {
@@ -40,3 +44,8 @@ bool InventoryView::deleteStock(int id) {
     }
     return false;
 }
+
+
+// QVariantList InventoryView::getHistory(int itemId) {
+//     return DatabaseManager::instance().fetchInventoryHistory(itemId);
+// }
