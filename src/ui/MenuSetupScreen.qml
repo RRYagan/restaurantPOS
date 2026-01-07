@@ -73,25 +73,25 @@ Rectangle {
                 }
 
                 ListView {
-                    id: catList; Layout.fillHeight: true; Layout.fillWidth: true; model: catModel
+                    id: catList; Layout.fillHeight: true; Layout.fillWidth: true; model: catModel.proxy
                     delegate: ItemDelegate {
                         width: parent.width
-                        highlighted: model.name === selectedCategory
-                        onClicked: selectedCategory = model.name
+                        highlighted: model.displayData.name === selectedCategory
+                        onClicked: selectedCategory = model.displayData.name
 
                         contentItem: RowLayout {
-                            Text { text: model.name; color: "white"; Layout.fillWidth: true }
+                            Text { text: model.displayData.name; color: "white"; Layout.fillWidth: true }
                             Button {
                                 text: "🗑"; flat: true; visible: model.name !== "All"
                                 onClicked: {
                                     deleteDialog.title = "Delete Category"
-                                    deleteDialog.itemLabel = model.name;
-                                    deleteDialog.targetId = model.name;
+                                    deleteDialog.itemLabel = model.displayData.name;
+                                    deleteDialog.targetId = model.displayData.name;
                                     deleteDialog.targetModel = catModel;
                                     deleteDialog.deleteMethod = "deleteCategory";
                                     deleteDialog.onConfirmed = function() {
 
-                                                catModel.deleteCategory(model.name)
+                                                catModel.deleteCategory(model.displayData.name)
                                                 // console.log(model.name + " was removed.")
                                             }
                                     deleteDialog.open();

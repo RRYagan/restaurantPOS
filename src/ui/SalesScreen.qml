@@ -13,16 +13,15 @@ Rectangle {
     property SalesView salesModel: null
 
     property string currentCategory: "All"
-    // onSelectedCategoryChanged: {
-    //     if (itemModel.proxy) {
-    //         itemModel.proxy.categoryFilter = currentCategory;
-    //     }
-    // }
     CategoryView { id: catModel }
-    MenuView {
-        id: menuModel
-
+    MenuView { id: menuModel }
+    onCurrentCategoryChanged: {
+            if (menuModel.proxy) {
+                menuModel.proxy.categoryFilter = currentCategory;
+            }
         }
+
+
     property string currentOrderId: ""
 
 
@@ -62,23 +61,23 @@ Rectangle {
                         anchors.fill: parent
                         orientation: ListView.Horizontal
                         spacing: 12
-                        clip: true // Prevents categories from drawing outside the bounds while sliding
-
-                        // Hide scrollbar for a cleaner mobile/modern look
+                        clip: true
                         ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOff }
 
-                        model: catModel
+                        model: catModel.proxy
 
                         delegate: Button {
                             id: catButton
-                            text: modelData
+                            // FIX 1: Change modelData to model.displayData.name
+                            text: model.displayData.name
                             padding: 15
 
-                            // Highlight logic using the property added to MenuModel
                             contentItem: Text {
-                                text: catButton.text
+                                // FIX 2: Use the property from the map
+                                text: model.displayData.name
                                 font.bold: true
-                                color: menuModel.proxy.currentCategory === modelData ? "white" : "#2c3e50"
+                                // FIX 3: Compare against the actual categoryFilter string
+                                color: menuModel.proxy.categoryFilter === model.displayData.name ? "white" : "#2c3e50"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -86,17 +85,16 @@ Rectangle {
                             background: Rectangle {
                                 implicitWidth: 100
                                 implicitHeight: 38
-                                color: menuModel.proxy.currentCategory === modelData ? "#3498db" : "#ecf0f1"
+                                // FIX 4: Correct property name (categoryFilter, not categoryFilterChanged)
+                                color: menuModel.proxy.categoryFilter === model.displayData.name ? "#3498db" : "#ecf0f1"
                                 radius: 20
-
-                                // Subtle border for unselected items
-                                border.color: menuModel.currentCategory === modelData ? "#2980b9" : "#dcdde1"
+                                border.color: menuModel.proxy.categoryFilter === model.displayData.name ? "#2980b9" : "#dcdde1"
                                 border.width: 1
                             }
 
                             onClicked: {
-                                menuModel.proxy.currentCategory = modelData
-                                // Optional: Smoothly scroll the clicked category into view
+                                // FIX 5: Update the filter using the name string from the map
+                                menuModel.proxy.categoryFilter = model.displayData.name
                                 categoryBar.positionViewAtIndex(index, ListView.Center);
                             }
                         }
