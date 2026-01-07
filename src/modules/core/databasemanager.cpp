@@ -345,7 +345,22 @@ QVector<MenuItem> DatabaseManager::fetchMenuItems(const QString &categoryFilter)
     }
     return items;
 }
+QVariantList DatabaseManager::getAllMenuItems() {
+    QVariantList list;
+    QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
 
+    while (query.next()) {
+        QVariantMap map;
+        map["id"] = query.value(0).toInt();
+        map["name"] = query.value(1).toString();
+        map["category"] = query.value(2).toString();
+        map["price_cents"] = query.value(3).toInt();
+        map["icon_source"] = query.value(4).toString();
+        list.append(map);
+    }
+    return list;
+
+}
 
 // Categories
 QStringList DatabaseManager::fetchCategories() {

@@ -31,9 +31,25 @@ void UniversalFilterProxy::setFilterId(int id)
         invalidateFilter();
     }
 }
+
+void UniversalFilterProxy::setCategoryFilter(const QString &category) {
+    if (m_categoryFilter == category) return;
+    m_categoryFilter = category;
+    invalidateFilter(); // Re-run the filter logic
+    emit categoryFilterChanged();
+}
+
 bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
     QModelIndex index = sourceModel()->index(source_row, 0, source_parent);
     QVariantMap item = sourceModel()->data(index, BaseModel::DataRole).toMap();
+
+    // --- 1. Category Filter ---
+    if (m_categoryFilter != "All" && !m_categoryFilter.isEmpty()) {
+        if (item.value("category").toString() != m_categoryFilter) {
+            return false; // Skip items that don't match the selected category
+        }
+    }
+
 
     // --- 1. Text Filter Logic ---
     bool matchesText = true;
@@ -41,11 +57,11 @@ bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &s
         QString name = item.value("name").toString();
         matchesText = name.contains(m_searchString, Qt::CaseInsensitive);
     }
-    // id check
+
+    // ID filter
     if (m_filterId != -1) {
-        if (item.contains("item_id") && item["item_id"].toInt() != m_filterId) {
-            return false;
-        }
+        int id = item.value("id").toInt(); // Changed from item_id to match menu schema
+        if (id != m_filterId) return false;
     }
 
     // --- 2. Stock Filter Logic ---
@@ -53,11 +69,14 @@ bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &s
     int qty = item.value("quantity").toInt();
 
     if (m_filterMode == LowStock) {
-        matchesStock = (qty > 0 && qty <= 10); // Adjust threshold as needed
+        /*matchesStock = (qty > 0 && qty <= 10);*/ // Adjust threshold as needed
+        return qty > 0 && qty <= 10;
     } else if (m_filterMode == OutOfStock) {
-        matchesStock = (qty <= 0);
+        // matchesStock = (qty <= 0);
+        return qty <=0;
     }
 
     // Row is shown only if BOTH filters pass
-    return matchesText && matchesStock;
+    // return matchesText && matchesStock;
+    return true;
 }

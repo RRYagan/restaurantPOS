@@ -29,7 +29,7 @@ public:
     QStringList fetchCategories();
 
     // menu
-    QList<MenuItem> getAllMenuItems();
+    QVariantList getAllMenuItems();
     bool addMenuItem(const QString &name, const QString &category, int priceCents, const QString &icon);
     bool updateMenuItem(int id, const QString &name, const QString &category, int priceCents, const QString &icon);
     bool deleteMenuItem(int id);
