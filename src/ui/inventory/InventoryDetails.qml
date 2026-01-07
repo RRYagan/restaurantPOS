@@ -10,8 +10,9 @@ Rectangle {
     property var invView: null // The InventoryView instance
 
     Component.onCompleted: {
-            // Set the proxy filterId to match the selected item
-            invView.historyProxy.filterId = itemData.id
+        if (itemData && itemData.id !== undefined) {
+                invView.historyProxy.filterId = itemData.id;
+            }
         }
 
     ColumnLayout {
@@ -27,12 +28,12 @@ Rectangle {
                 flat: true
                 font.pixelSize: 24
                 palette.buttonText: "white"
-                onClicked: stackView.pop()
+                onClicked: contentStack.pop()
             }
             ColumnLayout {
                 spacing: 2
                 Text {
-                    text: itemData ? itemData.name : "Unknown Item"
+                    text: (itemData && itemData.name) ? itemData.name : "Loading..."
                     color: "white"
                     font.pixelSize: 24
                     font.bold: true
@@ -103,8 +104,7 @@ Rectangle {
             Binding {
                     target: invView.historyProxy
                     property: "filterId"
-                    value: itemData ? itemData.id : -1
-                }
+                    value: (itemData && itemData.id !== undefined) ? itemData.id : -1                }
 
             delegate: Rectangle {
                 width: historyList.width

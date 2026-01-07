@@ -69,7 +69,7 @@ ApplicationWindow {
                             ]
                         },
                         { name: "User Management", view: userMgmtView, icon: "👤" },
-                        { name: "Inventory", view: inventoryView, icon: "📦" }
+                        { name: "Inventory", view: inventoryMgmtView, icon: "📦" }
                     ]
                 }
 
@@ -92,8 +92,14 @@ ApplicationWindow {
                     Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                     Component { id: setupView; SetupScreen { } }
                     Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
-                    Component { id: inventoryView; InventoryManagement { invModel: globalInventoryModel; usrModel: globalUserModel } }
-
+                    Component {
+                        id: inventoryMgmtView;
+                        InventoryManagement {
+                            // Use the global ID you defined at the top of Main.qml
+                            invModel: globalInventoryModel
+                            usrModel: globalUserModel
+                        }
+                    }
                     // Smooth Fade transition for cleaner feel
                     replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 } }
                     replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 } }
