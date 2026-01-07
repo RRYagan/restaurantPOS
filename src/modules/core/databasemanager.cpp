@@ -345,6 +345,7 @@ bool DatabaseManager::deleteMenuItem(int id) {
 //     }
 //     return items;
 // }
+
 QVariantList DatabaseManager::getAllMenuItems() {
     QVariantList list;
     QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items");
@@ -354,7 +355,7 @@ QVariantList DatabaseManager::getAllMenuItems() {
         map["id"] = query.value(0).toInt();
         map["name"] = query.value(1).toString();
         map["category"] = query.value(2).toString();
-        map["price_cents"] = query.value(3).toInt();
+        map["price_cents"] = query.value(3).toLongLong();;
         map["icon_source"] = query.value(4).toString();
         list.append(map);
     }

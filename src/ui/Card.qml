@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Button {
     id: control
     property string itemName: ""
-    property var priceCents: null
+    property string priceCents: ""
     property string iconSource: ""
 
     // Set fixed dimensions to ensure all cards fit the view uniformly
@@ -58,7 +58,7 @@ Button {
 
         // Price - Centered at the bottom
         Text {
-            text: control.priceCents ? control.priceCents.formatted + " Ksh." : "0.00 Ksh."
+            text: control.priceCents ? (control.priceCents)/100 + " Ksh." : "0.00 Ksh."
             color: "#2ecc71" // Vibrant green to remain visible on the design
             font.pixelSize: 14
             font.bold: true

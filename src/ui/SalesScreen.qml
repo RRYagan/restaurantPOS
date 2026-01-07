@@ -111,11 +111,12 @@ Rectangle {
 
                     delegate: Card {
                         itemName: model.displayData.name
-                        priceCents: model.displayData.base_price_cents
+                        priceCents: model.displayData.price_cents
 
                         onClicked: {
                             if (salesModel !== null) {
                                 // Logic: This only updates the memory list, not the DB
+                                // console.log(model.displayData.price_cents)
                                 salesModel.addItemToOrder(model.displayData.id);
                             }
                         }
