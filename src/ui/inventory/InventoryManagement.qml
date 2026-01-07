@@ -77,7 +77,7 @@ Rectangle {
                 Layout.preferredWidth: 150
                 onCurrentIndexChanged: {
                         // Assuming invModel is your InventoryView which exposes the proxy
-                        invModel.filterMode = currentIndex
+                        invModel.proxy.filterMode = currentIndex
                     }
             }
             Button {
@@ -169,7 +169,7 @@ Rectangle {
             id: invList
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: invModel
+            model: invModel.proxy
             clip: true
             spacing: 12
 
@@ -181,71 +181,94 @@ Rectangle {
                 color: Qt.rgba(0.15, 0.02, 0.02, 0.8) // Dark glassy red
                 radius: 10
                 border.color: Qt.rgba(1, 1, 1, 0.1)
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 15
-
-                    // 1. Left Side: Item Info
-                    ColumnLayout {
-                        spacing: 2
-                        Text {
-                            text: model.displayData.name || ""
-                            color: "white"
-                            font.bold: true
-                            font.pixelSize: 16
-                        }
-                        Text {
-                            text: "SKU: " + (model.displayData.sku || "N/A")
-                            color: "#95a5a6"
-                            font.pixelSize: 12
-                        }
+                Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        color: infoMouseArea.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                        radius: 8
+                        z: -1
                     }
 
-                    // 2. Middle: Spacer (This pushes everything after it to the right)
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    // 3. Right Side: Stock Status & Actions
                     RowLayout {
-                        spacing: 20
+                        anchors.fill: parent
+                        anchors.leftMargin: 15
+                        anchors.rightMargin: 15
+                        spacing: 0 // We'll manage spacing inside the items
 
-                        // Stock Badge
-                        Rectangle {
-                            width: 80; height: 26; radius: 13
-                            color: model.displayData.quantity < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
-                            Text {
-                                anchors.centerIn: parent
-                                text: model.displayData.quantity + " " + (model.displayData.unit || "pcs")
-                                color: model.displayData.quantity < 10 ? "#ff7675" : "#2ecc71"
-                                font.pixelSize: 12; font.bold: true
+                        // SECTION 1: Navigable Info (Acts on this section only)
+                        MouseArea {
+                            id: infoMouseArea
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            hoverEnabled: true
+
+                            onClicked: {
+                                contentStack.push("InventoryDetails.qml", {
+                                                      "itemData": model.displayData,
+                                                      "invView": invModel
+                                                  })
+                            }
+
+                            // Visible content for the info section
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: 15
+
+                                ColumnLayout {
+                                    Layout.preferredWidth: 200
+                                    spacing: 2
+                                    Text {
+                                        text: model.displayData.name
+                                        color: "white"
+                                        font.bold: true
+                                    }
+                                    Text {
+                                        text: "ID: #" + model.displayData.id
+                                        color: "#95a5a6"
+                                        font.pixelSize: 11
+                                    }
+                                }
+
+                                // Middle Section (e.g., Stock Level)
+                                Item { Layout.fillWidth: true } // Spacer to push items apart
+
+                                Rectangle {
+                                    width: 80; height: 26; radius: 13
+                                    color: model.displayData.quantity < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: model.displayData.quantity + " " + (model.displayData.unit || "pcs")
+                                        color: model.displayData.quantity < 10 ? "#ff7675" : "#2ecc71"
+                                        font.pixelSize: 12; font.bold: true
+                                    }
+                                }
                             }
                         }
 
-                        // The Edit ":" Button
+                        // SECTION 2: Action Button (Acts independently)
                         Button {
                             id: moreButton
-                            text: "⋮" // Vertical ellipsis for "More/Edit"
+                            text: "⋮"
                             flat: true
+                            Layout.preferredWidth: 45
+                            Layout.fillHeight: true
                             font.pixelSize: 20
-                            palette.buttonText: "white"
 
                             onClicked: {
                                 menuLoader.active = true
                                 menuLoader.item.targetData = model.displayData
-                                menuLoader.item.popup(moreButton, 0, moreButton.height)
+                                var pos = moreButton.mapToItem(inventoryPage, 0, moreButton.height)
+                                menuLoader.item.popup(pos.x - (menuLoader.item.width - moreButton.width), pos.y)
                             }
 
                             background: Rectangle {
-                                color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                                color: moreButton.hovered ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
                                 radius: 4
                             }
                         }
                     }
-                }
-            }
-        }
+        }}
     }
 }
+
+

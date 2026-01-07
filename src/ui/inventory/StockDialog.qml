@@ -11,11 +11,20 @@ Dialog {
 
     standardButtons: Dialog.Save | Dialog.Cancel
 
-    // Properties for reusability [cite: 52]
     property bool isEditMode: false
     property var targetData: null // Stores the full item map when editing
 
     width: Math.min(parent.width * 0.9, 400)
+    x: {
+            var preferredX = (parent.width - width) / 2 // Default to center
+            // Clamp: Math.max(0, Math.min(preferredX, ScreenWidth - DialogWidth))
+            return Math.max(10, Math.min(preferredX, parent.width - width - 10))
+        }
+
+        y: {
+            var preferredY = (parent.height - height) / 2
+            return Math.max(10, Math.min(preferredY, parent.height - height - 10))
+        }
 
     background: Rectangle {
         color: "#2c0505" // Matches your dark glassy red theme [cite: 8, 30, 53]
