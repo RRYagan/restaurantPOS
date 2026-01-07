@@ -150,7 +150,7 @@ Rectangle {
                     id: orderList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    model: salesModel
+                    model: salesModel.proxy
                     clip: true
                     spacing: 8
 
@@ -177,14 +177,14 @@ Rectangle {
                                 Layout.fillWidth: true
                                 spacing: 2
                                 Text {
-                                    text: model.name
+                                    text: model.displayData.name
                                     font.bold: true
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     color: "white"
                                 }
                                 Text {
-                                    text: (model.price ? model.price.formatted : "0.00") + " Ksh."
+                                    text: (model.displayData.price ? model.displayData.price.formatted : "0.00") + " Ksh."
                                     font.pixelSize: 12
                                     color: "#bdc3c7"
                                 }
@@ -199,8 +199,8 @@ Rectangle {
                                     // flat: true
                                     Layout.preferredWidth: 30
                                     onClicked: {
-                                        if (model.quantity > 1) {
-                                            salesModel.updateQuantity(index, model.quantity - 1)
+                                        if (model.displayData.quantity > 1) {
+                                            salesModel.updateQuantity(index, model.displayData.quantity - 1)
                                         } else {
                                             salesModel.removeItem(index)
                                         }
@@ -208,7 +208,7 @@ Rectangle {
                                 }
 
                                 Text {
-                                    text: model.quantity
+                                    text: model.displayData.quantity
                                     font.bold: true
                                     font.pixelSize: 14
                                     color: "white"
@@ -220,7 +220,7 @@ Rectangle {
                                     text: "+"
                                     // flat: true
                                     Layout.preferredWidth: 30
-                                    onClicked: salesModel.updateQuantity(index, model.quantity + 1)
+                                    onClicked: salesModel.updateQuantity(index, model.displayData.quantity + 1)
                                 }
                             }
                         }

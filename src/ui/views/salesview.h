@@ -2,41 +2,33 @@
 #define SALESMODEL_H
 
 #include <QAbstractTableModel>
+#include <basemodel.h>
 #include <orderitem.h>
+#include <universalfilterproxy.h>
 #include <QtQml/qqmlregistration.h>
 #include "money.h"
 
-class SalesView : public QAbstractTableModel
+class SalesView : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
 
+    Q_PROPERTY(UniversalFilterProxy* proxy READ proxy CONSTANT)
     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY totalChanged)
     Q_PROPERTY(QString currentOrderId READ currentOrderId NOTIFY currentOrderIdChanged)
     Q_PROPERTY(bool isBusy READ isBusy NOTIFY isBusyChanged)
-public:
-    enum SalesRoles {
-        QuantityRole = Qt::UserRole + 1,
-        NameRole,
-        PriceRole,
-        ItemIdRole,
-        MenuIdRole
-    };
 
+public:
     explicit SalesView(QObject *parent = nullptr);
 
-    // Table Model overrides
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    UniversalFilterProxy* proxy() const { return m_proxy; }
 
     // Q_INVOKABLE void refresh();
     Q_INVOKABLE void addItemToOrder(int menuItemId);
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE void clearOrder(); // To reset for a new customer
-    Q_INVOKABLE void removeItem(int index);
-    Q_INVOKABLE void updateQuantity(int index, int newQuantity);
+    Q_INVOKABLE void removeItem(int proxyIndex);
+    Q_INVOKABLE void updateQuantity(int proxyIndex, int newQuantity);
 
     QString totalFormatted() const;
     QString currentOrderId() const { return m_currentOrderId; }
@@ -48,12 +40,16 @@ signals:
     void isBusyChanged();
 
 private:
+    QVariantList getSalesData(); // Provider for BaseModel
+
     QList<OrderItem> m_items;
-    QString m_currentOrderId = "";
-    // bool m_isShowingHistory = false;
-    void calculateTotal();
-    Money m_totalMoney;
+    BaseModel *m_internalModel;
+    UniversalFilterProxy *m_proxy;
     bool m_isBusy = false;
+    void calculateTotal();
+
+    QString m_currentOrderId = "";
+    Money m_totalMoney;
 
 };
 

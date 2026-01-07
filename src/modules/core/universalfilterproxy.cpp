@@ -47,10 +47,10 @@ bool UniversalFilterProxy::filterAcceptsRow(int source_row, const QModelIndex &s
     if (m_filterId != -1) {
         int id = item.value("item_id").toInt();
         if (id != m_filterId) {
-            qDebug() << "Rejecting ID:" << id << "Searching for:" << m_filterId;
+            // qDebug() << "Rejecting ID:" << id << "Searching for:" << m_filterId;
             return false;
         }
-        qDebug() << "Match found for ID:" << id;
+        // qDebug() << "Match found for ID:" << id;
     }
 
     // 2. Category Filter

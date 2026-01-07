@@ -5,110 +5,111 @@
 #include <QUuid>
 #include <order.h>
 #include <databasemanager.h>
+#include <basemodel.h>
 
-SalesView::SalesView(QObject *parent) : QAbstractTableModel(parent) {}
+SalesView::SalesView(QObject *parent) : QObject(parent) {
+    m_internalModel = new BaseModel(this);
+    m_proxy = new UniversalFilterProxy(this);
 
-int SalesView::columnCount(const QModelIndex &parent) const {
-    return 3; // Quantity, Name, Price
+    // Link: SalesView provides data -> BaseModel stores it -> Proxy filters it
+    m_internalModel->setDataProvider([this]() { return getSalesData(); });
+    m_proxy->setSourceModel(m_internalModel);
 }
-
-int SalesView::rowCount(const QModelIndex &parent) const {
-    // Determine row count based on the current active view mode
-    return m_items.size();
-}
-
-QVariant SalesView::data(const QModelIndex &index, int role) const {
-    if (!index.isValid())
-        return QVariant();
-
-    // Select the source list based on state
-    const QList<OrderItem> &currentList = m_items;
-
-    if (index.row() >= currentList.size())
-        return QVariant();
-
-    const OrderItem &item = currentList.at(index.row());
-
-    switch (role) {
-    case QuantityRole: return item.quantity;
-    case NameRole:     return item.name;
-    case PriceRole:    return QVariant::fromValue(item.price);
-    case ItemIdRole:   return item.id;
-    case MenuIdRole:   return item.menuItemId;
+QVariantList SalesView::getSalesData() {
+    QVariantList list;
+    for (const auto& item : m_items) {
+        QVariantMap map;
+        map["id"] = item.id;
+        map["menuItemId"] = item.menuItemId;
+        map["name"] = item.name;
+        map["quantity"] = item.quantity;
+        map["price"] = QVariant::fromValue(item.price);
+        list.append(map);
     }
-    return QVariant();
+    return list;
 }
 
-QHash<int, QByteArray> SalesView::roleNames() const {
-    QHash<int, QByteArray> roles;
-    roles[QuantityRole] = "quantity";
-    roles[NameRole] = "name";
-    roles[PriceRole] = "price";
-    roles[ItemIdRole] = "itemId";
-    roles[MenuIdRole] = "menuId";
-    return roles;
-}
 
 // --- Cart Actions ---
 
 void SalesView::addItemToOrder(int menuItemId) {
+    // 1. Check if the item already exists in the cart
     for (int i = 0; i < m_items.size(); i++) {
         if (m_items[i].menuItemId == menuItemId) {
             m_items[i].quantity += 1;
-            QModelIndex idx = index(i, 0);
-            emit dataChanged(idx, idx, {QuantityRole});
+
+            // Tell the internal model to reload data from the updated m_items
+            m_internalModel->refresh();
             calculateTotal();
             return;
         }
     }
 
+    // 2. If not found, fetch item details from the database
     QSqlQuery query;
     query.prepare("SELECT name, base_price_cents FROM menu_items WHERE id = ?");
     query.addBindValue(menuItemId);
 
     if (query.exec() && query.next()) {
-        beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
-
         OrderItem item;
         item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         item.menuItemId = menuItemId;
         item.name = query.value("name").toString();
         item.quantity = 1;
         item.price.cents = query.value("base_price_cents").toLongLong();
+
+        // Add to our local list
         m_items.append(item);
 
-        endInsertRows();
+        // 3. Refresh the model so the Proxy and QML see the new item
+        m_internalModel->refresh();
+        calculateTotal();
+    } else {
+        qDebug() << "Failed to find menu item with ID:" << menuItemId;
+    }
+}
+void SalesView::removeItem(int proxyIndex) {
+    QModelIndex pIdx = m_proxy->index(proxyIndex, 0);
+    QModelIndex sIdx = m_proxy->mapToSource(pIdx);
+
+    if (sIdx.isValid() && sIdx.row() < m_items.size()) {
+        m_items.removeAt(sIdx.row());
+        m_internalModel->refresh(); // Mandatory to update UI
         calculateTotal();
     }
 }
+void SalesView::updateQuantity(int proxyIndex, int newQuantity) {
+    // 1. Map the Proxy Index from QML to the Source Model Index
+    QModelIndex pIdx = m_proxy->index(proxyIndex, 0);
+    QModelIndex sIdx = m_proxy->mapToSource(pIdx);
 
-void SalesView::removeItem(int index) {
-    if (index < 0 || index >= m_items.size()) return;
+    // 2. Validate the mapped index
+    if (!sIdx.isValid() || sIdx.row() < 0 || sIdx.row() >= m_items.size() || newQuantity <= 0) {
+        return;
+    }
 
-    beginRemoveRows(QModelIndex(), index, index);
-    m_items.removeAt(index);
-    endRemoveRows();
+    // 3. Update the data in the underlying list
+    m_items[sIdx.row()].quantity = newQuantity;
 
-    calculateTotal();
-}
+    // 4. Refresh the internal model to push changes to the UI
+    m_internalModel->refresh();
 
-void SalesView::updateQuantity(int index, int newQuantity) {
-    if (index < 0 || index >= m_items.size() || newQuantity <= 0) return;
-
-    m_items[index].quantity = newQuantity;
-    QModelIndex idx = this->index(index, 0);
-    emit dataChanged(idx, idx, {QuantityRole});
-
+    // 5. Recalculate the order total
     calculateTotal();
 }
 
 void SalesView::clearOrder() {
-    beginResetModel();
+    // 1. Clear the underlying data list
     m_items.clear();
+
+    // 2. Reset associated state
     m_currentOrderId = "";
     m_totalMoney.cents = 0;
-    endResetModel();
 
+    // 3. Notify the internal model to refresh (this updates the UI/Proxy)
+    m_internalModel->refresh();
+
+    // 4. Notify QML properties that state has changed
     emit currentOrderIdChanged();
     emit totalChanged();
 }

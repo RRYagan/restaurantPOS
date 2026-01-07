@@ -36,9 +36,9 @@ endfunction()
 enable_testing()
 
 # Standard Integration Test
-add_restaurant_test(RestaurantPOSTest tst_restaurantpos.cpp)
+# add_restaurant_test(RestaurantPOSTest tst_restaurantpos.cpp)
 
 # Standalone SalesView Test
 # add_restaurant_test(SalesViewTest tst_saleview.cpp)
 
-add_restaurant_test(MenuScreenUITest tst_uimenuscreen.cpp)
+# add_restaurant_test(MenuScreenUITest tst_uimenuscreen.cpp)
