@@ -19,6 +19,12 @@ add_library(PosCoreDatabase
     databasemanager.h databasemanager.cpp
     universalfilterproxy.h universalfilterproxy.cpp
     basemodel.h basemodel.cpp
+    menumodel.h menumodel.cpp
+    inventorymodel.h inventorymodel.cpp
+    usermodel.h usermodel.cpp
+    databaseseeder.h databaseseeder.cpp
+    ordermodel.h ordermodel.cpp
+    categorymodel.h categorymodel.cpp
 )
 target_include_directories(PosCoreDatabase PUBLIC .) # Expose current dir for headers
 target_link_libraries(PosCoreDatabase
