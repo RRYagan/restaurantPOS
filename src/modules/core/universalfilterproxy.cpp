@@ -8,34 +8,32 @@ UniversalFilterProxy::UniversalFilterProxy(QObject *parent)
 }
 
 
-void UniversalFilterProxy::setSearchString(const QString &str) {
-    if (m_searchString == str) return;
-    m_searchString = str;
-    // This tells the view to re-run the filter logic immediately
-    invalidateFilter();
+void UniversalFilterProxy::setSearchString(const QString& search) {
+    m_searchString = search;
+    // invalidateFilter(); // DEPRECATED
+    beginFilterChange();
+    endFilterChange();
     emit searchStringChanged();
 }
 // universalfilterproxy.cpp
 void UniversalFilterProxy::setFilterMode(int mode) {
-    if (m_filterMode == mode) return;
     m_filterMode = mode;
-    invalidateFilter(); // Re-run filter engine
+    beginFilterChange();
+    endFilterChange();
     emit filterModeChanged();
 }
 
-void UniversalFilterProxy::setFilterId(int id)
-{
-    if (m_filterId != id) {
-        m_filterId = id;
-        emit filterIdChanged();
-        invalidateFilter();
-    }
+void UniversalFilterProxy::setFilterId(int id) {
+    m_filterId = id;
+    beginFilterChange();
+    endFilterChange();
+    emit filterIdChanged();
 }
 
-void UniversalFilterProxy::setCategoryFilter(const QString &category) {
-    if (m_categoryFilter == category) return;
+void UniversalFilterProxy::setCategoryFilter(const QString& category) {
     m_categoryFilter = category;
-    invalidateFilter(); // Re-run the filter logic
+    beginFilterChange();
+    endFilterChange();
     emit categoryFilterChanged();
 }
 

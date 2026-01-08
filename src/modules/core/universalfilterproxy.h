@@ -21,6 +21,7 @@ public:
     };
     Q_ENUM(FilterMode)
 
+
     explicit UniversalFilterProxy(QObject *parent = nullptr);
 
     int filterId() const { return m_filterId; }
