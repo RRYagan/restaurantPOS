@@ -1,11 +1,12 @@
-#ifndef MENUMODEL_H
-#define MENUMODEL_H
+#ifndef MENUVIEW_H
+#define MENUVIEW_H
 
 #include <QAbstractTableModel>
 #include <basemodel.h>
-#include <databasemanager.h>
+#include <menumodel.h>
 #include <universalfilterproxy.h>
 #include "menuitem.h"
+#include "categorymodel.h"
 #include <QtQml/qqmlregistration.h>
 
 class MenuView : public QObject {
@@ -21,9 +22,13 @@ public:
 
     UniversalFilterProxy* proxy() const { return m_proxy; }
 
-    QStringList categories() const {
-        return DatabaseManager::instance().fetchCategories(); // Returns list from DB
-    }
+    // QStringList categories() const {
+    //     // MenuModel menuModel;
+        // return m_model.getAllCategories();
+    // }
+
+    QVariantList getAllMenuItems() const;
+    QStringList categories() const;
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool addMenuItem(const QString &name, const QString &category, int price, const QString &icon);
@@ -35,6 +40,7 @@ signals:
 private:
     BaseModel *m_sourceModel;
     UniversalFilterProxy *m_proxy;
+    MenuModel m_model;
 };
 
 #endif

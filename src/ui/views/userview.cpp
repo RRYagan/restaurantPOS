@@ -35,7 +35,7 @@ void UserView::refresh() {
 
 // Call DatabaseManager methods
 bool UserView::addUser(const QString &user, const QString &pass, const QString &role) {
-    if (DatabaseManager::instance().addUser(user, pass, role)) {
+    if (m_model.addUser(user, pass, role)) {
         refresh();
         return true;
     }
@@ -45,17 +45,17 @@ bool UserView::addUser(const QString &user, const QString &pass, const QString &
 // userview.cpp
 
 bool UserView::isLoggedIn() const {
-    return DatabaseManager::instance().currentUser().isValid;
+    return m_model.currentUser().isValid;
 }
 
 QString UserView::currentUserRole() const {
-    return DatabaseManager::instance().currentUser().role;
+    return m_model.currentUser().role;
 }
 bool UserView::isAdmin() const {
-    return DatabaseManager::instance().isAdmin();
+    return m_model.isAdmin();
 }
 bool UserView::login(const QString &username, const QString &password) {
-    if (DatabaseManager::instance().verifyUser(username, password)) {
+    if (m_model.verifyUser(username, password)) {
         emit sessionChanged();
         return true;
     }
@@ -63,7 +63,7 @@ bool UserView::login(const QString &username, const QString &password) {
 }
 
 void UserView::logout() {
-    DatabaseManager::instance().logout();
+    m_model.logout();
     emit sessionChanged();
 }
 
@@ -74,7 +74,7 @@ bool UserView::deleteUser(int id) {
         return false;
     }
 
-    if (DatabaseManager::instance().deleteUser(id)) {
+    if (m_model.deleteUser(id)) {
         refresh();
         return true;
     }

@@ -1,8 +1,9 @@
-#ifndef USERMODEL_H
-#define USERMODEL_H
+#ifndef USERVIEW_H
+#define USERVIEW_H
 
 #include <QAbstractListModel>
 #include <user.h>
+#include <usermodel.h>
 #include <QtQml/qqmlregistration.h>
 
 class UserView : public QAbstractListModel {
@@ -35,6 +36,7 @@ signals:
     void sessionChanged();
 private:
     QVector<User> m_users;
+    UserModel m_model;
 };
 
 #endif

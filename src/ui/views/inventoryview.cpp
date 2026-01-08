@@ -5,13 +5,13 @@ InventoryView::InventoryView(QObject *parent) : QObject(parent) {
     // Inventory Setup
     m_sourceModel = new BaseModel(this);
     m_proxy = new UniversalFilterProxy(this);
-    m_sourceModel->setDataProvider([]() { return DatabaseManager::instance().fetchInventory(); });
+    m_sourceModel->setDataProvider([this]() { return m_model.fetchInventory(); });
     m_proxy->setSourceModel(m_sourceModel);
 
     // History Setup (The Proxy-based approach)
     m_historySourceModel = new BaseModel(this);
     m_historyProxy = new UniversalFilterProxy(this);
-    m_historySourceModel->setDataProvider([]() { return DatabaseManager::instance().fetchAllInventoryHistory(); });
+    m_historySourceModel->setDataProvider([this]() { return m_model.fetchAllInventoryHistory(); });
     m_historyProxy->setSourceModel(m_historySourceModel);
 
 }
@@ -22,7 +22,7 @@ void InventoryView::refresh() {
 }
 
 bool InventoryView::addStock(const QString &name, int qty, const QString &unit) {
-    if (DatabaseManager::instance().addInventoryItem(name, qty, unit)) {
+    if (m_model.addInventoryItem(name, qty, unit)) {
         refresh();
         return true;
     }
@@ -30,7 +30,7 @@ bool InventoryView::addStock(const QString &name, int qty, const QString &unit) 
 }
 
 bool InventoryView::updateStock(int id, const QString &name, int qty, const QString &unit) {
-    if (DatabaseManager::instance().updateInventoryItem(id, name, qty, unit)) {
+    if (m_model.updateInventoryItem(id, name, qty, unit)) {
         refresh();
         return true;
     }
@@ -38,7 +38,7 @@ bool InventoryView::updateStock(int id, const QString &name, int qty, const QStr
 }
 
 bool InventoryView::deleteStock(int id) {
-    if (DatabaseManager::instance().deleteInventoryItem(id)) {
+    if (m_model.deleteInventoryItem(id)) {
         refresh(); // This refreshes the BaseModel and the Proxy
         return true;
     }
@@ -47,5 +47,5 @@ bool InventoryView::deleteStock(int id) {
 
 
 // QVariantList InventoryView::getHistory(int itemId) {
-//     return DatabaseManager::instance().fetchInventoryHistory(itemId);
+//     return m_model.fetchInventoryHistory(itemId);
 // }

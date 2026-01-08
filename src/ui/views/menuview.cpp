@@ -6,8 +6,8 @@ MenuView::MenuView(QObject *parent) : QObject(parent) {
     m_proxy = new UniversalFilterProxy(this);
 
     // Set the data provider to fetch from DB
-    m_sourceModel->setDataProvider([]() {
-        return DatabaseManager::instance().getAllMenuItems();
+    m_sourceModel->setDataProvider([this]() {
+        return m_model.getAllMenuItems();
     });
 
     // Link the proxy to the source
@@ -17,9 +17,11 @@ MenuView::MenuView(QObject *parent) : QObject(parent) {
 void MenuView::refresh() {
     m_sourceModel->refresh();
 }
-
+QVariantList MenuView::getAllMenuItems() const {
+    m_model.getAllMenuItems();
+}
 bool MenuView::addMenuItem(const QString &name, const QString &category, int price, const QString &icon) {
-    if (DatabaseManager::instance().addMenuItem(name, category, price, icon)) {
+    if (m_model.addMenuItem(name, category, price, icon)) {
         refresh();
         return true;
     }
@@ -27,7 +29,7 @@ bool MenuView::addMenuItem(const QString &name, const QString &category, int pri
 }
 
 bool MenuView::deleteItem(int itemId) {
-    if (DatabaseManager::instance().deleteMenuItem(itemId)) {
+    if (m_model.deleteMenuItem(itemId)) {
         refresh();
         return true;
     }
@@ -36,7 +38,7 @@ bool MenuView::deleteItem(int itemId) {
 
 bool MenuView::updateMenuItem(int id, const QString &name, const QString &category, int priceCents, const QString &icon) {
     // 1. Update the Database
-    bool success = DatabaseManager::instance().updateMenuItem(id, name, category, priceCents, icon);
+    bool success = m_model.updateMenuItem(id, name, category, priceCents, icon);
 
     if (success) {
         // 2. Trigger the internal BaseModel to re-fetch data
@@ -45,4 +47,9 @@ bool MenuView::updateMenuItem(int id, const QString &name, const QString &catego
     }
 
     return success;
+}
+
+QStringList MenuView::categories() const {
+    CategoryModel catModel;
+    return catModel.fetchCategories();
 }

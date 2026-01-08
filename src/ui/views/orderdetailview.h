@@ -1,5 +1,5 @@
-#ifndef ORDERDETAILMODEL_H
-#define ORDERDETAILMODEL_H
+#ifndef ORDERDETAILVIEW_H
+#define ORDERDETAILVIEW_H
 
 #include <QAbstractTableModel>
 #include <QSqlQuery>

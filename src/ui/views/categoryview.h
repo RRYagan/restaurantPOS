@@ -1,8 +1,9 @@
-#ifndef CATEGORYMODEL_H
-#define CATEGORYMODEL_H
+#ifndef CATEGORYVIEW_H
+#define CATEGORYVIEW_H
 
 #include <QObject>
 #include <QStringList>
+#include <categorymodel.h>
 #include <QtQml/qqmlregistration.h>
 #include "basemodel.h"
 #include "universalfilterproxy.h"
@@ -28,6 +29,7 @@ private:
     BaseModel *m_internalModel;
     UniversalFilterProxy *m_proxy;
     QStringList m_categories;
+    CategoryModel cat_model;
 };
 
 #endif

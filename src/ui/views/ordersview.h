@@ -1,5 +1,5 @@
-#ifndef HISTORYMODEL_H
-#define HISTORYMODEL_H
+#ifndef ORDERSYVIEW_H
+#define ORDERSVIEW_H
 
 #include <QAbstractTableModel>
 #include <QSqlQuery>

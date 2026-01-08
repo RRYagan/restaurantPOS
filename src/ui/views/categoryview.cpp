@@ -24,14 +24,14 @@ QVariantList CategoryView::getCategoryData() {
 
 void CategoryView::refresh() {
     // Update the local cache from Database
-    m_categories = DatabaseManager::instance().fetchCategories();
+    m_categories = cat_model.fetchCategories();
 
     // Trigger the internal model to reload and update the UI
     m_internalModel->refresh();
 }
 
 bool CategoryView::addCategory(const QString &name) {
-    if (DatabaseManager::instance().addCategory(name)) {
+    if (cat_model.addCategory(name)) {
         refresh();
         return true;
     }
@@ -40,7 +40,7 @@ bool CategoryView::addCategory(const QString &name) {
 
 bool CategoryView::editCategory(const QString &oldName, const QString &newName) {
     if (newName.trimmed().isEmpty() || oldName == newName) return false;
-    if (DatabaseManager::instance().updateCategory(oldName, newName)) {
+    if (cat_model.updateCategory(oldName, newName)) {
         refresh();
         return true;
     }
@@ -49,7 +49,7 @@ bool CategoryView::editCategory(const QString &oldName, const QString &newName) 
 
 bool CategoryView::deleteCategory(const QString &name) {
     if (name == "All") return false;
-    if (DatabaseManager::instance().deleteCategory(name)) {
+    if (cat_model.deleteCategory(name)) {
         refresh();
         return true;
     }

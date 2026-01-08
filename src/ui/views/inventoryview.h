@@ -2,6 +2,7 @@
 #define INVENTORYVIEW_H
 
 #include <QObject>
+#include <inventorymodel.h>
 #include <QtQml/qqmlregistration.h>
 #include "basemodel.h"
 #include "universalfilterproxy.h"
@@ -34,6 +35,7 @@ private:
 
     BaseModel *m_historySourceModel;       // Source for history logs
     UniversalFilterProxy *m_historyProxy; // Proxy for the history logs
+    InventoryModel m_model;
 };
 
 #endif

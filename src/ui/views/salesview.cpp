@@ -6,6 +6,7 @@
 #include <order.h>
 #include <databasemanager.h>
 #include <basemodel.h>
+#include <ordermodel.h>
 
 SalesView::SalesView(QObject *parent) : QObject(parent) {
     m_internalModel = new BaseModel(this);
@@ -130,7 +131,8 @@ bool SalesView::makeOrder() {
     order.status = OrderStatus::Open;
     order.createdAt = QDateTime::currentDateTime();
 
-    bool success = DatabaseManager::instance().saveOrder(order);
+    OrderModel orderModel;
+    bool success = orderModel.saveOrder(order);
 
     // if (success) {
     //     clearOrder();

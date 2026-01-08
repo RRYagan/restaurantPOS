@@ -1,5 +1,5 @@
-#ifndef SALESMODEL_H
-#define SALESMODEL_H
+#ifndef SALESVIEW_H
+#define SALESVIEW_H
 
 #include <QAbstractTableModel>
 #include <basemodel.h>
