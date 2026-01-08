@@ -1,6 +1,9 @@
 #include "ordersview.h"
 
-OrdersView::OrdersView(QObject *parent) : QAbstractTableModel(parent) {}
+OrdersView::OrdersView(QObject *parent) : QAbstractTableModel(parent) {
+    m_proxy = new UniversalFilterProxy(this);
+    m_proxy->setSourceModel(this);
+}
 
 int OrdersView::rowCount(const QModelIndex &parent) const {
     return m_history.size();
@@ -27,6 +30,7 @@ QVariant OrdersView::data(const QModelIndex &index, int role) const {
         return QString("Order #%1 (Table %2)").arg(record.id).arg(record.tableNumber);
     }
     return QVariant();
+
 }
 
 QHash<int, QByteArray> OrdersView::roleNames() const {

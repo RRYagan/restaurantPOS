@@ -15,7 +15,10 @@ Rectangle {
         RowLayout {
             spacing: 15
             Button {
-                text: "← Back"
+                text: "←"
+                flat: true
+                font.pixelSize: 24
+                palette.buttonText: "white"
                 onClicked: contentStack.pop()
             }
 

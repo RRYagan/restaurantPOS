@@ -4,12 +4,16 @@
 #include <QAbstractTableModel>
 #include <QSqlQuery>
 #include <orderitem.h>
+#include <universalfilterproxy.h>
 #include <QtQml/qqmlregistration.h>
 
 class OrdersView : public QAbstractTableModel
 {
     Q_OBJECT
     QML_ELEMENT
+
+    Q_PROPERTY(UniversalFilterProxy* proxy READ proxy CONSTANT)
+
 public:
     enum HistoryRoles {
         OrderIdRole = Qt::UserRole,
@@ -20,6 +24,8 @@ public:
     };
 
     explicit OrdersView(QObject *parent = nullptr);
+    UniversalFilterProxy* proxy() const { return m_proxy; }
+
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -35,6 +41,7 @@ private:
         QString createdAt;
     };
     QList<OrdersRecord> m_history;
+    UniversalFilterProxy* m_proxy; // Add this
 };
 
 #endif

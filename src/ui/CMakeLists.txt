@@ -11,7 +11,7 @@ qt_add_qml_module(POS_UI
        views/menuview.h views/menuview.cpp
        views/inventoryview.h views/inventoryview.cpp
        views/userview.h views/userview.cpp
-
+       payment/paymentcontroller.h payment/paymentcontroller.cpp
     QML_FILES
         OrdersScreen.qml
         Main.qml
@@ -42,16 +42,17 @@ qt_add_qml_module(POS_UI
         AddItemDialog.qml
         ConfirmDialog.qml
 
+        # payment
+        payment/PaymentDialog.qml
 
     RESOURCES
         "assets/icons/default.png"
         "assets/images/bg.png"
 )
 
-
-
-
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
+target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")
+
 target_link_libraries(POS_UI
     PRIVATE
         Qt6::Quick
@@ -59,4 +60,5 @@ target_link_libraries(POS_UI
         Qt6::Sql
         PosCoreEntities
         PosCoreDatabase
+        PosPayment
 )
