@@ -29,7 +29,7 @@ private:
     BaseModel *m_internalModel;
     UniversalFilterProxy *m_proxy;
     QStringList m_categories;
-    CategoryModel cat_model;
+    CategoryModel m_model;
 };
 
 #endif

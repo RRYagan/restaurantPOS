@@ -4,6 +4,7 @@
 #include <QAbstractTableModel>
 #include <basemodel.h>
 #include <orderitem.h>
+#include <ordermodel.h>
 #include <universalfilterproxy.h>
 #include <QtQml/qqmlregistration.h>
 #include "money.h"
@@ -50,6 +51,7 @@ private:
 
     QString m_currentOrderId = "";
     Money m_totalMoney;
+    OrderModel m_model;
 
 };
 

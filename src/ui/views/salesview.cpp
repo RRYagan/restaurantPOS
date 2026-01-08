@@ -4,9 +4,7 @@
 #include <QDebug>
 #include <QUuid>
 #include <order.h>
-#include <databasemanager.h>
 #include <basemodel.h>
-#include <ordermodel.h>
 
 SalesView::SalesView(QObject *parent) : QObject(parent) {
     m_internalModel = new BaseModel(this);
@@ -131,12 +129,7 @@ bool SalesView::makeOrder() {
     order.status = OrderStatus::Open;
     order.createdAt = QDateTime::currentDateTime();
 
-    OrderModel orderModel;
-    bool success = orderModel.saveOrder(order);
-
-    // if (success) {
-    //     clearOrder();
-    // }
+    bool success = m_model.saveOrder(order);
 
     m_isBusy = false;
     emit isBusyChanged();

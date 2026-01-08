@@ -164,11 +164,24 @@ Rectangle {
             SplitView.minimumWidth: 300
             color: theme.sidePanelBg
             border.color: theme.border
+            // Dim the content slightly when busy
+            opacity: (salesModel && salesModel.isBusy) ? 0.5 : 1.0
+            enabled: !salesModel || !salesModel.isBusy
+
+            BusyIndicator {
+                id: loadingIcon
+                anchors.centerIn: parent
+                z: 10 // Ensure it sits above the list
+                running: salesModel ? salesModel.isBusy : false
+                visible: running
+                        }
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 15
                 spacing: 10
+
+
 
                 Text {
                     text: "Current Order"
@@ -262,23 +275,23 @@ Rectangle {
                     Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; opacity: 0.5 }
 
                     RowLayout {
-                                            Text { text: "Sub-total"; color: theme.textSecondary; font.pixelSize: 13 }
-                                            Item { Layout.fillWidth: true }
-                                            Text { text: root.subTotal.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
+                        Text { text: "Sub-total"; color: theme.textSecondary; font.pixelSize: 13 }
+                         Item { Layout.fillWidth: true }
+                        Text { text: root.subTotal.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
                                         }
 
-                                        RowLayout {
-                                            Text { text: "Tax (16%)"; color: theme.textSecondary; font.pixelSize: 13 }
-                                            Item { Layout.fillWidth: true }
-                                            Text { text: root.taxAmount.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
-                                        }
+                        RowLayout {
+                            Text { text: "Tax (16%)"; color: theme.textSecondary; font.pixelSize: 13 }
+                            Item { Layout.fillWidth: true }
+                            Text { text: root.taxAmount.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
+                        }
 
-                                        RowLayout {
-                                            Layout.topMargin: 5
-                                            Text { text: "Total Amount"; color: theme.textMain; font.bold: true; font.pixelSize: 18 }
-                                            Item { Layout.fillWidth: true }
-                                            Text { text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."; color: theme.success; font.bold: true; font.pixelSize: 20 }
-                                        }
+                        RowLayout {
+                            Layout.topMargin: 5
+                            Text { text: "Total Amount"; color: theme.textMain; font.bold: true; font.pixelSize: 18 }
+                            Item { Layout.fillWidth: true }
+                            Text { text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."; color: theme.success; font.bold: true; font.pixelSize: 20 }
+                        }
                 }
 
                 // --- Action Buttons ---
