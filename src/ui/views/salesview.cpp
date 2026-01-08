@@ -132,9 +132,9 @@ bool SalesView::makeOrder() {
 
     bool success = DatabaseManager::instance().saveOrder(order);
 
-    if (success) {
-        clearOrder();
-    }
+    // if (success) {
+    //     clearOrder();
+    // }
 
     m_isBusy = false;
     emit isBusyChanged();
