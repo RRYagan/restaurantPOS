@@ -10,6 +10,47 @@ ApplicationWindow {
     visible: true
     title: "Premium POS System"
 
+    property QtObject theme: spicyRed
+    // --- 2. DEFINE THE spicyRed DARK THEME ---
+    QtObject {
+            id: spicyRed
+            property color background: "transparent"
+            property color surface: Qt.rgba(1, 1, 1, 0.08)
+            property color surfaceHighlight: Qt.rgba(1, 1, 1, 0.18)
+            property color accent: "#3498db"
+            property color success: "#2ecc71"
+            property color danger: "#e74c3c"
+            property color textMain: "#ffffff"
+            property color textSecondary: "#95a5a6"
+            property color border: Qt.rgba(1, 1, 1, 0.15)
+            property color sidePanelBg: Qt.rgba(0, 0, 0, 0.25)
+
+            // --- Card Specific Props ---
+            property real cardOpacity: 0.9
+            property real cardIconOpacity: 0.9
+            property color cardBorderFocused: "#3498db"
+            property int cardRadius: 12
+        }
+
+    // --- 3. DEFINE THE WHITE THEME ---
+        QtObject {
+            id: whiteTheme
+            property color background: "#f5f6fa"
+            property color surface: "#ffffff"
+            property color surfaceHighlight: "#f1f2f6"
+            property color accent: "#2980b9"
+            property color success: "#27ae60"
+            property color danger: "#c0392b"
+            property color textMain: "#2f3640"
+            property color textSecondary: "#7f8c8d"
+            property color border: "#dcdde1"
+            property color sidePanelBg: "#ebedf0"
+            // --- Card Specific Props ---
+            property real cardOpacity: 1.0
+            property real cardIconOpacity: 1.0
+            property color cardBorderFocused: "#2980b9"
+            property int cardRadius: 8
+        }
     // Model Logic
     SalesView { id: globalCartModel }
     OrdersView { id: globalOrdersModel }

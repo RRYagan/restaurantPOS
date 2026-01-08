@@ -19,10 +19,10 @@ Button {
         anchors.fill: parent
         // White background with 15% opacity to show the Main.qml background design
         // Darker opacity when pressed (down)
-        color: control.down ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.15)
+        color: control.down ? window.theme.surfaceHighlight : window.theme.surface
         radius: 12
         // Subtle white border to define the card against the background
-        border.color: control.visualFocus ? "#3498db" : Qt.rgba(1, 1, 1, 0.2)
+        border.color: control.visualFocus ? accent : window.theme.border
         border.width: 1
     }
 
@@ -38,7 +38,7 @@ Button {
             Layout.preferredWidth: 64
             Layout.preferredHeight: 64
             fillMode: Image.PreserveAspectFit
-            opacity: 0.9
+            opacity: window.theme.cardIconOpacity
         }
 
         // Flexible spacer to push text to the bottom area for alignment
@@ -49,7 +49,7 @@ Button {
             text: control.itemName
             font.pixelSize: 15
             font.bold: true
-            color: "white" // Contrast for dark red/transparent theme
+            color: window.theme.textMain // Contrast for dark red/transparent theme
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -60,7 +60,7 @@ Button {
         // Price - Centered at the bottom
         Text {
             text: control.priceCents ? (control.priceCents)/100 + " Ksh." : "0.00 Ksh."
-            color: "#2ecc71" // Vibrant green to remain visible on the design
+            color: window.theme.success // Vibrant green to remain visible on the design
             font.pixelSize: 14
             font.bold: true
             Layout.fillWidth: true
