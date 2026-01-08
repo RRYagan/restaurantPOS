@@ -1,29 +1,73 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-// import POS.Menu 1.0
 import POS.UI 1.0
 
 Rectangle {
     id: root
     color: "transparent"
 
-
-
     property SalesView salesModel: null
-
+    property string currentOrderId: ""
     property string currentCategory: "All"
+
+    // Tax Logic (Matching PaymentDialog 16% VAT)
+        readonly property double totalVal: {
+            if (!salesModel || !salesModel.totalFormatted) return 0.0;
+            let clean = salesModel.totalFormatted.replace(/[^0-9.]/g, '');
+            return parseFloat(clean) || 0.0;
+        }
+        readonly property double subTotal: totalVal / 1.16
+        readonly property double taxAmount: totalVal - subTotal
+    // --- THEME PROPERTIES ---
+    // These unify the feel with Main.qml and PaymentDialog.qml
+    QtObject {
+        id: theme
+        property color background: "transparent"
+        property color surface: Qt.rgba(1, 1, 1, 0.08)       // Transparent white for "glass" effect
+        property color surfaceHighlight: Qt.rgba(1, 1, 1, 0.18)
+        property color accent: "#3498db"                     // Blue focus color from Card.qml
+        property color success: "#2ecc71"                    // Green for prices and "Place Order"
+        property color danger: "#e74c3c"                     // Red for "Cancel Order"
+        property color textMain: "#ffffff"
+        property color textSecondary: "#95a5a6"              // Muted gray from PaymentDialog
+        property color border: Qt.rgba(1, 1, 1, 0.15)
+        property color sidePanelBg: Qt.rgba(0, 0, 0, 0.25)   // Slightly darker area for order list
+    }
+
+
     CategoryView { id: catModel }
     MenuView { id: menuModel }
+
     onCurrentCategoryChanged: {
-            if (menuModel.proxy) {
-                menuModel.proxy.categoryFilter = currentCategory;
+        if (menuModel.proxy) {
+            menuModel.proxy.categoryFilter = currentCategory;
+        }
+    }
+
+    PaymentController {
+        id: payCtrl
+        onPaymentFinished: (success, ref) => {
+            if (success) {
+                paymentLoader.item.close()
+                salesModel.clearOrder()
+                paymentLoader.sourceComponent = null
             }
         }
+    }
 
-
-    property string currentOrderId: ""
-
+    Loader {
+        id: paymentLoader
+        anchors.fill: parent
+        active: false
+        sourceComponent: Component {
+            PaymentDialog {
+                salesModel: root.salesModel
+                paymentCtrl: payCtrl
+                onClosed: paymentLoader.active = false
+            }
+        }
+    }
 
     SplitView {
         anchors.fill: parent
@@ -33,27 +77,24 @@ Rectangle {
         Rectangle {
             SplitView.fillWidth: true
             SplitView.minimumWidth: 400
-            color: "transparent"
+            color: theme.background
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 20
                 spacing: 15
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label {
-                        text: "Menu Items"
-                        font.pixelSize: 28
-                        font.bold: true
-                    }
-                    Item { Layout.fillWidth: true }
+                Label {
+                    text: "Menu Items"
+                    font.pixelSize: 28
+                    font.bold: true
+                    color: theme.textMain
                 }
 
-                // Inside the Left Side ColumnLayout, before the GridView
+                // --- Category Bar ---
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 50 // Fixed height for the scrollable bar
+                    height: 50
                     color: "transparent"
 
                     ListView {
@@ -62,22 +103,16 @@ Rectangle {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOff }
-
                         model: catModel.proxy
 
                         delegate: Button {
                             id: catButton
-                            // FIX 1: Change modelData to model.displayData.name
                             text: model.displayData.name
-                            padding: 15
 
                             contentItem: Text {
-                                // FIX 2: Use the property from the map
-                                text: model.displayData.name
+                                text: catButton.text
                                 font.bold: true
-                                // FIX 3: Compare against the actual categoryFilter string
-                                color: menuModel.proxy.categoryFilter === model.displayData.name ? "white" : "#2c3e50"
+                                color: menuModel.proxy.categoryFilter === text ? theme.textMain : theme.textSecondary
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -85,21 +120,19 @@ Rectangle {
                             background: Rectangle {
                                 implicitWidth: 100
                                 implicitHeight: 38
-                                // FIX 4: Correct property name (categoryFilter, not categoryFilterChanged)
-                                color: menuModel.proxy.categoryFilter === model.displayData.name ? "#3498db" : "#ecf0f1"
+                                color: menuModel.proxy.categoryFilter === catButton.text ? theme.accent : theme.surface
                                 radius: 20
-                                border.color: menuModel.proxy.categoryFilter === model.displayData.name ? "#2980b9" : "#dcdde1"
-                                border.width: 1
+                                border.color: menuModel.proxy.categoryFilter === catButton.text ? theme.accent : theme.border
                             }
 
                             onClicked: {
-                                // FIX 5: Update the filter using the name string from the map
                                 menuModel.proxy.categoryFilter = model.displayData.name
                                 categoryBar.positionViewAtIndex(index, ListView.Center);
                             }
                         }
                     }
                 }
+
                 GridView {
                     id: grid
                     Layout.fillWidth: true
@@ -114,12 +147,8 @@ Rectangle {
                         priceCents: model.displayData.price_cents
                         width: grid.cellWidth - 30
                         height: grid.cellHeight - 30
-                        // anchors.horizontalCenter: parent ? grid.horizontalCenter : undefined
-
                         onClicked: {
                             if (salesModel !== null) {
-                                // Logic: This only updates the memory list, not the DB
-                                // console.log(model.displayData.price_cents)
                                 salesModel.addItemToOrder(model.displayData.id);
                             }
                         }
@@ -133,8 +162,8 @@ Rectangle {
             id: orderSidePanel
             SplitView.preferredWidth: 350
             SplitView.minimumWidth: 300
-            color: "transparent"
-            border.color: "#1affffff"
+            color: theme.sidePanelBg
+            border.color: theme.border
 
             ColumnLayout {
                 anchors.fill: parent
@@ -145,9 +174,9 @@ Rectangle {
                     text: "Current Order"
                     font.pixelSize: 22
                     font.bold: true
+                    color: theme.textMain
                 }
 
-                // Inside MenuScreen.qml - Right Side SplitView Panel
                 ListView {
                     id: orderList
                     Layout.fillWidth: true
@@ -163,42 +192,36 @@ Rectangle {
                         contentItem: RowLayout {
                             spacing: 12
 
-                            // 1. Remove Button on the left
                             Button {
                                 text: "×"
-                                font.pixelSize: 20
-                                font.bold: true
-                                palette.buttonText: "#ff7675"
+                                font.pixelSize: 18
+                                palette.buttonText: theme.danger
                                 flat: true
                                 Layout.preferredWidth: 30
                                 onClicked: salesModel.removeItem(index)
                             }
 
-                            // 2. Item Name and Price
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
                                 Text {
                                     text: model.displayData.name
                                     font.bold: true
+                                    color: theme.textMain
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
-                                    color: "white"
                                 }
                                 Text {
                                     text: (model.displayData.price ? model.displayData.price.formatted : "0.00") + " Ksh."
+                                    color: theme.textSecondary
                                     font.pixelSize: 12
-                                    color: "#bdc3c7"
                                 }
                             }
 
-                            // 3. Quantity Controls (Fit to the right)
                             RowLayout {
                                 spacing: 5
-
                                 Button {
                                     text: "-"
-                                    // flat: true
                                     Layout.preferredWidth: 30
                                     onClicked: {
                                         if (model.displayData.quantity > 1) {
@@ -208,144 +231,113 @@ Rectangle {
                                         }
                                     }
                                 }
-
                                 Text {
                                     text: model.displayData.quantity
+                                    color: theme.textMain
                                     font.bold: true
-                                    font.pixelSize: 14
-                                    color: "white"
-                                    horizontalAlignment: Text.AlignHCenter
                                     Layout.preferredWidth: 20
+                                    horizontalAlignment: Text.AlignHCenter
                                 }
-
                                 Button {
                                     text: "+"
-                                    // flat: true
                                     Layout.preferredWidth: 30
                                     onClicked: salesModel.updateQuantity(index, model.displayData.quantity + 1)
                                 }
                             }
                         }
 
-                        // Add a subtle background highlight
                         background: Rectangle {
-                            color: hovered ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
-                                    radius: 6
-                                    border.color: Qt.rgba(1, 1, 1, 0.1)
-                                    border.width: 1
+                            color: hovered ? theme.surfaceHighlight : theme.surface
+                            radius: 8
+                            border.color: theme.border
                         }
                     }
                 }
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 1
-                    color: "#e0e0e0"
-                    Layout.topMargin: 5
-                    Layout.bottomMargin: 5
-                }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text { text: "Total:"; font.bold: true; font.pixelSize: 18 }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
-                        font.bold: true; font.pixelSize: 18; color: "#27ae60"
-                    }
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text { text: "Tax:"; font.bold: true; font.pixelSize: 18 }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
-                        font.bold: true; font.pixelSize: 18; color: "#27ae60"
-                    }
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text { text: "Final Total:"; font.bold: true; font.pixelSize: 18 }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."
-                        font.bold: true; font.pixelSize: 18; color: "#27ae60"
-                    }
-                }
-
-
+                // --- Totals Summary ---
                 ColumnLayout {
-                    objectName: "makeOrderButton"
-                    id: buttonLayout
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; opacity: 0.5 }
+
+                    RowLayout {
+                                            Text { text: "Sub-total"; color: theme.textSecondary; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: root.subTotal.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
+                                        }
+
+                                        RowLayout {
+                                            Text { text: "Tax (16%)"; color: theme.textSecondary; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: root.taxAmount.toFixed(2) + " Ksh."; color: theme.textSecondary; font.pixelSize: 13 }
+                                        }
+
+                                        RowLayout {
+                                            Layout.topMargin: 5
+                                            Text { text: "Total Amount"; color: theme.textMain; font.bold: true; font.pixelSize: 18 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: (salesModel ? salesModel.totalFormatted : "0.00") + " Ksh."; color: theme.success; font.bold: true; font.pixelSize: 20 }
+                                        }
+                }
+
+                // --- Action Buttons ---
+                ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 10
-                    Layout.topMargin: 10
+                    Layout.topMargin: 5
 
-                    // --- Place/Update Order Button ---
                     Button {
                         id: orderButton
+                        text: "PLACE ORDER"
                         Layout.fillWidth: true
-                        // Cap the height to prevent it from looking oversized
-                        Layout.preferredHeight: 45
-                        Layout.maximumHeight: 50
+                        Layout.preferredHeight: 50
+                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
 
                         contentItem: Text {
-                            // Text changes based on whether m_currentOrderId is set
-                            text: "PLACE ORDER"
+                            text: orderButton.text
                             color: "white"
                             font.bold: true
-                            font.pixelSize: 14
-
-                            // Forces the text to shrink rather than expanding the button
-                            fontSizeMode: Text.Fit
-                            minimumPixelSize: 9
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
-                            leftPadding: 12
-                            rightPadding: 12
                         }
 
                         background: Rectangle {
-                            // Blue for Update, Green for New Order
-                            color: orderButton.enabled
-                                ? "#2ecc71"
-                                : "#bdc3c7"
-                            radius: 4
+                            color: orderButton.enabled ? theme.success : "#34495e"
+                            radius: 6
                         }
-
-                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
-                        onClicked: salesModel.makeOrder()
+                        onClicked: {
+                            if (salesModel.makeOrder()) {
+                                paymentLoader.active = true
+                                paymentLoader.item.open()
+                            }
+                        }
                     }
 
-                    // --- Cancel order ---
                     Button {
                         id: clearButton
+                        text: "CANCEL ORDER"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
+                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
 
                         contentItem: Text {
-                            text: "CANCEL ORDER"
-                            color: "white"
+                            text: clearButton.text
+                            color: theme.danger
                             font.bold: true
-                            font.pixelSize: 13
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
 
                         background: Rectangle {
-                            color: clearButton.enabled ? "#e74c3c" : "#bdc3c7"
-                            radius: 4
+                            color: "transparent"
+                            border.color: theme.danger
+                            radius: 6
+                            opacity: clearButton.enabled ? 1.0 : 0.3
                         }
-
-                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
                         onClicked: salesModel.clearOrder()
                     }
-                }// Button {
-                //         text: ">"
-                //         font.bold: true
-                //         flat: true
-                //         enabled: salesModel && salesModel.rowCount() > 0
-                //         onClicked: contentStack.push("PaymentPage.qml", { "salesModel": salesModel })
-                //     }
+                }
             }
         }
     }
