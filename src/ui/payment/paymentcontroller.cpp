@@ -1,13 +1,49 @@
 #include "paymentcontroller.h"
+#include <QCoreApplication>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QStandardPaths>
+#include <paymentmodel.h>
+
 
 PaymentController::PaymentController(QObject *parent) : QObject(parent) {
-    // Initialize your M-Pesa credentials here or load from DB
-    m_mpesaConfig.shortCode = "174379";
-    m_mpesaConfig.passKey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
-    m_mpesaConfig.consumerKey = "YOUR_KEY";
-    m_mpesaConfig.consumerSecret = "YOUR_SECRET";
+    loadConfig();
 }
 
+void PaymentController::loadConfig() {
+    // 1. Try multiple paths: App Dir, AppData, and Working Dir
+    QStringList potentialPaths;
+    potentialPaths << QCoreApplication::applicationDirPath() + "/config.json";
+    potentialPaths << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.json";
+    potentialPaths << "config.json";
+
+    QString finalPath;
+    for (const QString &p : potentialPaths) {
+        if (QFile::exists(p)) {
+            finalPath = p;
+            break;
+        }
+    }
+
+    QFile file(finalPath);
+    if (!finalPath.isEmpty() && file.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonObject mpesa = doc.object().value("mpesa").toObject();
+
+        // 2. Assign values and verify
+        m_mpesaConfig.shortCode = mpesa.value("shortCode").toString();
+        m_mpesaConfig.passKey = mpesa.value("passKey").toString();
+        m_mpesaConfig.consumerKey = mpesa.value("consumerKey").toString();
+        m_mpesaConfig.consumerSecret = mpesa.value("consumerSecret").toString();
+        m_mpesaConfig.isTill = mpesa.value("isTill").toBool();
+
+        qDebug() << "[Config] Loaded from:" << finalPath;
+        qDebug() << "[Config] ShortCode found:" << m_mpesaConfig.shortCode;
+    } else {
+        qWarning() << "[Config] Could not find config.json in searched paths!";
+    }
+}
 PaymentController::~PaymentController() {
     cleanUpActivePayment();
 }
@@ -21,11 +57,25 @@ void PaymentController::startCashPayment() {
 
 void PaymentController::startMpesaPayment(const QString &phone) {
     cleanUpActivePayment();
+
+    PaymentModel model;
+    int amountCents = static_cast<int>(m_amount * 100);
+
+    // We log it as 'Initiated' with the current user tag
+    model.insertPayment("ORD-TEMP-123", "MPESA_STK", amountCents, "Admin", "");
+
     m_activePayment = new MpesaPayment(m_mpesaConfig, this);
     connectSignals();
 
+    if (isTokenValid()) {
+        qDebug() << "[M-Pesa] Using Cached Token. Skipping Handshake.";
+        // You would add a setter in MpesaPayment for this
+        // m_activePayment->setToken(m_cachedToken);
+    }
+
     QVariantMap data;
     data["phone"] = phone;
+    data["user_tag"] = "Admin";
     m_activePayment->process(m_amount, data);
 }
 

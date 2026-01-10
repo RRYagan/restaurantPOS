@@ -23,6 +23,17 @@ QVariantList SalesView::getSalesData() {
         map["name"] = item.name;
         map["quantity"] = item.quantity;
         map["price"] = QVariant::fromValue(item.price);
+        // --- ADD THIS SECTION TO FIX THE ISSUE ---
+        QVariantList modsList;
+        for (const auto& mod : item.selectModifiers) {
+            QVariantMap modMap;
+            modMap["name"] = mod.name;
+            // Ensure the key matches what you use in QML (price_cents)
+            modMap["price_cents"] = static_cast<qlonglong>(mod.extraPrice.cents);
+            modsList.append(modMap);
+        }
+        map["modifiers"] = modsList; // Map the list to the "modifiers" key used in QML
+        // ------------------------------------------
         list.append(map);
     }
     return list;
@@ -138,11 +149,16 @@ bool SalesView::makeOrder() {
 
 void SalesView::calculateTotal() {
     int64_t total = 0;
-    // Calculate total based on whichever list is currently being viewed
-    const QList<OrderItem> &currentList = m_items;
+    for (const auto& item : m_items) {
+        // Base price * quantity
+        int64_t itemTotal = item.price.cents;
 
-    for (const auto& item : currentList) {
-        total += (item.price.cents * item.quantity);
+        // Add all selected modifiers
+        for (const auto& mod : item.selectModifiers) {
+            itemTotal += mod.extraPrice.cents;
+        }
+
+        total += (itemTotal * item.quantity);
     }
     m_totalMoney.cents = total;
     emit totalChanged();
@@ -150,4 +166,33 @@ void SalesView::calculateTotal() {
 
 QString SalesView::totalFormatted() const {
     return m_totalMoney.toString();
+}
+
+// salesview.cpp
+
+void SalesView::addWithModifiers(const QVariantMap &itemData, const QVariantList &modifiers) {
+    OrderItem item;
+    // Generate a unique ID for this specific line item in the cart
+    item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    item.menuItemId = itemData["id"].toInt();
+    item.name = itemData["name"].toString();
+    item.price.cents = itemData["price_cents"].toLongLong();
+    item.quantity = 1;
+
+    // Map selected QML modifiers to the C++ struct
+    for (const QVariant &mVar : modifiers) {
+        QVariantMap mData = mVar.toMap();
+        Modifier mod;
+        mod.id = mData["id"].toInt();
+        mod.name = mData["name"].toString();
+        mod.extraPrice.cents = mData["price_cents"].toLongLong();
+        item.selectModifiers.append(mod);
+    }
+
+    // Add to the local list used by the UI
+    m_items.append(item);
+
+    // Refresh the internal model so the GridView/ListView updates
+    m_internalModel->refresh();
+    calculateTotal();
 }

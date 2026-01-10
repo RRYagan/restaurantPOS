@@ -25,6 +25,7 @@ add_library(PosCoreDatabase
     databaseseeder.h databaseseeder.cpp
     ordermodel.h ordermodel.cpp
     categorymodel.h categorymodel.cpp
+    paymentmodel.h paymentmodel.cpp
 )
 target_include_directories(PosCoreDatabase PUBLIC .) # Expose current dir for headers
 target_link_libraries(PosCoreDatabase

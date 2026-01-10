@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QSqlDatabase>
+#include <databaseseeder.h>
 
 class DatabaseManager : public QObject {
     Q_OBJECT
@@ -19,6 +20,7 @@ private:
     explicit DatabaseManager(QObject *parent = nullptr);
     bool initSchema();
     QSqlDatabase m_db;
+    DatabaseSeeder seeder;
 };
 
 #endif

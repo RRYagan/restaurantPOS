@@ -31,6 +31,8 @@ public:
     // Getters
     Payment::State currentState() const;
     QString currentMessage() const;
+    void loadConfig();
+
     double amount() const { return m_amount; }
     void setAmount(double a) { if(m_amount != a) { m_amount = a; emit amountChanged(); }}
 
@@ -50,6 +52,13 @@ private:
 
     // M-Pesa config (In a real app, load this from a secure config/DB)
     MpesaConfig m_mpesaConfig;
+    QString m_cachedToken;
+    QDateTime m_tokenExpiry;
+
+    // Helper to check if we need a new one
+    bool isTokenValid() const {
+        return !m_cachedToken.isEmpty() && QDateTime::currentDateTime() < m_tokenExpiry;
+    }
 };
 
 #endif // PAYMENTCONTROLLER_H

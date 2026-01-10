@@ -30,6 +30,7 @@ public:
     Q_INVOKABLE void clearOrder(); // To reset for a new customer
     Q_INVOKABLE void removeItem(int proxyIndex);
     Q_INVOKABLE void updateQuantity(int proxyIndex, int newQuantity);
+    Q_INVOKABLE void addWithModifiers(const QVariantMap &itemData, const QVariantList &modifiers);
 
     QString totalFormatted() const;
     QString currentOrderId() const { return m_currentOrderId; }
@@ -48,7 +49,6 @@ private:
     UniversalFilterProxy *m_proxy;
     bool m_isBusy = false;
     void calculateTotal();
-
     QString m_currentOrderId = "";
     Money m_totalMoney;
     OrderModel m_model;

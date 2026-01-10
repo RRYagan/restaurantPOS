@@ -32,6 +32,8 @@ qt_add_qml_module(POS_UI
         inventory/StockDialog.qml
         inventory/InventoryDetails.qml
 
+        # sales
+        sales/ModifierDialog.qml
 
         UserManagement.qml
         LoginScreen.qml
@@ -49,6 +51,7 @@ qt_add_qml_module(POS_UI
         "assets/icons/default.png"
         "assets/images/bg.png"
 )
+
 
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")

@@ -20,6 +20,7 @@ add_subdirectory(tests)
 # 4. Create the main executable
 qt_add_executable(RestaurantPOS
     src/main.cpp
+    config.json
 
 
     # Add your main.qml here if you have one in the root
@@ -40,6 +41,12 @@ target_link_libraries(RestaurantPOS
 
 )
 target_link_libraries(RestaurantPOS PRIVATE Qt6::Core)
+
+add_custom_command(TARGET RestaurantPOS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/config.json
+    ${CMAKE_CURRENT_BINARY_DIR}/config.json
+)
 
 # 6. OS Specific Properties
 set_target_properties(RestaurantPOS PROPERTIES

@@ -3,16 +3,36 @@
 #include <QSqlQuery>
 #include <QSqlError>
 
-QVariantList MenuModel::getAllMenuItems() const{
+// menumodel.cpp
+QVariantList MenuModel::getAllMenuItems() const {
     QVariantList list;
-    QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items", DatabaseManager::instance().database());
+    QSqlDatabase db = DatabaseManager::instance().database();
+    QSqlQuery query("SELECT id, name, category, base_price_cents, icon_source FROM menu_items", db);
+
     while (query.next()) {
         QVariantMap map;
-        map["id"] = query.value(0).toInt();
+        int itemId = query.value(0).toInt();
+        map["id"] = itemId;
         map["name"] = query.value(1).toString();
         map["category"] = query.value(2).toString();
         map["price_cents"] = query.value(3).toLongLong();
         map["icon_source"] = query.value(4).toString();
+
+        // Fetch Modifiers for this item
+        QVariantList modifiers;
+        QSqlQuery modQuery(db);
+        modQuery.prepare("SELECT id, name, extra_price_cents FROM menu_item_modifiers WHERE menu_item_id = ?");
+        modQuery.addBindValue(itemId);
+        if (modQuery.exec()) {
+            while (modQuery.next()) {
+                QVariantMap mod;
+                mod["id"] = modQuery.value(0).toInt();
+                mod["name"] = modQuery.value(1).toString();
+                mod["price_cents"] = modQuery.value(2).toLongLong();
+                modifiers.append(mod);
+            }
+        }
+        map["availableModifiers"] = modifiers;
         list.append(map);
     }
     return list;

@@ -18,6 +18,7 @@ bool DatabaseManager::openDatabase(const QString& path) {
         QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         QDir().mkpath(dataPath);
         dbPath = dataPath + "/restaurant.db";
+        qDebug() << "Database initialized at:" << dbPath;
     }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE");
@@ -27,7 +28,10 @@ bool DatabaseManager::openDatabase(const QString& path) {
         qCritical() << "Database connection failed:" << m_db.lastError().text();
         return false;
     }
-    return initSchema();
+    initSchema();
+    seeder.seed();
+
+    return true;
 }
 
 void DatabaseManager::closeDatabase() {
@@ -52,6 +56,45 @@ bool DatabaseManager::initSchema() {
 
     success &= query.exec("CREATE TRIGGER IF NOT EXISTS log_inventory_insert AFTER INSERT ON inventory BEGIN INSERT INTO inventory_history (item_id, item_name, action, new_quantity, change_details) VALUES (NEW.id, NEW.name, 'ADD', NEW.quantity, 'Initial stock added'); END;");
     success &= query.exec("CREATE TRIGGER IF NOT EXISTS log_inventory_update AFTER UPDATE ON inventory WHEN OLD.quantity <> NEW.quantity BEGIN INSERT INTO inventory_history (item_id, item_name, action, old_quantity, new_quantity, change_details) VALUES (NEW.id, NEW.name, 'UPDATE', OLD.quantity, NEW.quantity, 'Stock adjusted from ' || OLD.quantity || ' to ' || NEW.quantity); END;");
+
+    // --- MODIFIER DEFINITIONS TABLE ---
+    success &= query.exec("CREATE TABLE IF NOT EXISTS menu_item_modifiers ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "menu_item_id INTEGER, "
+                          "name TEXT NOT NULL, "
+                          "extra_price_cents INTEGER DEFAULT 0, "
+                          "FOREIGN KEY(menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE);");
+
+    // --- ORDER ITEM MODIFIERS TABLE ---
+    success &= query.exec("CREATE TABLE IF NOT EXISTS order_item_modifiers ("
+                          "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                          "order_item_id TEXT, " // Matches UUID in order_items
+                          "modifier_name TEXT, "
+                          "extra_price_cents INTEGER, "
+                          "FOREIGN KEY(order_item_id) REFERENCES order_items(id) ON DELETE CASCADE);");
+
+    // --- MODIFIER LOGGING TRIGGER ---
+    // Records whenever a price change occurs for a modifier definition
+    // success &= query.exec("CREATE TRIGGER IF NOT EXISTS log_modifier_price_change "
+    //                       "AFTER UPDATE ON menu_item_modifiers "
+    //                       "WHEN OLD.extra_price_cents <> NEW.extra_price_cents "
+    //                       "BEGIN "
+    //                       "INSERT INTO inventory_history (item_id, item_name, action, old_quantity, new_quantity, change_details) "
+    //                       "VALUES (NEW.id, NEW.name, 'PRICE_UPDATE', 0, 0, "
+    //                       "'Modifier price changed from ' || OLD.extra_price_cents || ' to ' || NEW.extra_price_cents); "
+    //                       "END;");
+
+    // payment
+    success &= query.exec("CREATE TABLE IF NOT EXISTS payments ("
+                          "id TEXT PRIMARY KEY, "           // M-Pesa Receipt or internal UUID
+                          "order_id TEXT, "                 // Reference to orders table
+                          "payment_type TEXT, "             // cash, mpesa, card, airtel
+                          "amount_cents INTEGER, "
+                          "status TEXT, "                   // Initiated, Completed, Failed
+                          "user_tag TEXT, "                 // Tag attached to transaction
+                          "external_reference TEXT, "       // CheckoutRequestID for M-Pesa
+                          "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
+                          "FOREIGN KEY(order_id) REFERENCES orders(id));");
 
     return success;
 }

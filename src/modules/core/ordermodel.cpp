@@ -4,52 +4,58 @@
 #include <QSqlError>
 #include <QDebug>
 
+
 bool OrderModel::saveOrder(Order &order) {
     QSqlDatabase db = DatabaseManager::instance().database();
     if (!db.transaction()) return false;
 
     try {
         QSqlQuery q(db);
-        // 1. Insert or update the main order record
-        q.prepare("INSERT OR REPLACE INTO orders (id, table_number, status, created_at) "
-                  "VALUES (?, ?, ?, ?)");
+        q.prepare("INSERT OR REPLACE INTO orders (id, table_number, status, created_at) VALUES (?, ?, ?, ?)");
         q.addBindValue(order.orderId);
         q.addBindValue(order.tableNumber);
         q.addBindValue(static_cast<int>(order.status));
         q.addBindValue(order.createdAt.toString(Qt::ISODate));
+        if (!q.exec()) throw std::runtime_error("Order header failed");
 
-        if (!q.exec()) throw std::runtime_error("Order table update failed");
-
-        // 2. Clear existing items for this order to handle updates
+        // Clear items to handle order edits
         QSqlQuery del(db);
         del.prepare("DELETE FROM order_items WHERE order_id = ?");
         del.addBindValue(order.orderId);
         del.exec();
 
-        // 3. Insert the current list of items
         for (const auto &item : order.items) {
             QSqlQuery iq(db);
             iq.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, quantity, price_cents) "
                        "VALUES (?, ?, ?, ?, ?, ?)");
-            // Generate unique UUID for each line item record
-            iq.addBindValue(QUuid::createUuid().toString(QUuid::WithoutBraces));
+
+            QString itemUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+            iq.addBindValue(itemUuid);
             iq.addBindValue(order.orderId);
             iq.addBindValue(item.menuItemId);
             iq.addBindValue(item.name);
             iq.addBindValue(item.quantity);
             iq.addBindValue(static_cast<qlonglong>(item.price.cents));
+            if (!iq.exec()) throw std::runtime_error("Item failed");
 
-            if (!iq.exec()) throw std::runtime_error("Item insertion failed");
+            // SAVE MODIFIERS
+            for (const auto &mod : item.selectModifiers) {
+                QSqlQuery mq(db);
+                mq.prepare("INSERT INTO order_item_modifiers (order_item_id, modifier_name, extra_price_cents) "
+                           "VALUES (?, ?, ?)");
+                mq.addBindValue(itemUuid);
+                mq.addBindValue(mod.name);
+                mq.addBindValue(static_cast<qlonglong>(mod.extraPrice.cents));
+                mq.exec();
+            }
         }
-
         return db.commit();
-
-    } catch (const std::exception& e) {
-        qDebug() << "Database Error:" << e.what();
+    } catch (...) {
         db.rollback();
         return false;
     }
 }
+
 
 Order OrderModel::loadOrder(const QString& orderId) {
     Order order;

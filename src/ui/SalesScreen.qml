@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import POS.UI 1.0
-
+import "sales"
 Rectangle {
     id: root
     color: "transparent"
@@ -50,6 +50,33 @@ Rectangle {
                 paymentCtrl: payCtrl
                 onClosed: paymentLoader.active = false
             }
+        }
+    }
+
+    Loader {
+        id: modifierLoader
+        active: false
+        source: "sales/ModifierDialog.qml"
+        anchors.fill: parent
+
+        // This is the bridge variable
+        property var currentModifierData: []
+        property var currentItemContext: null
+
+        onLoaded: {
+            // 1. Assign the data strictly from our bridge variable
+            item.availableModifiers = currentModifierData;
+
+            // 2. Add a small delay or ensure the item is ready before opening
+            item.open();
+
+            // 3. Connect signals
+            item.modifiersSelected.connect((selectedMods) => {
+                salesModel.addWithModifiers(currentItemContext, selectedMods);
+                active = false;
+            });
+
+            item.rejected.connect(() => active = false);
         }
     }
 
@@ -132,8 +159,15 @@ Rectangle {
                         width: grid.cellWidth - 30
                         height: grid.cellHeight - 30
                         onClicked: {
-                            if (salesModel !== null) {
-                                salesModel.addItemToOrder(model.displayData.id);
+                            let data = model.displayData;
+                            if (data.availableModifiers && data.availableModifiers.length > 0) {
+                                // SET DATA FIRST
+                                modifierLoader.currentModifierData = data.availableModifiers;
+                                modifierLoader.currentItemContext = data;
+                                // THEN ACTIVATE
+                                modifierLoader.active = true;
+                            } else {
+                                salesModel.addItemToOrder(data.id);
                             }
                         }
                     }
@@ -183,8 +217,11 @@ Rectangle {
                     spacing: 8
 
                     delegate: ItemDelegate {
+                        id: orderItemRoot
                         width: orderList.width
                         padding: 10
+
+                        property var itemData: model.displayData
 
                         contentItem: RowLayout {
                             spacing: 12
@@ -207,6 +244,25 @@ Rectangle {
                                     color: window.theme.textMain
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
+                                }
+                                ColumnLayout {
+                                    id: modifierContainer
+                                    Layout.fillWidth: true
+                                    spacing: 1
+                                    visible: !!orderItemRoot.itemData &&
+                                             !!orderItemRoot.itemData.modifiers &&
+                                             orderItemRoot.itemData.modifiers.length > 0
+                                    Repeater {
+                                        model: modifierContainer.visible ? orderItemRoot.itemData.modifiers : []
+                                        delegate: Text {
+                                            // Shows: "+ Add-on Name (1.00 Ksh.)"
+                                            text: "+ " + modelData.name + " (" + (modelData.price_cents / 100).toFixed(2) + " Ksh.)"
+                                            font.pixelSize: 11
+                                            color: window.theme.success  // Green color for add-ons
+                                            font.italic: true
+                                            Layout.leftMargin: 10
+                                        }
+                                    }
                                 }
                                 Text {
                                     text: (model.displayData.price ? model.displayData.price.formatted : "-.--") + " Ksh."

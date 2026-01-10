@@ -4,7 +4,9 @@
 *.autosave
 *.qmlc
 *.jsc
-
+#----- config file ----
+*.json
+config.json
 # --- Compilation / Build Outputs ---
 # For CMake projects
 /build/
