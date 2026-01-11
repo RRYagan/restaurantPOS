@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. Find Qt6 components
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Network)
-find_package(Qt6 REQUIRED COMPONENTS Core)
+# find_package(Qt6 REQUIRED COMPONENTS Core)
 
 # 2. Modern Qt Setup
 qt_standard_project_setup(REQUIRES 6.8)
@@ -14,6 +14,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 # 3. Add subdirectories (Definitions)
 add_subdirectory(src/modules/core)
 add_subdirectory(src/modules/payment/)
+
 add_subdirectory(src/ui)
 add_subdirectory(tests)
 

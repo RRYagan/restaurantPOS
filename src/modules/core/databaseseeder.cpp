@@ -1,111 +1,199 @@
 #include "databaseseeder.h"
-#include "databasemanager.h"
-#include "usermodel.h"
 #include <QSqlQuery>
-void DatabaseSeeder::seed() {
-    QSqlDatabase db = DatabaseManager::instance().database();
-    QSqlQuery check("SELECT COUNT(*) FROM categories", db);
-    if (check.next() && check.value(0).toInt() > 0) return;
+#include <QSqlError>
+#include <QDebug>
+#include <QUuid>
 
-    db.transaction();
-    QSqlQuery query(db);
+DatabaseSeeder::DatabaseSeeder(QSqlDatabase db)
+    : m_db(db)
+{
+}
 
 
-    // --- 2. CATEGORIES ---
-    QStringList categories = {"Appetizers", "Burgers", "Steaks", "Pasta", "Pizza", "Salads", "Desserts", "Cocktails", "Wine", "Coffee"};
-    query.prepare("INSERT INTO categories (name) VALUES (?)");
-    for (const auto& cat : categories) {
-        query.addBindValue(cat);
-        query.exec();
+bool DatabaseSeeder::isTableEmpty(const QString& tableName)
+{
+    QSqlQuery q(m_db);
+    q.prepare(QString("SELECT 1 FROM %1 LIMIT 1").arg(tableName));
+    return !q.exec() || !q.next();
+}
+
+// void DatabaseSeeder::seedIfNeeded()
+// {
+//     // Pick a canonical table that must exist
+//     if (!isTableEmpty("menu_item_products")) {
+//         qDebug() << "Database already seeded. Skipping.";
+//         return;
+//     }
+
+//     qDebug() << "Seeding database (tables empty)";
+//     forceSeed();
+// }
+
+bool DatabaseSeeder::isSeeded() const
+{
+    QSqlQuery q(m_db);
+    q.exec("SELECT value FROM schema_info WHERE key='seeded'");
+    return q.next() && q.value(0).toString() == "true";
+}
+
+bool DatabaseSeeder::markSeeded() const
+{
+    QSqlQuery q(m_db);
+    return q.exec("UPDATE schema_info SET value='true' WHERE key='seeded'");
+}
+
+void DatabaseSeeder::seedIfNeeded()
+{
+    // Pick a canonical table that must exist
+    if (!isTableEmpty("menu_item_products")) {
+        qDebug() << "Database already seeded. Skipping.";
+        return ;
     }
 
-    // --- 3. HELPER FUNCTIONS ---
-    auto addItem = [&](QString n, QString c, int p, QString i) {
-        QSqlQuery q(db);
-        q.prepare("INSERT INTO menu_items (name, category, base_price_cents, icon_source) VALUES (?, ?, ?, ?)");
-        q.addBindValue(n); q.addBindValue(c); q.addBindValue(p); q.addBindValue(i);
-        q.exec();
-        return q.lastInsertId().toInt();
-    };
+    qDebug() << "Seeding database (tables empty)";
+    forceSeed();
+}
 
-    auto addMod = [&](int mid, QString n, int p) {
-        QSqlQuery m(db);
-        m.prepare("INSERT INTO menu_item_modifiers (menu_item_id, name, extra_price_cents) VALUES (?, ?, ?)");
-        m.addBindValue(mid); m.addBindValue(n); m.addBindValue(p);
-        m.exec();
-    };
-
-    // --- 4. DATA POPULATION ---
-
-    // BURGERS
-    int b1 = addItem("Truffle Mushroom Burger", "Burgers", 1650, "qrc:/assets/icons/burger.svg");
-    for(auto& m : QMap<QString, int>{{"Extra Patty", 450}, {"Bacon", 200}, {"Swiss Cheese", 100}}.toStdMap())
-        addMod(b1, m.first, m.second);
-
-    int b2 = addItem("Spicy Zinger Burger", "Burgers", 1300, "qrc:/assets/icons/burger.svg");
-    addMod(b2, "Double Spice", 0);
-    addMod(b2, "Cheddar Slice", 80);
-
-    // STEAKS & MAINS
-    int s1 = addItem("Prime Ribeye 400g", "Steaks", 4500, "qrc:/assets/icons/steak.svg");
-    for(auto& m : QMap<QString, int>{{"Rare", 0}, {"Medium Rare", 0}, {"Medium", 0}, {"Well Done", 0}}.toStdMap())
-        addMod(s1, m.first, m.second);
-    addMod(s1, "Garlic Butter Topping", 150);
-
-    int s2 = addItem("Grilled Salmon Fillet", "Steaks", 2800, "qrc:/assets/icons/fish.svg");
-    addMod(s2, "Lemon Butter Sauce", 200);
-
-    // COFFEE & DRINKS
-    int c1 = addItem("Cappuccino", "Coffee", 450, "qrc:/assets/icons/coffee.svg");
-    addMod(c1, "Oat Milk", 70);
-    addMod(c1, "Almond Milk", 70);
-    addMod(c1, "Extra Shot", 100);
-    addMod(c1, "Decaf", 0);
-
-    int d1 = addItem("Old Fashioned", "Cocktails", 1200, "qrc:/assets/icons/cocktail.svg");
-    addMod(d1, "Premium Bourbon Upgrade", 500);
-
-    // --- 5. LARGE INVENTORY SEED ---
-    QList<QPair<QString, QString>> stockItems = {
-        {"Beef Patties", "pcs"}, {"Ribeye Steak", "kg"}, {"Salmon", "kg"},
-        {"Brioche Buns", "pcs"}, {"Potatoes", "kg"}, {"Coffee Beans", "kg"},
-        {"Milk Full Cream", "L"}, {"Bourbon", "L"}, {"Cheddar Cheese", "kg"}
-    };
-    query.prepare("INSERT INTO inventory (name, quantity, unit) VALUES (?, ?, ?)");
-    for (const auto& item : stockItems) {
-        query.addBindValue(item.first);
-        query.addBindValue(100); // Default stock
-        query.addBindValue(item.second);
-        query.exec();
+void DatabaseSeeder::forceSeed()
+{
+    if (!m_db.isOpen()) {
+        qCritical() << "Seeder: database not open";
+        return;
     }
 
-    // --- 6. USERS ---
-    UserModel userModel;
-    userModel.addUser("admin", "admin123", "manager");
-    userModel.addUser("staff1", "1234", "waiter");
-    userModel.addUser("chef1", "1234", "kitchen");
+    if (!m_db.transaction()) {
+        qCritical() << "Seeder: failed to start transaction"
+                    << m_db.lastError().text();
+        return;
+    }
 
-    // payment
-    query.prepare("INSERT INTO payments (id, order_id, payment_type, amount_cents, status, user_tag) "
-                  "VALUES (?, ?, ?, ?, ?, ?)");
+    QSqlQuery q(m_db);
+    bool ok = true;
 
-    // Dummy M-Pesa Transaction
-    query.addBindValue("QNA12RT45X");
-    query.addBindValue("ORD-1001");
-    query.addBindValue("mpesa");
-    query.addBindValue(450000); // 4500.00
-    query.addBindValue("Completed");
-    query.addBindValue("admin");
-    query.exec();
+    auto exec = [&](const QString& sql) {
+        if (!q.exec(sql)) {
+            qCritical() << "Seed failed:" << q.lastError().text();
+            qCritical() << "SQL:" << sql;
+            return false;
+        }
+        return true;
+    };
 
-    // Dummy Cash Transaction
-    query.addBindValue("CASH-9982");
-    query.addBindValue("ORD-1002");
-    query.addBindValue("cash");
-    query.addBindValue(120000); // 1200.00
-    query.addBindValue("Completed");
-    query.addBindValue("staff1");
-    query.exec();
+    ok &= exec(
+        "INSERT OR IGNORE INTO products "
+        "(id, item_nm, base_price_cents) VALUES "
+        "('p1', 'Soda', 150),"
+        "('p2', 'Bread', 100)"
+        );
 
-    db.commit();
+    // ok &= exec(
+    //     "INSERT OR IGNORE INTO users "
+    //     "(id, username, password_hash, role) VALUES "
+    //     "('u1', 'admin', 'hash', 'ADMIN')"
+    //     );
+
+    // --- Menu Categories ---
+    exec(R"(INSERT OR IGNORE INTO menu_categories (id, name) VALUES
+        ('c1', 'Drinks'),
+        ('c2', 'Food')
+)");
+
+    // --- Menu Items ---
+    exec(R"(INSERT OR IGNORE INTO menu_items
+        (id, name, description, category_id, base_price_cents)
+        VALUES
+        ('m1', 'Soda', 'Cold drink', 'c1', 200),
+        ('m2', 'Burger Combo', 'Burger + Soda', 'c2', 800)
+)");
+
+    // --- Menu Item Recipes (menu_item_products) ---
+    exec(R"(INSERT OR IGNORE INTO menu_item_products
+        (menu_item_id, product_id, quantity)
+        VALUES
+        ('m1', 'p_water', 0.5),
+        ('m1', 'p_sugar', 0.05),
+        ('m1', 'p_soda', 1),
+        ('m2', 'p_bread', 1),
+        ('m2', 'p_soda', 1),
+        ('m2', 'p_burger', 1)
+)");
+
+    if (!ok) {
+        qCritical() << "Seeder failed, rolling back";
+        m_db.rollback();
+        return;
+    }
+
+    if (!m_db.commit()) {
+        qCritical() << "Seeder commit failed:"
+                    << m_db.lastError().text();
+        m_db.rollback();
+    } else {
+        qDebug() << "Database seeded successfully";
+    }
+}
+
+
+bool DatabaseSeeder::seedUsers() const
+{
+    QSqlQuery q(m_db);
+
+    return q.exec(R"(
+        INSERT OR IGNORE INTO users (id, username, password_hash, full_name, role)
+        VALUES
+        ('admin-uuid', 'admin', 'hashed_password', 'Admin User', 'ADMIN'),
+        ('waiter-uuid', 'waiter', 'hashed_password', 'Waiter User', 'WAITER')
+    )");
+}
+
+bool DatabaseSeeder::seedProducts() const
+{
+    QSqlQuery q(m_db);
+
+    // NOTE:
+    // item_ty_cd: 1 = Raw, 2 = Finished, 3 = Service
+    // tax_ty_cd: B = Standard VAT
+    return q.exec(R"(
+        INSERT OR IGNORE INTO products
+        (id, item_nm, item_cd, item_cls_cd, item_ty_cd, tax_ty_cd,
+         pkg_unit_cd, qty_unit_cd, base_price_cents, is_available)
+        VALUES
+        -- Raw materials
+        ('p_water',  'Water',  'WTR001', '1000000001', '1', 'B', 'BOT', 'LTR', 50, 1),
+        ('p_sugar',  'Sugar',  'SGR001', '1000000002', '1', 'B', 'BAG', 'KG', 120, 1),
+        ('p_bread',  'Bread',  'BRD001', '1000000003', '1', 'B', 'PKT', 'NO', 80, 1),
+
+        -- Finished goods
+        ('p_soda',   'Soda',   'SOD001', '2000000001', '2', 'B', 'BOT', 'NO', 200, 1),
+        ('p_burger', 'Burger', 'BRG001', '2000000002', '2', 'B', 'NO',  'NO', 600, 1),
+
+        -- Services
+        ('p_service','Service Charge', 'SRV001', '3000000001', '3', 'E', NULL, NULL, 100, 1)
+    )");
+}
+
+bool DatabaseSeeder::seedMenu() const
+{
+    QSqlQuery q(m_db);
+
+    return q.exec(R"(
+        INSERT OR IGNORE INTO menu_categories (id, name)
+        VALUES
+        ('cat_drinks', 'Drinks'),
+        ('cat_food', 'Food');
+
+        INSERT OR IGNORE INTO menu_items
+        (id, name, category_id, base_price_cents)
+        VALUES
+        ('menu_soda', 'Soda', 'cat_drinks', 200),
+        ('menu_burger', 'Burger', 'cat_food', 600);
+
+        INSERT OR IGNORE INTO menu_item_products
+        (menu_item_id, product_id, quantity)
+        VALUES
+        ('menu_soda', 'p_soda', 1),
+        ('menu_burger', 'p_bread', 1),
+        ('menu_burger', 'p_patty', 1),
+        ('menu_burger', 'p_cheese', 1);
+    )");
 }

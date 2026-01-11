@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>migrations/000_init.up.sql</file>
+<!--        <file>migrations/000_init.down.sql</file>-->
+    </qresource>
+</RCC>

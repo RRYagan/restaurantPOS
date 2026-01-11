@@ -7,7 +7,7 @@ Rectangle {
     id: root
     color: "transparent"
 
-    property SalesView salesModel: null
+    // property MenuViewController salesModel: null
     property string currentOrderId: ""
     property string currentCategory: "All"
 
@@ -20,12 +20,13 @@ Rectangle {
     readonly property double subTotal: totalVal / 1.16
     readonly property double taxAmount: totalVal - subTotal
 
-    CategoryView { id: catModel }
-    MenuView { id: menuModel }
+    // MenuViewController { id: catModel }
+    MenuViewController { id: menuModel }
+    OrderViewController { id: salesModel }
 
     onCurrentCategoryChanged: {
-        if (menuModel.proxy) {
-            menuModel.proxy.categoryFilter = currentCategory;
+        if (menuModel) {
+            menuModel.currentCategory = currentCategory;
         }
     }
 
@@ -114,16 +115,16 @@ Rectangle {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        model: catModel.proxy
+                        model: menuModel.categoryModel
 
                         delegate: Button {
                             id: catButton
-                            text: model.displayData.name
+                            text: model.name
 
                             contentItem: Text {
                                 text: catButton.text
                                 font.bold: true
-                                color: menuModel.proxy.categoryFilter === text ? window.theme.textMain : window.theme.textSecondary
+                                color: menuModel.currentCategory === text ? window.theme.textMain : window.theme.textSecondary
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -131,13 +132,13 @@ Rectangle {
                             background: Rectangle {
                                 implicitWidth: 100
                                 implicitHeight: 38
-                                color: menuModel.proxy.categoryFilter === catButton.text ? window.theme.accent : window.theme.surface
+                                color: menuModel.currentCategory === catButton.text ? window.theme.accent : window.theme.surface
                                 radius: 20
-                                border.color: menuModel.proxy.categoryFilter === catButton.text ? window.theme.accent : window.theme.border
+                                border.color: menuModel.currentCategory === catButton.text ? window.theme.accent : window.theme.border
                             }
 
                             onClicked: {
-                                menuModel.proxy.categoryFilter = model.displayData.name
+                                menuModel.currentCategory = model.name
                                 categoryBar.positionViewAtIndex(index, ListView.Center);
                             }
                         }
@@ -149,17 +150,17 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: menuModel.proxy
+                    model: menuModel.model
                     cellWidth: 230
                     cellHeight: 230
 
                     delegate: Card {
-                        itemName: model.displayData.name
-                        priceCents: model.displayData.price_cents
+                        itemName: model.name
+                        priceCents: model.basePriceCents
                         width: grid.cellWidth - 30
                         height: grid.cellHeight - 30
                         onClicked: {
-                            let data = model.displayData;
+                            let data = model;
                             if (data.availableModifiers && data.availableModifiers.length > 0) {
                                 // SET DATA FIRST
                                 modifierLoader.currentModifierData = data.availableModifiers;
@@ -167,9 +168,15 @@ Rectangle {
                                 // THEN ACTIVATE
                                 modifierLoader.active = true;
                             } else {
-                                salesModel.addItemToOrder(data.id);
+                                salesModel.addItem({
+                                        "id": model.id,
+                                        "name": model.name,
+                                        "price": model.basePriceCents,
+                                        "taxType": model.taxType
+                                    })
                             }
                         }
+
                     }
                 }
             }
@@ -212,7 +219,7 @@ Rectangle {
                     id: orderList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    model: salesModel.proxy
+                    model: salesModel
                     clip: true
                     spacing: 8
 
@@ -221,7 +228,7 @@ Rectangle {
                         width: orderList.width
                         padding: 10
 
-                        property var itemData: model.displayData
+                        property var itemData: model
 
                         contentItem: RowLayout {
                             spacing: 12
@@ -239,7 +246,7 @@ Rectangle {
                                 Layout.fillWidth: true
                                 spacing: 2
                                 Text {
-                                    text: model.displayData.name
+                                    text: model.name
                                     font.bold: true
                                     color: window.theme.textMain
                                     elide: Text.ElideRight
@@ -265,7 +272,7 @@ Rectangle {
                                     }
                                 }
                                 Text {
-                                    text: (model.displayData.price ? model.displayData.price.formatted : "-.--") + " Ksh."
+                                    text: (model.price ? model.price.formatted : "-.--") + " Ksh."
                                     color: window.theme.textSecondary
                                     font.pixelSize: 12
                                 }
@@ -277,15 +284,15 @@ Rectangle {
                                     text: "-"
                                     Layout.preferredWidth: 30
                                     onClicked: {
-                                        if (model.displayData.quantity > 1) {
-                                            salesModel.updateQuantity(index, model.displayData.quantity - 1)
+                                        if (model.quantity > 1) {
+                                            salesModel.updateQuantity(index, model.quantity - 1)
                                         } else {
                                             salesModel.removeItem(index)
                                         }
                                     }
                                 }
                                 Text {
-                                    text: model.displayData.quantity
+                                    text: model.quantity
                                     color: window.theme.textMain
                                     font.bold: true
                                     Layout.preferredWidth: 20
@@ -294,7 +301,7 @@ Rectangle {
                                 Button {
                                     text: "+"
                                     Layout.preferredWidth: 30
-                                    onClicked: salesModel.updateQuantity(index, model.displayData.quantity + 1)
+                                    onClicked: salesModel.updateQuantity(index, model.quantity + 1)
                                 }
                             }
                         }
@@ -330,7 +337,8 @@ Rectangle {
                         Layout.topMargin: 5
                         Text { text: "Total Amount"; color: window.theme.textMain; font.bold: true; font.pixelSize: 18 }
                         Item { Layout.fillWidth: true }
-                        Text { text: (salesModel && salesModel.totalFormatted > 0 ? salesModel.totalFormatted + " Ksh." : "--.--") ; color: window.theme.success; font.bold: true; font.pixelSize: 20 }
+                        Text { text: (salesModel && salesModel.itemCount > 0 ? salesModel.totalFormatted + " Ksh." : "--.--") ;
+                        color: window.theme.success; font.bold: true; font.pixelSize: 20 }
                     }
                 }
 
@@ -345,7 +353,7 @@ Rectangle {
                         text: "PLACE ORDER"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
-                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
+                        enabled: salesModel !== null && salesModel.itemCount > 0
 
                         contentItem: Text {
                             text: orderButton.text
@@ -372,7 +380,7 @@ Rectangle {
                         text: "CANCEL ORDER"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
-                        enabled: salesModel !== null && salesModel.totalFormatted !== "0.00"
+                        enabled: salesModel !== null && salesModel.itemCount > 0
 
                         contentItem: Text {
                             text: clearButton.text

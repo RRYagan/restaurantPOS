@@ -52,24 +52,27 @@ ApplicationWindow {
             property int cardRadius: 8
         }
     // Model Logic
-    SalesView { id: globalCartModel }
-    OrdersView { id: globalOrdersModel }
-    OrderDetailView { id: globalOrderDetailModel }
-    UserView { id: globalUserModel }
-    InventoryView { id: globalInventoryModel }
+    MenuViewController {
+        id: globalCartModel
+    }
+    // SalesView { id: globalCartModel }
+    // OrdersView { id: globalOrdersModel }
+    // OrderDetailView { id: globalOrderDetailModel }
+    // UserView { id: globalUserModel }
+    // InventoryView { id: globalInventoryModel }
 
     property bool sidebarCollapsed: width < 900
 
     StackView {
         id: rootStack
         anchors.fill: parent
-        initialItem: loginScreenComponent
+        initialItem: mainLayout
     }
 
-    Component {
-        id: loginScreenComponent
-        LoginScreen { onLoginSuccess: rootStack.replace(mainLayout) }
-    }
+    // Component {
+    //     id: loginScreenComponent
+    //     LoginScreen { onLoginSuccess: rootStack.replace(mainLayout) }
+    // }
 
     Component {
         id: mainLayout
@@ -81,7 +84,7 @@ ApplicationWindow {
 
             Image {
                             id: backgroundImage
-                            source: "qrc:/qt/qml/POS/UI/assets/images/bg.png"
+                            source: "qrc:/qt/qml/POS/UI/assets/images/bg-white.png"
                             anchors.fill: parent
                             fillMode: Image.PreserveAspectCrop
                             opacity: 0.3 // Adjust opacity to ensure UI text remains readable
@@ -99,12 +102,12 @@ ApplicationWindow {
 
                     menuModel: [
                         { name: "Menu / Ordering", view: salesView, icon: "🍴" },
-                        { name: "Order History", view: ordersView, icon: "📋" },
+                        // { name: "Order History", view: ordersView, icon: "📋" },
                         {
                             name: "System Setup",
                             icon: "⚙",
                             subItems: [
-                                { name: "Menu Setup", view: menuSetupView },
+                                // { name: "Menu Setup", view: menuSetupView },
                                 { name: "Table Setup", view: tableSetupView },
                                 { name: "Theme Setup", view: themeSetupView }
                             ]
@@ -114,10 +117,10 @@ ApplicationWindow {
                     ]
                 }
 
-                // Ensure the sub-views are defined in the contentStack area
-                Component { id: menuSetupView; MenuSetupScreen { objectName: "Menu Setup" } }
-                Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
-                Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
+               // fix:new model // Ensure the sub-views are defined in the contentStack area
+                // Component { id: menuSetupView; MenuSetupScreen { objectName: "Menu Setup" } }
+                // Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
+                // Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
 
                 // --- MAIN VIEWPORT ---
                 // Now stretches edge-to-edge without a top bar
@@ -128,19 +131,21 @@ ApplicationWindow {
                     clip: true
                     initialItem: salesView
 
-                    Component { id: salesView; SalesScreen { salesModel: globalCartModel } }
-                    Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
-                    Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
-                    Component { id: setupView; SetupScreen { } }
-                    Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
-                    Component {
-                        id: inventoryMgmtView;
-                        InventoryManagement {
-                            // Use the global ID you defined at the top of Main.qml
-                            invModel: globalInventoryModel
-                            usrModel: globalUserModel
-                        }
-                    }
+                    Component { id: salesView; SalesScreen {
+                            // salesModel: globalCartModel
+                        } }
+                    // Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
+                    // Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
+                    // Component { id: setupView; SetupScreen { } }
+                    // Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
+                    // Component {
+                    //     id: inventoryMgmtView;
+                    //     InventoryManagement {
+                    //         // Use the global ID you defined at the top of Main.qml
+                    //         invModel: globalInventoryModel
+                    //         usrModel: globalUserModel
+                    //     }
+                    // }
                     // Smooth Fade transition for cleaner feel
                     replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 } }
                     replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 } }

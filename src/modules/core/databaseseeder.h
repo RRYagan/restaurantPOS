@@ -1,11 +1,26 @@
 #ifndef DATABASESEEDER_H
 #define DATABASESEEDER_H
 
-#include <QObject>
+#include <QSqlDatabase>
 
-class DatabaseSeeder : public QObject {
-    Q_OBJECT
+class DatabaseSeeder
+{
 public:
-    static void seed();
+    explicit DatabaseSeeder(QSqlDatabase db);
+
+    void seedIfNeeded();
+    void forceSeed(); // for tests
+
+private:
+    bool isSeeded() const;
+    bool markSeeded() const;
+
+    bool seedUsers() const;
+    bool seedProducts() const;
+    bool seedMenu() const;
+    bool isTableEmpty(const QString& tableName);
+
+    QSqlDatabase m_db;
 };
-#endif
+
+#endif // DATABASESEEDER_H

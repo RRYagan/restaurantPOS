@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QQuickStyle>
 #include <QIcon>
+#include <QResource>
+#include <QDir>
 
 // Include your manager
 #include "databasemanager.h"
@@ -23,6 +25,10 @@ int main(int argc, char *argv[])
 
     app.setOrganizationName("Plasteq");
     app.setApplicationName("Hoteli Plus");
+
+    qDebug() << QResource::registerResource(":/");
+    QDir dir(":/sql/migrations");
+    qDebug() << dir.entryList();
 
     if (!DatabaseManager::instance().openDatabase()) {
         qCritical() << "Could not open or initialize the database. Exiting...";

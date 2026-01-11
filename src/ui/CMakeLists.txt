@@ -4,14 +4,17 @@ qt_add_qml_module(POS_UI
     VERSION 1.0
 
     SOURCES
-       views/salesview.h views/salesview.cpp
-       views/ordersview.h views/ordersview.cpp
-       views/orderdetailview.h views/orderdetailview.cpp
-       views/categoryview.h views/categoryview.cpp
-       views/menuview.h views/menuview.cpp
-       views/inventoryview.h views/inventoryview.cpp
-       views/userview.h views/userview.cpp
+       # controllers/salesview.h controllers/salesview.cpp
+       controllers/ordersview.h controllers/ordersview.cpp
+       controllers/orderdetailview.h controllers/orderdetailview.cpp
+       controllers/categoryview.h controllers/categoryview.cpp
+       controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
+       controllers/inventoryview.h controllers/inventoryview.cpp
+       controllers/userview.h controllers/userview.cpp
        payment/paymentcontroller.h payment/paymentcontroller.cpp
+       controllers/productviewcontroller.h controllers/productviewcontroller.cpp
+       controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
+
     QML_FILES
         OrdersScreen.qml
         Main.qml
@@ -50,11 +53,12 @@ qt_add_qml_module(POS_UI
     RESOURCES
         "assets/icons/default.png"
         "assets/images/bg.png"
+        "assets/images/bg-white.png"
 )
 
 
-target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/views")
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")
+target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/controllers")
 
 target_link_libraries(POS_UI
     PRIVATE

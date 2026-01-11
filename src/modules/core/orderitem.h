@@ -13,11 +13,11 @@ public:
     QString name;
     int quantity = 1;
     Money price;
-    QList<Modifier> selectModifiers;
+    // QList<Modifier> selectModifiers;
 
     Money total() const {
         Money t = price;
-        for (const auto& m : selectModifiers) t = t + m.extraPrice;
+        // for (const auto& m : selectModifiers) t = t + m.extraPrice;
         return t * quantity;
     }
 

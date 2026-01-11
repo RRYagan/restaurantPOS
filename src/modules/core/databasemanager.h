@@ -3,24 +3,38 @@
 
 #include <QObject>
 #include <QSqlDatabase>
-#include <databaseseeder.h>
+#include <QString>
 
-class DatabaseManager : public QObject {
+class DatabaseManager : public QObject
+{
     Q_OBJECT
 public:
     static DatabaseManager& instance();
     DatabaseManager(const DatabaseManager&) = delete;
     void operator=(const DatabaseManager&) = delete;
 
-    bool openDatabase(const QString& path = QString());
+    // Open database file
+    bool openDatabase(const QString& path = QString(), bool forceSeed=false);
     void closeDatabase();
     QSqlDatabase database() const { return m_db; }
 
+    // ----------------------------
+    // New functions
+    // ----------------------------
+    bool initializeIfNew();           // Run initial schema if DB is new
+    bool runPendingMigrations();      // Apply migrations not yet applied
+
 private:
     explicit DatabaseManager(QObject *parent = nullptr);
-    bool initSchema();
+
+    bool initSchemaFromResource(const QString& sqlResourcePath);
+    bool initMigrationSchema();       // Create schema_migrations table if missing
+    bool applyMigration(const QString& sqlResourcePath); // Apply single migration
+
     QSqlDatabase m_db;
-    DatabaseSeeder seeder;
+    QString m_dbPath;
+    bool m_isNewDatabase = false;
+    bool forceSeed = false;
 };
 
 #endif

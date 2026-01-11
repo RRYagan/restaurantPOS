@@ -19,7 +19,7 @@ Dialog {
         radius: 12
     }
 
-    property SalesView salesModel
+    property MenuViewController salesModel
     property PaymentController paymentCtrl
     property var currentUser: "Admin"
     // Place these at the top of PaymentDialog.qml
