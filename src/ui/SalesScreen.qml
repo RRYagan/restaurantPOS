@@ -7,7 +7,7 @@ Rectangle {
     id: root
     color: "transparent"
 
-    // property MenuViewController salesModel: null
+    property MenuViewController salesModel: null
     property string currentOrderId: ""
     property string currentCategory: "All"
 
@@ -239,14 +239,14 @@ Rectangle {
                                 palette.buttonText: window.theme.danger
                                 flat: true
                                 Layout.preferredWidth: 30
-                                onClicked: salesModel.removeItem(index)
+                                onClicked: model.removeItem(index)
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
                                 Text {
-                                    text: model.name
+                                    text: (itemData && itemData.name !== undefined) ? itemData.name : ""
                                     font.bold: true
                                     color: window.theme.textMain
                                     elide: Text.ElideRight
@@ -272,7 +272,7 @@ Rectangle {
                                     }
                                 }
                                 Text {
-                                    text: (model.price ? model.price.formatted : "-.--") + " Ksh."
+                                    text: (model.unitPriceCents ? model.unitPriceCents.formatted : "-.--") + " Ksh."
                                     color: window.theme.textSecondary
                                     font.pixelSize: 12
                                 }

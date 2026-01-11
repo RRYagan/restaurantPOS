@@ -7,7 +7,7 @@ OrderViewController::OrderViewController(QObject* parent)
     m_locale(QLocale::English, QLocale::UnitedStates)
 
 {
-    connect(m_model, &OrderTableModel::totalsChanged, this, &OrderViewController::orderChanged);
+    // connect(m_model, &OrderTableModel::totalsChanged, this, &OrderViewController::orderChanged);
 }
 
 // orderviewcontroller.cpp
@@ -21,14 +21,34 @@ void OrderViewController::addItem(const QVariantMap& itemMap)
     item.taxType = itemMap["taxType"].toString();
     item.quantity = 1.0;
 
+    for (int i = 0; i < m_currentItems.size(); i++) {
+        if (m_currentItems[i].menuItemId == item.menuItemId) {
+            m_currentItems[i].quantity += 1;
+
+            // Tell the internal model to reload data from the updated m_items
+            // m_model->refresh();
+
+            return;
+        }
+    }
+
     // Pass the struct to the model
-    m_model->addItem(item);
+    m_currentItems.append((item));
+    calculateTotal();
+    // m_model->addItem(item);
+    qDebug() << "Added item name:" << m_currentItems.last().name
+        << "Quantity:" << m_currentItems.last().quantity;
+    totalsChanged();
     emit orderChanged();
 }
 
 void OrderViewController::removeItem(int index)
 {
-    m_model->removeItem(index);
+    if (m_currentItems.size() > 0) {
+        m_currentItems.removeAt(index);
+    // m_model->removeItem(index);
+    }
+    totalsChanged();
     emit orderChanged();
 }
 
@@ -43,12 +63,6 @@ int OrderViewController::itemCount() const
     return m_model->rowCount();
 }
 
-QString OrderViewController::totalFormatted() const
-{
-    // Convert cents to decimal string (e.g., 1050 -> "10.50")
-    double total = m_model->currentTotalCents() / 100.0;
-    return m_locale.toString(total, 'f', 2);
-}
 
 bool OrderViewController::makeOrder()
 {
@@ -73,7 +87,29 @@ void OrderViewController::updateQuantity(int index, double newQuantity)
     // 2. Update the value in the underlying TableModel
     // This assumes you added updateQuantity(int, double) to OrderTableModel
     m_model->updateQuantity(index, newQuantity);
-
+    totalsChanged();
     // 3. Emit the signal that refreshes 'totalFormatted' and 'itemCount' in the UI
     emit orderChanged();
+}
+
+void OrderViewController::calculateTotal() {
+    int64_t total = 0;
+    for (const auto& item : m_currentItems) {
+        // Base price * quantity
+        int64_t itemTotal = item.unitPriceCents;
+
+        // Add all selected modifiers
+        // for (const auto& mod : item.selectModifiers) {
+        //     itemTotal += mod.extraPrice.cents;
+        // }
+
+        total += (itemTotal * item.quantity);
+    }
+    m_currentTotalCents = total;
+    emit totalsChanged();
+}
+QString OrderViewController::totalFormatted() const
+{
+    double total = m_currentTotalCents / 100.0;
+    return m_locale.toString(total, 'f', 2);
 }

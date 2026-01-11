@@ -35,13 +35,24 @@ public:
     // Internal C++ version if needed
     void addItem(const OrderItem& item);
     Q_INVOKABLE void updateQuantity(int index, double newQuantity);
+    void calculateTotal();
+    int currentTotalCents() const { return m_currentTotalCents; }
+
 
 signals:
     void orderChanged();
+    void totalsChanged();
 
 private:
+    QList<OrderItem> m_items;
+    bool m_isBusy = false;
+
     OrderTableModel* m_model;
     QLocale m_locale;
+
+    // QVector<Order> m_orders;
+    QVector<OrderItem> m_currentItems; // Items in the "Cart"
+    int64_t m_currentTotalCents = 0;
 };
 
 #endif

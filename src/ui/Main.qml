@@ -132,7 +132,7 @@ ApplicationWindow {
                     initialItem: salesView
 
                     Component { id: salesView; SalesScreen {
-                            // salesModel: globalCartModel
+                            salesModel: globalCartModel
                         } }
                     // Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
                     // Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
