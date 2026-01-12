@@ -1,165 +1,199 @@
--- ===========================================
--- Initial Database Schema for RestaurantPOS
--- Version: 000_init
--- ===========================================
+PRAGMA foreign_keys = ON;
+PRAGMA table_info(product);
+
+-- =============================================================================
+-- 0. METADATA
+-- =============================================================================
 CREATE TABLE IF NOT EXISTS schema_info (
     key TEXT PRIMARY KEY,
     value TEXT
 );
 
--- ==============================
--- SCHEMA MIGRATIONS TRACKING
--- ==============================
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
-    checksum TEXT NOT NULL,
     applied_at DATETIME NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS migration_lock (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    locked INTEGER NOT NULL DEFAULT 0
+-- =============================================================================
+-- 1. LOOKUP TABLES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS tax_classifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tax_type_code TEXT UNIQUE NOT NULL,
+    tax_classification_name TEXT NOT NULL,
+    tax_percentage_rate REAL NOT NULL DEFAULT 0.0,
+    is_active_flag TEXT DEFAULT 'Y'
 );
 
--- ==============================
--- EXPENSES (Net Profit Calculation)
--- ==============================
-CREATE TABLE IF NOT EXISTS expenses (
+CREATE TABLE IF NOT EXISTS measurement_units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_code TEXT UNIQUE NOT NULL,
+    unit_display_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS stock_movement_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    movement_type_code TEXT UNIQUE NOT NULL,
+    movement_description TEXT NOT NULL,
+    flow_direction TEXT CHECK(flow_direction IN ('INCOMING','OUTGOING')) NOT NULL
+);
+
+-- =============================================================================
+-- 2. USERS & AUTH
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    category_id INTEGER,
-    amount_cents INTEGER,
-    description TEXT,
-    expense_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    staff_id_number TEXT UNIQUE NOT NULL,
+    full_name TEXT NOT NULL,
+    user_role TEXT CHECK(user_role IN ('Admin','Manager','Waiter','Cashier')) NOT NULL,
+    login_username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    is_active_status TEXT DEFAULT 'Y',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    session_token TEXT UNIQUE NOT NULL,
+    terminal_name TEXT,
+    login_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expiry_timestamp DATETIME,
+    is_revoked INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- =============================================================================
+-- 3. PRODUCTS & BOM
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS product (
+    id TEXT PRIMARY KEY,
+    kra_unique_item_code TEXT UNIQUE NOT NULL,
+    internal_product_name TEXT NOT NULL,
+    product_category_code TEXT NOT NULL,
+    default_selling_price REAL DEFAULT 0.0,
+    tax_classification_id INTEGER,
+    measurement_unit_id INTEGER NOT NULL,
+    FOREIGN KEY (tax_classification_id) REFERENCES tax_classifications(id),
+    FOREIGN KEY (measurement_unit_id) REFERENCES measurement_units(id)
+);
+
+CREATE TABLE IF NOT EXISTS product_composition (
+    id TEXT PRIMARY KEY,
+    main_product_item_id TEXT NOT NULL,
+    ingredient_item_id TEXT NOT NULL,
+    required_quantity REAL NOT NULL CHECK(required_quantity > 0),
+    FOREIGN KEY (main_product_item_id) REFERENCES product(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_item_id) REFERENCES product(id),
+    UNIQUE(main_product_item_id, ingredient_item_id)
+);
+
+-- =============================================================================
+-- 4. LEDGERS & INVENTORY
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS sales_revenue_ledger (
+    id TEXT PRIMARY KEY,
     user_id TEXT,
-    FOREIGN KEY(category_id) REFERENCES expense_categories(id)
+    sale_transaction_date TEXT NOT NULL,
+    gross_total_amount REAL NOT NULL,
+    total_tax_amount REAL NOT NULL,
+    net_revenue_amount REAL NOT NULL,
+    kra_receipt_number TEXT UNIQUE,
+    kra_digital_signature TEXT,
+    payment_method_type TEXT NOT NULL,
+    recorded_at_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- ==============================
--- SUPPLIER PURCHASES (Track COGS)
--- ==============================
-CREATE TABLE IF NOT EXISTS purchases (
+CREATE TABLE IF NOT EXISTS purchase_expense_ledger (
     id TEXT PRIMARY KEY,
-    supplier_nm TEXT,
-    total_inc_tax_cents INTEGER,
-    tax_amt_cents INTEGER,
-    status TEXT,             -- PAID, PENDING, CREDIT
-    purchase_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    user_id TEXT,
+    purchase_date TEXT NOT NULL,
+    supplier_pin_number TEXT NOT NULL,
+    total_invoice_amount REAL NOT NULL,
+    input_tax_amount REAL NOT NULL,
+    net_purchase_cost REAL NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- ==============================
--- PURCHASE ITEMS (Ingredient Level Costing)
--- ==============================
-CREATE TABLE IF NOT EXISTS purchase_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    purchase_id TEXT,
-    item_nm TEXT,
-    qty REAL,
-    unit_cost_cents INTEGER,
-    FOREIGN KEY(purchase_id) REFERENCES purchases(id)
-);
-
--- ==============================
--- WASTE LOGS (Loss Analytics)
--- ==============================
-CREATE TABLE IF NOT EXISTS waste_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id TEXT,
-    qty REAL,
-    estimated_loss_cents INTEGER,
-    reason TEXT,             -- Expired, Dropped, Burnt
-    occured_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(product_id) REFERENCES products(id)
-);
-
--- ==============================
--- PRODUCTS (VSCU Aligned)
--- ==============================
-CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,        -- Internal UUID
-    item_nm TEXT NOT NULL,      -- Item Name
-    item_cd TEXT UNIQUE,        -- KRA Code
-    item_cls_cd TEXT,           -- 10-digit class code
-    item_ty_cd TEXT,            -- 1:Raw, 2:Finished, 3:Service
-    tax_ty_cd TEXT DEFAULT 'B', -- Tax Type: A,B,C,D,E
-    pkg_unit_cd TEXT,           -- Packaging Unit
-    qty_unit_cd TEXT,           -- Quantity Unit
-    base_price_cents INTEGER,
-    is_available BOOLEAN DEFAULT 1
-);
-
--- ==============================
--- ORDERS (Fiscal Header)
--- ==============================
-CREATE TABLE IF NOT EXISTS orders (
-    id TEXT PRIMARY KEY,        -- Internal UUID
-    table_number INTEGER,
-    waiter_id TEXT,
-    status TEXT,                -- OPEN, PAID, VOID
-    tot_taxbl_amt_cents INTEGER,
-    tot_tax_amt_cents INTEGER,
-    tot_amt_cents INTEGER,
-    sdc_receipt_no TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME
-);
-
--- ==============================
--- ORDER ITEMS (Fiscal Lines)
--- ==============================
-CREATE TABLE IF NOT EXISTS order_items (
-    id TEXT PRIMARY KEY,
-    order_id TEXT,
-    product_id TEXT,
-    name TEXT,
-    quantity REAL,
-    unit_price_cents INTEGER,
-    taxbl_amt_cents INTEGER,
-    tax_amt_cents INTEGER,
-    tax_ty_cd TEXT,              -- Snapshot of tax type at sale
-    FOREIGN KEY(order_id) REFERENCES orders(id),
-    FOREIGN KEY(product_id) REFERENCES products(id)
-);
-
--- ==============================
--- INVENTORY & MOVEMENT (Stock IO)
--- ==============================
-CREATE TABLE IF NOT EXISTS inventory_stocks (
+CREATE TABLE IF NOT EXISTS inventory_stock (
     product_id TEXT PRIMARY KEY,
-    current_stock REAL DEFAULT 0,
-    min_stock_level REAL,
-    FOREIGN KEY(product_id) REFERENCES products(id)
+    current_quantity REAL NOT NULL DEFAULT 0.0,
+    minimum_threshold REAL DEFAULT 0.0,
+    last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS inventory_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id TEXT,
-    instck_ty_cd TEXT,           -- KRA Codes: 01 (Purchase), 11 (Sale), 15 (Waste)
-    qty REAL,
-    regr_id TEXT,                -- User who performed action
-    occured_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(product_id) REFERENCES products(id)
-);
-
--- ==============================
--- PAYMENTS (M-Pesa & Financials)
--- ==============================
-CREATE TABLE IF NOT EXISTS payments (
-    id TEXT PRIMARY KEY,         -- UUID or M-Pesa Ref
-    order_id TEXT,
-    payment_method TEXT,         -- CASH, MPESA, CARD
-    amount_cents INTEGER,
-    external_ref TEXT,           -- CheckoutRequestID
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(order_id) REFERENCES orders(id)
-);
-
--- ==============================
--- ACTION LOGS (Audit Trail)
--- ==============================
-CREATE TABLE IF NOT EXISTS action_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS inventory_movement_log (
+    id TEXT PRIMARY KEY,
     user_id TEXT,
-    action_type TEXT,            -- VOID, DISCOUNT, LOGIN
-    details TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    product_id INTEGER NOT NULL,
+    movement_quantity REAL NOT NULL,
+    movement_category_id INTEGER NOT NULL,
+    related_transaction_id INTEGER,
+    logged_at_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (movement_category_id) REFERENCES stock_movement_categories(id)
 );
+
+-- =============================================================================
+-- 5. STOCK BALANCE TRIGGER (DIRECTION-AWARE)
+-- =============================================================================
+CREATE TRIGGER IF NOT EXISTS trg_inventory_balance
+AFTER INSERT ON inventory_movement_log
+BEGIN
+    INSERT INTO inventory_stock(product_id, current_quantity)
+    VALUES (
+        NEW.product_id,
+        CASE
+            WHEN (
+                SELECT flow_direction
+                FROM stock_movement_categories
+                WHERE id = NEW.movement_category_id
+            ) = 'INCOMING'
+            THEN NEW.movement_quantity
+            ELSE -NEW.movement_quantity
+        END
+    )
+    ON CONFLICT(product_id) DO UPDATE SET
+        current_quantity = current_quantity +
+        CASE
+            WHEN (
+                SELECT flow_direction
+                FROM stock_movement_categories
+                WHERE id = NEW.movement_category_id
+            ) = 'INCOMING'
+            THEN NEW.movement_quantity
+            ELSE -NEW.movement_quantity
+        END,
+        last_updated_at = CURRENT_TIMESTAMP;
+END;
+
+
+-- =============================================================================
+-- 6. SEED LOOKUPS
+-- =============================================================================
+INSERT OR IGNORE INTO tax_classifications VALUES
+(NULL,'A','VAT 16%',16,'Y'),
+(NULL,'B','VAT 8%',8,'Y'),
+(NULL,'C','Zero Rated',0,'Y'),
+(NULL,'E','Exempt',0,'Y');
+
+INSERT OR IGNORE INTO measurement_units VALUES
+(NULL,'EA','Each'),
+(NULL,'KG','Kilogram'),
+(NULL,'LTR','Litre'),
+(NULL,'ST','Sheet');
+
+INSERT OR IGNORE INTO stock_movement_categories VALUES
+(NULL,'01','Import','INCOMING'),
+(NULL,'02','Purchase','INCOMING'),
+(NULL,'11','Sale','OUTGOING'),
+(NULL,'15','Wastage','OUTGOING'),
+(NULL,'16','Adjustment','OUTGOING');
+
+INSERT OR REPLACE INTO schema_info (key, value)
+VALUES ('version','1.0.0'),
+       ('seeded','false');
+
