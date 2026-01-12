@@ -10,50 +10,50 @@ ApplicationWindow {
     visible: true
     title: "Premium POS System"
 
-    property QtObject theme: spicyRed
+    property QtObject theme: whiteTheme
     // --- 2. DEFINE THE spicyRed DARK THEME ---
     QtObject {
-            id: spicyRed
-            property color background: "transparent"
-            property color surface: Qt.rgba(1, 1, 1, 0.08)
-            property color surfaceHighlight: Qt.rgba(1, 1, 1, 0.18)
-            property color accent: "#3498db"
-            property color success: "#2ecc71"
-            property color danger: "#e74c3c"
-            property color textMain: "#ffffff"
-            property color textSecondary: "#95a5a6"
-            property color border: Qt.rgba(1, 1, 1, 0.15)
-            property color sidePanelBg: Qt.rgba(0, 0, 0, 0.25)
+        id: spicyRed
+        property color background: "transparent"
+        property color surface: Qt.rgba(1, 1, 1, 0.08)
+        property color surfaceHighlight: Qt.rgba(1, 1, 1, 0.18)
+        property color accent: "#3498db"
+        property color success: "#2ecc71"
+        property color danger: "#e74c3c"
+        property color textMain: "#ffffff"
+        property color textSecondary: "#95a5a6"
+        property color border: Qt.rgba(1, 1, 1, 0.15)
+        property color sidePanelBg: Qt.rgba(0, 0, 0, 0.25)
 
-            // --- Card Specific Props ---
-            property real cardOpacity: 0.9
-            property real cardIconOpacity: 0.9
-            property color cardBorderFocused: "#3498db"
-            property int cardRadius: 12
-        }
+        // --- Card Specific Props ---
+        property real cardOpacity: 0.9
+        property real cardIconOpacity: 0.9
+        property color cardBorderFocused: "#3498db"
+        property int cardRadius: 12
+    }
 
     // --- 3. DEFINE THE WHITE THEME ---
-        QtObject {
-            id: whiteTheme
-            property color background: "#f5f6fa"
-            property color surface: "#ffffff"
-            property color surfaceHighlight: "#f1f2f6"
-            property color accent: "#2980b9"
-            property color success: "#27ae60"
-            property color danger: "#c0392b"
-            property color textMain: "#2f3640"
-            property color textSecondary: "#7f8c8d"
-            property color border: "#dcdde1"
-            property color sidePanelBg: "#ebedf0"
-            // --- Card Specific Props ---
-            property real cardOpacity: 1.0
-            property real cardIconOpacity: 1.0
-            property color cardBorderFocused: "#2980b9"
-            property int cardRadius: 8
-        }
+    QtObject {
+        id: whiteTheme
+        property color background: "#f5f6fa"
+        property color surface: "#ffffff"
+        property color surfaceHighlight: "#f1f2f6"
+        property color accent: "#2980b9"
+        property color success: "#27ae60"
+        property color danger: "#c0392b"
+        property color textMain: "#2f3640"
+        property color textSecondary: "#7f8c8d"
+        property color border: "#dcdde1"
+        property color sidePanelBg: "#ebedf0"
+        // --- Card Specific Props ---
+        property real cardOpacity: 1.0
+        property real cardIconOpacity: 1.0
+        property color cardBorderFocused: "#2980b9"
+        property int cardRadius: 8
+    }
     // Model Logic
-    MenuViewController {
-        id: globalCartModel
+    ProductViewController {
+        id: globalProductModel
     }
     // SalesView { id: globalCartModel }
     // OrdersView { id: globalOrdersModel }
@@ -62,7 +62,31 @@ ApplicationWindow {
     // InventoryView { id: globalInventoryModel }
 
     property bool sidebarCollapsed: width < 900
+    // global data
+    // --- GLOBAL DATA MODELS ---
+    ListModel {
+        id: globalCategoryModel
+        ListElement { text: "General"; code: "GEN" }
+        ListElement { text: "Food & Meals"; code: "FOOD" }
+        ListElement { text: "Beverages"; code: "BEV" }
+        ListElement { text: "Services"; code: "SERV" }
+    }
 
+    ListModel {
+        id: globalTaxModel
+        ListElement { text: "A - 16% (VAT)"; valueId: 1 }
+        ListElement { text: "B - 8% (Reduced)"; valueId: 2 }
+        ListElement { text: "C - 0% (Exempt)"; valueId: 3 }
+        ListElement { text: "E - 16% (Export)"; valueId: 4 }
+    }
+
+    ListModel {
+        id: globalUnitModel
+        ListElement { text: "Pieces (pcs)"; valueId: 1 }
+        ListElement { text: "Kilograms (kg)"; valueId: 2 }
+        ListElement { text: "Liters (L)"; valueId: 3 }
+        ListElement { text: "Hours (hr)"; valueId: 4 }
+    }
     StackView {
         id: rootStack
         anchors.fill: parent
@@ -83,13 +107,13 @@ ApplicationWindow {
             Layout.fillHeight: true
 
             Image {
-                            id: backgroundImage
-                            source: "qrc:/qt/qml/POS/UI/assets/images/bg-white.png"
-                            anchors.fill: parent
-                            fillMode: Image.PreserveAspectCrop
-                            opacity: 0.3 // Adjust opacity to ensure UI text remains readable
-                            asynchronous: true
-                        }
+                id: backgroundImage
+                source: "qrc:/qt/qml/POS/UI/assets/images/bg-white.png"
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+                opacity: 0.3 // Adjust opacity to ensure UI text remains readable
+                asynchronous: true
+            }
             RowLayout {
                 anchors.fill: parent
                 spacing: 0
@@ -106,18 +130,19 @@ ApplicationWindow {
                         {
                             name: "System Setup",
                             icon: "⚙",
-                            subItems: [
-                                // { name: "Menu Setup", view: menuSetupView },
-                                { name: "Table Setup", view: tableSetupView },
-                                { name: "Theme Setup", view: themeSetupView }
-                            ]
+                            view: setupView
+                            // subItems: [
+                            //     // { name: "Menu Setup", view: menuSetupView },
+                            //     { name: "Table Setup", view: tableSetupView },
+                            //     { name: "Theme Setup", view: themeSetupView }
+                            // ]
                         },
                         { name: "User Management", view: userMgmtView, icon: "👤" },
                         { name: "Inventory", view: inventoryMgmtView, icon: "📦" }
                     ]
                 }
 
-               // fix:new model // Ensure the sub-views are defined in the contentStack area
+                // fix:new model // Ensure the sub-views are defined in the contentStack area
                 // Component { id: menuSetupView; MenuSetupScreen { objectName: "Menu Setup" } }
                 // Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
                 // Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
@@ -131,22 +156,34 @@ ApplicationWindow {
                     clip: true
                     initialItem: salesView
 
-                    // Component { id: salesView; SalesScreen {
-                    //         salesModel: globalCartModel
-                    //     } }
-                    Component { id: salesView; TestSales {} }
-                    // Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
-                    // Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
-                    // Component { id: setupView; SetupScreen { } }
-                    // Component { id: userMgmtView; UserManagement { staffModel: globalUserModel } }
-                    // Component {
-                    //     id: inventoryMgmtView;
-                    //     InventoryManagement {
-                    //         // Use the global ID you defined at the top of Main.qml
-                    //         invModel: globalInventoryModel
-                    //         usrModel: globalUserModel
-                    //     }
-                    // }
+                    Component { id: salesView; SalesScreen {
+                            // salesModel: globalCartModel
+                        } }
+                    // Component { id: salesView; TestSales {} }
+                    Component { id: ordersView; OrdersScreen {
+                            // ordsModel: globalOrdersModel
+                        } }
+                    Component { id: orderDetailsView; OrderDetailsScreen {
+                            // detailsModel: globalOrderDetailModel
+                        } }
+                    Component { id: setupView; SetupScreen {
+                            controller: globalProductModel
+                            categoryModel: globalCategoryModel
+                            taxModel: globalTaxModel
+                            unitModel: globalUnitModel
+
+                        } }
+                    Component { id: userMgmtView; UserManagement {
+                            // staffModel: globalUserModel
+                        } }
+                    Component {
+                        id: inventoryMgmtView;
+                        InventoryManagement {
+                            // Use the global ID you defined at the top of Main.qml
+                            // invModel: globalInventoryModel
+                            // usrModel: globalUserModel
+                        }
+                    }
                     // Smooth Fade transition for cleaner feel
                     replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 } }
                     replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 } }

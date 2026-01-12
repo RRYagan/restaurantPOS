@@ -5,15 +5,15 @@ qt_add_qml_module(POS_UI
 
     SOURCES
        # controllers/salesview.h controllers/salesview.cpp
-       controllers/ordersview.h controllers/ordersview.cpp
-       controllers/orderdetailview.h controllers/orderdetailview.cpp
-       controllers/categoryview.h controllers/categoryview.cpp
-       controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
+       # controllers/ordersview.h controllers/ordersview.cpp
+       # controllers/orderdetailview.h controllers/orderdetailview.cpp
+       # controllers/categoryview.h controllers/categoryview.cpp
+       # controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
        controllers/inventoryview.h controllers/inventoryview.cpp
-       controllers/userview.h controllers/userview.cpp
+       # controllers/userview.h controllers/userview.cpp
        payment/paymentcontroller.h payment/paymentcontroller.cpp
        controllers/productviewcontroller.h controllers/productviewcontroller.cpp
-       controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
+       # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
 
     QML_FILES
         OrdersScreen.qml
@@ -24,8 +24,9 @@ qt_add_qml_module(POS_UI
         PaymentPage.qml
 
         # setup pages
-        SetupScreen.qml
-        MenuSetupScreen.qml
+        setup/SetupScreen.qml
+        setup/MenuSetupView.qml
+        setup/SetupDashboard.qml
         TableSetup.qml
         ThemeSetup.qml
 
@@ -51,12 +52,15 @@ qt_add_qml_module(POS_UI
         payment/PaymentDialog.qml
 
         TestSales.qml
+        ProductSetupScreen.qml
 
     RESOURCES
         "assets/icons/default.png"
         "assets/images/bg.png"
         "assets/images/bg-white.png"
 )
+
+
 
 
 
@@ -68,7 +72,7 @@ target_link_libraries(POS_UI
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
-        PosCoreEntities
+        # PosCoreEntities
         PosCoreDatabase
         PosPayment
 )

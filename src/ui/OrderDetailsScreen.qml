@@ -6,7 +6,7 @@ import POS.UI 1.0
 Rectangle {
     id: root
     property string currentOrderId: ""
-    property OrderDetailView detailsModel: null
+    // property OrderDetailView detailsModel: null
     color: "transparent"
 
     ColumnLayout {

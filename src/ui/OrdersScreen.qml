@@ -7,8 +7,8 @@ Rectangle {
     id: root
     color: "transparent"
 
-    property OrdersView ordsModel: null
-    property SalesView cModel: null
+    // property OrdersView ordsModel: null
+    // property SalesView cModel: null
 
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 20; spacing: 15

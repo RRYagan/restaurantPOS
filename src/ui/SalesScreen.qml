@@ -2,12 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import POS.UI 1.0
-import "sales"
+
 Rectangle {
     id: root
     color: "transparent"
 
-    property MenuViewController salesModel: null
+    // property MenuViewController salesModel: null
     property string currentOrderId: ""
     property string currentCategory: "All"
 
@@ -21,14 +21,17 @@ Rectangle {
     readonly property double taxAmount: totalVal - subTotal
 
     // MenuViewController { id: catModel }
-    MenuViewController { id: menuModel }
-    OrderViewController { id: salesModel }
-
-    onCurrentCategoryChanged: {
-        if (menuModel) {
-            menuModel.currentCategory = currentCategory;
-        }
+    // MenuViewController { id: menuModel }
+    // OrderViewController { id: salesModel }
+    ProductViewController {
+        id: menuModel
     }
+
+    // onCurrentCategoryChanged: {
+    //     if (menuModel) {
+    //         menuModel.currentCategory = currentCategory;
+    //     }
+    // }
 
     PaymentController {
         id: payCtrl
@@ -47,7 +50,7 @@ Rectangle {
         active: false
         sourceComponent: Component {
             PaymentDialog {
-                salesModel: root.salesModel
+                // salesModel: root.salesModel
                 paymentCtrl: payCtrl
                 onClosed: paymentLoader.active = false
             }
