@@ -1,24 +1,27 @@
 #ifndef USERMODEL_H
 #define USERMODEL_H
 
-#include <QObject>
-#include "usersession.h"
+#include <QString>
+#include <QVariantList>
 
-class UserModel : public QObject {
-    Q_OBJECT
-public:
-    bool addUser(const QString &username, const QString &password, const QString &role);
-    bool verifyUser(const QString &username, const QString &password);
-    bool deleteUser(int id);
-    bool updateUser(int id, const QString &username, const QString &role);
-
-
-    UserSession currentUser() const { return m_session; }
-    void logout() { m_session = UserSession(); }
-    bool isAdmin() const { return m_session.role == "manager"; }
-
-private:
-    QString hashPassword(const QString& password, const QString& salt);
-    UserSession m_session;
+struct User {
+    int id;
+    QString staffIdNumber;
+    QString fullName;
+    QString userRole;
+    QString loginUsername;
+    QString passwordHash;
+    bool isActive;
 };
+
+class UserModel {
+public:
+    static bool createUser(const User &user);
+    static User getUserById(int id);
+    static User getUserByUsername(const QString &username);
+    static bool updateUser(const User &user);
+    static bool deleteUser(int id);
+    static QList<User> getAllActiveUsers();
+};
+
 #endif

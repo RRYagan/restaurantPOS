@@ -50,11 +50,14 @@ qt_add_qml_module(POS_UI
         # payment
         payment/PaymentDialog.qml
 
+        TestSales.qml
+
     RESOURCES
         "assets/icons/default.png"
         "assets/images/bg.png"
         "assets/images/bg-white.png"
 )
+
 
 
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")

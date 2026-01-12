@@ -131,9 +131,10 @@ ApplicationWindow {
                     clip: true
                     initialItem: salesView
 
-                    Component { id: salesView; SalesScreen {
-                            salesModel: globalCartModel
-                        } }
+                    // Component { id: salesView; SalesScreen {
+                    //         salesModel: globalCartModel
+                    //     } }
+                    Component { id: salesView; TestSales {} }
                     // Component { id: ordersView; OrdersScreen { ordsModel: globalOrdersModel } }
                     // Component { id: orderDetailsView; OrderDetailsScreen { detailsModel: globalOrderDetailModel } }
                     // Component { id: setupView; SetupScreen { } }

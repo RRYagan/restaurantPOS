@@ -1,13 +1,13 @@
-#ifndef USER_H
-#define USER_H
+// #ifndef USER_H
+// #define USER_H
 
-#include <QString>
+// #include <QString>
 
 
-struct User {
-    int id;
-    QString username;
-    QString role;
-};
+// struct User {
+//     int id;
+//     QString username;
+//     QString role;
+// };
 
-#endif // USER_H
+// #endif // USER_H

@@ -1,5 +1,4 @@
-#ifndef DATABASESEEDER_H
-#define DATABASESEEDER_H
+#pragma once
 
 #include <QSqlDatabase>
 
@@ -9,18 +8,17 @@ public:
     explicit DatabaseSeeder(QSqlDatabase db);
 
     void seedIfNeeded();
-    void forceSeed(); // for tests
+    void forceSeed();
 
 private:
+    bool seedUsers();
+    bool seedProducts();
+    bool seedProductCompositions();
+    bool seedOpeningStockMovements();
+
     bool isSeeded() const;
     bool markSeeded() const;
 
-    bool seedUsers() const;
-    bool seedProducts() const;
-    bool seedMenu() const;
-    bool isTableEmpty(const QString& tableName);
-
+private:
     QSqlDatabase m_db;
 };
-
-#endif // DATABASESEEDER_H

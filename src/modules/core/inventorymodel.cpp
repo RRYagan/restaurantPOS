@@ -1,60 +1,57 @@
 #include "inventorymodel.h"
 #include "databasemanager.h"
 #include <QSqlQuery>
-#include <QDateTime>
+#include <QSqlError>
+#include <QDebug>
 
-QVariantList InventoryModel::fetchInventory() {
-    QVariantList items;
-    QSqlQuery query("SELECT id, name, quantity, unit FROM inventory", DatabaseManager::instance().database());
-    while (query.next()) {
-        QVariantMap item;
-        item["id"] = query.value(0).toInt();
-        item["name"] = query.value(1).toString();
-        item["quantity"] = query.value(2).toInt();
-        item["unit"] = query.value(3).toString();
-        items.append(item);
+InventoryStock InventoryModel::getStockByProduct(int productId) {
+    InventoryStock stock;
+    stock.productId = -1;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT s.id, s.current_quantity, s.minimum_threshold, p.internal_product_name, u.unit_display_name "
+                  "FROM inventory_stock s "
+                  "JOIN product p ON s.product_id = p.id "
+                  "JOIN measurement_units u ON p.measurement_unit_id = u.id "
+                  "WHERE s.product_id = ?");
+    query.addBindValue(productId);
+
+    if (query.exec() && query.next()) {
+        stock.id = query.value(0).toInt();
+        stock.productId = productId;
+        stock.currentQuantity = query.value(1).toDouble();
+        stock.minimumThreshold = query.value(2).toDouble();
+        stock.productName = query.value(3).toString();
+        stock.unitName = query.value(4).toString();
     }
-    return items;
+    return stock;
 }
 
-QVariantList InventoryModel::fetchAllInventoryHistory() {
-    QVariantList history;
-    QSqlQuery query("SELECT timestamp, action, change_details, item_id, old_quantity, new_quantity FROM inventory_history ORDER BY timestamp DESC", DatabaseManager::instance().database());
+QList<InventoryStock> InventoryModel::getLowStockAlerts() {
+    QList<InventoryStock> alerts;
+    QSqlQuery query(DatabaseManager::instance().database());
+
+    query.exec("SELECT s.product_id, p.internal_product_name, s.current_quantity, s.minimum_threshold "
+               "FROM inventory_stock s "
+               "JOIN product p ON s.product_id = p.id "
+               "WHERE s.current_quantity <= s.minimum_threshold");
+
     while (query.next()) {
-        QVariantMap entry;
-        entry["timestamp"] = query.value(0).toDateTime().toString("yyyy-MM-dd HH:mm");
-        entry["action"] = query.value(1).toString();
-        entry["details"] = query.value(2).toString();
-        entry["item_id"] = query.value(3).toInt();
-        entry["oldQty"] = query.value(4).toInt();
-        entry["newQty"] = query.value(5).toInt();
-        history.append(entry);
+        InventoryStock item;
+        item.productId = query.value(0).toInt();
+        item.productName = query.value(1).toString();
+        item.currentQuantity = query.value(2).toDouble();
+        item.minimumThreshold = query.value(3).toDouble();
+        alerts.append(item);
     }
-    return history;
+    return alerts;
 }
 
-bool InventoryModel::addInventoryItem(const QString &name, int quantity, const QString &unit) {
-    QSqlQuery q;
-    q.prepare("INSERT INTO inventory (name, quantity, unit) VALUES (?, ?, ?)");
-    q.addBindValue(name);
-    q.addBindValue(quantity);
-    q.addBindValue(unit);
-    return q.exec();
-}
-
-bool InventoryModel::updateInventoryItem(int id, const QString &name, int quantity, const QString &unit) {
-    QSqlQuery q;
-    q.prepare("UPDATE inventory SET name = ?, quantity = ?, unit = ? WHERE id = ?");
-    q.addBindValue(name);
-    q.addBindValue(quantity);
-    q.addBindValue(unit);
-    q.addBindValue(id);
-    return q.exec();
-}
-
-bool InventoryModel::deleteInventoryItem(int id) {
-    QSqlQuery q;
-    q.prepare("DELETE FROM inventory WHERE id = ?");
-    q.addBindValue(id);
-    return q.exec();
+bool InventoryModel::setMinimumThreshold(int productId, double threshold) {
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("INSERT INTO inventory_stock (product_id, minimum_threshold) VALUES (?, ?) "
+                  "ON CONFLICT(product_id) DO UPDATE SET minimum_threshold = EXCLUDED.minimum_threshold");
+    query.addBindValue(productId);
+    query.addBindValue(threshold);
+    return query.exec();
 }

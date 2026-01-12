@@ -1,43 +1,42 @@
 #include "usermodel.h"
 #include "databasemanager.h"
 #include <QSqlQuery>
-#include <QUuid>
-#include <QCryptographicHash>
+#include <QSqlError>
+#include <QDebug>
 
-bool UserModel::addUser(const QString &username, const QString &password, const QString &role) {
-    QString salt = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8);
-    QString hash = hashPassword(password, salt);
-    QSqlQuery q(DatabaseManager::instance().database());
-    q.prepare("INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)");
-    q.addBindValue(username); q.addBindValue(hash); q.addBindValue(salt); q.addBindValue(role);
-    return q.exec();
-}
+bool UserModel::createUser(const User &user) {
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("INSERT INTO users (staff_id_number, full_name, user_role, login_username, password_hash) "
+                  "VALUES (?, ?, ?, ?, ?)");
+    query.addBindValue(user.staffIdNumber);
+    query.addBindValue(user.fullName);
+    query.addBindValue(user.userRole);
+    query.addBindValue(user.loginUsername);
+    query.addBindValue(user.passwordHash);
 
-bool UserModel::verifyUser(const QString &username, const QString &password) {
-    QSqlQuery q(DatabaseManager::instance().database());
-    q.prepare("SELECT id, password_hash, salt, role FROM users WHERE username = ?");
-    q.addBindValue(username);
-    if (q.exec() && q.next()) {
-        if (hashPassword(password, q.value(2).toString()) == q.value(1).toString()) {
-            m_session.userId = q.value(0).toInt();
-            m_session.username = username;
-            m_session.role = q.value(3).toString();
-            m_session.isValid = true;
-            return true;
-        }
+    if (!query.exec()) {
+        qCritical() << "Create user failed:" << query.lastError().text();
+        return false;
     }
-    m_session = UserSession();
-    return false;
+    return true;
 }
 
-QString UserModel::hashPassword(const QString& password, const QString& salt) {
-    QByteArray hash = QCryptographicHash::hash((password + salt).toUtf8(), QCryptographicHash::Sha256);
-    return QString(hash.toHex());
-}
-bool UserModel::deleteUser(int id) {
-    QSqlQuery q;
-    q.prepare("DELETE FROM users WHERE id = ?");
-    q.addBindValue(id);
-    return q.exec();
-}
+User UserModel::getUserByUsername(const QString &username) {
+    User user;
+    user.id = -1;
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT id, staff_id_number, full_name, user_role, login_username, password_hash, is_active_status "
+                  "FROM users WHERE login_username = ?");
+    query.addBindValue(username);
 
+    if (query.exec() && query.next()) {
+        user.id = query.value(0).toInt();
+        user.staffIdNumber = query.value(1).toString();
+        user.fullName = query.value(2).toString();
+        user.userRole = query.value(3).toString();
+        user.loginUsername = query.value(4).toString();
+        user.passwordHash = query.value(5).toString();
+        user.isActive = (query.value(6).toString() == "Y");
+    }
+    return user;
+}
