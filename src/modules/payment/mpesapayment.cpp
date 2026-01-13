@@ -3,7 +3,7 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QSqlQuery>
-#include <databasemanager.h>
+#include "databasemanager.h"
 #include <paymentmodel.h>
 
 MpesaPayment::MpesaPayment(const MpesaConfig &config, QObject *parent)

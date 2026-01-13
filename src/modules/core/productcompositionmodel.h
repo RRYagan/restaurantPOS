@@ -42,6 +42,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
+    QList<ProductComposition> getAllCompositions() const;
+
     // CRUD
     bool addIngredient(const ProductComposition& c);
     bool updateIngredient(const ProductComposition& c);

@@ -83,9 +83,11 @@ CREATE TABLE IF NOT EXISTS product_composition (
     main_product_item_id TEXT NOT NULL,
     ingredient_item_id TEXT NOT NULL,
     required_quantity REAL NOT NULL CHECK(required_quantity > 0),
+     measurement_unit_id INTEGER NOT NULL,
     FOREIGN KEY (main_product_item_id) REFERENCES product(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_item_id) REFERENCES product(id),
     UNIQUE(main_product_item_id, ingredient_item_id)
+    FOREIGN KEY (measurement_unit_id) REFERENCES measurement_units(id)
 );
 
 -- =============================================================================

@@ -6,7 +6,7 @@ import POS.UI 1.0
 ApplicationWindow {
     id: window
     width: 1024
-    height: 768
+    height: 720
     visible: true
     title: "Premium POS System"
 

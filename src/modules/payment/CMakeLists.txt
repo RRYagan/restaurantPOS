@@ -11,6 +11,7 @@ target_link_libraries(PosPayment
         Qt6::Sql
         Qt6::Network
         PosCoreEntities
+        PosCoreDatabase
 
     PRIVATE
         Qt6::Core

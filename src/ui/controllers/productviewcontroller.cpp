@@ -58,8 +58,10 @@ bool ProductViewController::saveIngredient(const QVariantMap& data) {
 
     c.id = data.value("uid").toString();
     c.productId = data.value("productId").toString(); // UUID of parent
-    c.ingredientProductId = data.value("ingredientId").toString(); // UUID of ingredient
+    c.ingredientProductId = data.value("ingredientProductId").toString(); // UUID of ingredient
     c.quantity = data.value("quantity").toDouble();
+    c.measurementUnitId = data.value("measurementUnitId").toInt();
+
 
     if (localFlag == -1) {
         c.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
