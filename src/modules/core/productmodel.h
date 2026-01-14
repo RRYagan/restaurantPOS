@@ -12,6 +12,7 @@ struct Product
     int localId = -1;
     QString id;
     QString inventoryProductId;
+    //TODO; add formula: country_origin + product_type + packaging_unit + auto_icr -> KEN2NTBA0000001
     QString kraUniqueItemCode;
     QString internalName;
     QString categoryCode;   // Maps to product_category_id

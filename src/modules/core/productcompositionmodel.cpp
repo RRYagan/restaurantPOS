@@ -10,7 +10,7 @@ ProductCompositionModel::ProductCompositionModel(QObject* parent, QSqlDatabase d
 {
     setTable("product_composition");
     setEditStrategy(OnManualSubmit);
-
+    select();
     // Initialized based on the provided CREATE TABLE schema
     m_idCol         = fieldIndex("id");
     m_productCol    = fieldIndex("product_id");

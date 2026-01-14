@@ -10,7 +10,7 @@ ProductModel::ProductModel(QObject* parent, QSqlDatabase db)
 {
     setTable("product");
     setEditStrategy(OnManualSubmit);
-
+    select();
     // Populate Column Indices based on "CREATE TABLE product"
     m_idCol    = fieldIndex("id");
     m_invCol   = fieldIndex("inventory_product_id");
@@ -179,6 +179,7 @@ Product ProductModel::productAt(int row) const
     p.taxClassificationId = rec.value(m_taxCol).toInt();
     p.quantity            = rec.value(m_qtyCol).toInt();
     p.unitId   = rec.value(m_unitCol).toInt();
+
 
     return p;
 }

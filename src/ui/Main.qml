@@ -189,7 +189,7 @@ ApplicationWindow {
                             categoryModel: globalCategoryModel
                             taxModel: globalTaxModel
                             unitModel: globalUnitModel
-                            inventoryModel: globalInventoryModel
+                            inventoryModel: globalInventoryModel.inventoryModel
                             typeModel: globalTypeModel
 
                         } }

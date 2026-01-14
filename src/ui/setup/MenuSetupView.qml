@@ -198,14 +198,35 @@ Item {
 
                         // --- NEW FIELDS ADDED BELOW ---
 
-                        Label { text: "Inventory Link:"; font.bold: true }
+                        Label { text: "Inventory Item:"; font.bold: true }
                         ComboBox {
                             id: invCombo
                             Layout.fillWidth: true
-                            model: menuSetupRoot.inventoryModel // Assuming you have an inventory list
-                            textRole: "text"
-                            valueRole: "valueId"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.inventoryId, "valueId") : 0
+                            Layout.preferredHeight: 45
+
+                            // 1. Link to the InventoryModel instance
+                            // Make sure this is the model, not the controller itself
+                            model: menuSetupRoot.inventoryModel
+
+                            // 2. Define which data to show and which data to store
+                            textRole: "name"    // Shows the 'name' string in the dropdown
+                            valueRole: "id"      // Uses the UUID string as the underlying value
+
+                            // 3. Set the initial selection based on the product's linked inventory
+                            // indexOfValue searches the model for the row where "id" === currentProduct.inventoryId
+                            currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
+
+                            // Placeholder text if nothing is selected
+                            displayText: currentIndex === -1 ? "Select Inventory Item..." : currentText
+
+                            // 4. Update the selection
+                            onActivated: (index) => {
+                                let selectedId = valueAt(index)
+                                console.log("Linking Product to Inventory ID:", selectedId)
+
+                                // If your model tracks the active ID, update it here
+                                menuSetupRoot.inventoryModel.inventoryId = selectedId
+                            }
                         }
 
                         Label { text: "Product Type:"; font.bold: true }
@@ -322,11 +343,31 @@ Item {
                                 ComboBox {
                                     id: ingSelector
                                     Layout.fillWidth: true
+                                    Layout.preferredHeight: 45
+
+                                    // 1. Link to the InventoryModel instance
+                                    // Make sure this is the model, not the controller itself
                                     model: menuSetupRoot.inventoryModel
-                                    textRole: "text"
-                                    valueRole: "valueId"
-                                    currentIndex: -1
-                                    displayText: currentIndex === -1 ? "Choose ingredient..." : currentText
+
+                                    // 2. Define which data to show and which data to store
+                                    textRole: "name"    // Shows the 'name' string in the dropdown
+                                    valueRole: "id"      // Uses the UUID string as the underlying value
+
+                                    // 3. Set the initial selection based on the product's linked inventory
+                                    // indexOfValue searches the model for the row where "id" === currentProduct.inventoryId
+                                    currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
+
+                                    // Placeholder text if nothing is selected
+                                    displayText: currentIndex === -1 ? "Select Inventory Item..." : currentText
+
+                                    // 4. Update the selection
+                                    onActivated: (index) => {
+                                        let selectedId = valueAt(index)
+                                        console.log("Linking Product to Inventory ID:", selectedId)
+
+                                        // If your model tracks the active ID, update it here
+                                        menuSetupRoot.inventoryModel.inventoryId = selectedId
+                                    }
                                 }
                             }
 

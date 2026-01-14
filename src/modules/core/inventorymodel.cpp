@@ -11,7 +11,7 @@ InventoryModel::InventoryModel(QObject* parent, QSqlDatabase db)
     setTable("inventory");
     setEditStrategy(OnManualSubmit);
     cacheIndices();
-    allItems(); // Load all data on startup
+    select();
 }
 
 void InventoryModel::cacheIndices() {
@@ -129,8 +129,30 @@ bool InventoryModel::removeItem(const QString& id) {
     return false;
 }
 
+InventoryItem InventoryModel::inventoryAt(int row) const {
+    if (row < 0 || row >= rowCount()) return InventoryItem();
+
+    QSqlRecord rec = record(row);
+    InventoryItem c; // Ensure this is not QList<InventoryItem>
+
+    c.id                = rec.value("id").toString();
+    c.name              = rec.value("name").toString();
+    c.packagesAvailable = rec.value("packages_available").toInt();
+    c.packagingUnitId   = rec.value("packaging_unit_id").toInt();
+    c.quantityAvailable = rec.value("quantity_available").toDouble();
+    c.quantityUnitId    = rec.value("quantity_unit_id").toInt();
+    c.createdAt         = rec.value("created_at").toString();
+    c.updatedAt         = rec.value("updated_at").toString();
+
+    return c;
+}
+
 // --- READ ALL ---
-void InventoryModel::allItems() {
-    setFilter(""); // Clear any search filters
-    select();      // Re-run the query
+QList<InventoryItem> InventoryModel::allItems() {
+    QList<InventoryItem> inventory_items;
+    for (int i = 0; i < rowCount(); ++i) {
+        inventory_items.append(inventoryAt(i));
+    }
+
+    return inventory_items;
 }

@@ -5,8 +5,49 @@
 #include <QSqlDatabase>
 #include <QVariantMap>
 
+struct InventoryItem {
+    QString id;
+    QString name;
+    int packagesAvailable;
+    int packagingUnitId;
+    double quantityAvailable;
+    int quantityUnitId;
+    QString createdAt;
+    QString updatedAt;
+
+    // Helper: Map data from a QSqlRecord (Database -> Struct)
+    // static InventoryItem fromRecord(const QSqlRecord& rec) {
+    //     InventoryItem item;
+    //     item.id = rec.value("id").toString();
+    //     item.name = rec.value("name").toString();
+    //     item.packagesAvailable = rec.value("packages_available").toInt();
+    //     item.packagingUnitId = rec.value("packaging_unit_id").toInt();
+    //     item.quantityAvailable = rec.value("quantity_available").toDouble();
+    //     item.quantityUnitId = rec.value("quantity_unit_id").toInt();
+    //     item.createdAt = rec.value("created_at").toString();
+    //     item.updatedAt = rec.value("updated_at").toString();
+    //     return item;
+    // }
+
+    // // Helper: Map data to a QVariantMap (Struct -> QML)
+    // QVariantMap toMap() const {
+    //     return {
+    //         {"id", id},
+    //         {"name", name},
+    //         {"packagesAvailable", packagesAvailable},
+    //         {"packagingUnitId", packagingUnitId},
+    //         {"quantityAvailable", quantityAvailable},
+    //         {"quantityUnitId", quantityUnitId},
+    //         {"createdAt", createdAt},
+    //         {"updatedAt", updatedAt}
+    //     };
+    // }
+};
+
 class InventoryModel : public QSqlTableModel {
     Q_OBJECT
+    Q_PROPERTY(QString inventoryId READ inventoryId WRITE setInventoryId NOTIFY inventoryIdChanged)
+
 public:
     explicit InventoryModel(QObject* parent = nullptr, QSqlDatabase db = QSqlDatabase());
 
@@ -23,17 +64,30 @@ public:
         UpdatedAtRole
     };
 
+    // Logic now uses the local m_inventoryId variable
+    QString inventoryId() const { return m_inventoryId; }
+    void setInventoryId(const QString& id) {
+        qDebug() << "Controller: inventoryId changed from" << m_inventoryId << "to" << id;
+        if (m_inventoryId != id) {
+            m_inventoryId = id;
+            emit inventoryIdChanged();
+        }
+    }
     // --- READ ---
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
     // --- CRUD METHODS ---
-    Q_INVOKABLE bool createItem(const QVariantMap& data);
-    Q_INVOKABLE bool updateItem(const QVariantMap& data);
-    Q_INVOKABLE bool removeItem(const QString& id);
-    Q_INVOKABLE void allItems(); // Refresh/Clear filters
+     bool createItem(const QVariantMap& data);
+     bool updateItem(const QVariantMap& data);
+     bool removeItem(const QString& id);
+     InventoryItem inventoryAt(int row) const;
+     QList<InventoryItem> allItems(); // Refresh/Clear filters
 
+signals:
+    void inventoryIdChanged();
 private:
+     QString m_inventoryId = "";
     // Column Index Cache
     int m_idCol;
     int m_nameCol;

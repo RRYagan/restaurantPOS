@@ -17,16 +17,23 @@ public:
 
     InventoryModel* inventoryModel() const { return m_inventoryModel; }
 
+
     // Logic now uses the local m_inventoryId variable
     QString inventoryId() const { return m_inventoryId; }
-    void setInventoryId(const QString& id);
-
+    void setInventoryId(const QString& id) {
+        qDebug() << "Controller: inventoryId changed from" << m_inventoryId << "to" << id;
+        if (m_inventoryModel->inventoryId() != id) {
+            m_inventoryModel->setInventoryId(id);
+            emit inventoryIdChanged();
+        }
+    }
 
 
     Q_INVOKABLE bool addStock(const QVariantMap &data);
     Q_INVOKABLE bool updateStock(const QVariantMap &data);
     Q_INVOKABLE bool deleteStock(const QString &id);
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void setCurrentInventoryProduct(const QString& id);
 
 signals:
     void inventoryIdChanged();
