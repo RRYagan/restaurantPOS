@@ -8,6 +8,8 @@ Item {
     property var categoryModel
     property var taxModel
     property var unitModel
+    property var inventoryModel
+    property var typeModel
 
     property bool isEditing: false
     property var currentProduct: null
@@ -169,7 +171,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 30
                         columns: 2
-                        rowSpacing: 20
+                        rowSpacing: 15 // Slightly reduced to fit more fields comfortably
                         columnSpacing: 20
 
                         Label { text: "Display Name:"; font.bold: true }
@@ -178,6 +180,7 @@ Item {
                             text: currentProduct ? currentProduct.name : ""
                             Layout.fillWidth: true
                         }
+
 
                         Label { text: "Price ($):"; font.bold: true }
                         TextField {
@@ -193,6 +196,32 @@ Item {
                             Layout.fillWidth: true
                         }
 
+                        // --- NEW FIELDS ADDED BELOW ---
+
+                        Label { text: "Inventory Link:"; font.bold: true }
+                        ComboBox {
+                            id: invCombo
+                            Layout.fillWidth: true
+                            model: menuSetupRoot.inventoryModel // Assuming you have an inventory list
+                            textRole: "text"
+                            valueRole: "valueId"
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.inventoryId, "valueId") : 0
+                        }
+
+                        Label { text: "Product Type:"; font.bold: true }
+                        ComboBox {
+                            id: typeCombo
+                            Layout.fillWidth: true
+                            model: menuSetupRoot.typeModel // Assuming you have a types list
+                            textRole: "text"
+                            valueRole: "valueId"
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.typeId, "valueId") : 0
+                        }
+
+
+
+                        // --- END OF NEW FIELDS ---
+
                         Label { text: "Category:"; font.bold: true }
                         ComboBox {
                             id: catCombo
@@ -200,7 +229,7 @@ Item {
                             model: menuSetupRoot.categoryModel
                             textRole: "text"
                             valueRole: "code"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.categoryCode, "code") : 0
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.categoryId, "code") : 0
                         }
 
                         Label { text: "Tax Type:"; font.bold: true }
@@ -212,7 +241,13 @@ Item {
                             valueRole: "valueId"
                             currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxId, "valueId") : 0
                         }
-
+                        Label { text: "Stock Quantity:"; font.bold: true }
+                        TextField {
+                            id: qtyIn
+                            text: currentProduct ? currentProduct.quantity : "0"
+                            validator: IntValidator { bottom: 0 }
+                            Layout.fillWidth: true
+                        }
                         Label { text: "Unit:"; font.bold: true }
                         ComboBox {
                             id: unitCombo
@@ -227,19 +262,25 @@ Item {
                             text: "Save Product Information"
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
+                            Layout.topMargin: 10
                             height: 45
                             highlighted: true
                             enabled: nameIn.text.trim().length > 0
                             onClicked: {
+                                // Updated payload to include all required DB fields
                                 let payload = {
                                     "id": currentProduct ? currentProduct.id : "",
                                     "name": nameIn.text,
                                     "price": parseFloat(priceIn.text) || 0.0,
                                     "kraCode": kraIn.text,
-                                    "categoryCode": catCombo.currentValue,
+                                    "inventoryId": invCombo.currentValue,
+                                    "typeId": typeCombo.currentValue,
+                                    "quantity": parseInt(qtyIn.text) || 0,
+                                    "categoryId": catCombo.currentValue,
                                     "taxId": parseInt(taxCombo.currentValue),
                                     "unitId": parseInt(unitCombo.currentValue)
                                 }
+
                                 if (controller.saveProduct(payload)) {
                                     menuSetupRoot.isEditing = false
                                 } else {
@@ -249,7 +290,6 @@ Item {
                         }
                     }
                 }
-
                 // --- SECTION 2: RECIPE / COMPOSITION ---
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -282,9 +322,9 @@ Item {
                                 ComboBox {
                                     id: ingSelector
                                     Layout.fillWidth: true
-                                    model: controller.productModel
-                                    textRole: "name"
-                                    valueRole: "id"
+                                    model: menuSetupRoot.inventoryModel
+                                    textRole: "text"
+                                    valueRole: "valueId"
                                     currentIndex: -1
                                     displayText: currentIndex === -1 ? "Choose ingredient..." : currentText
                                 }
@@ -319,7 +359,7 @@ Item {
                                         "productId": currentProduct.id,
                                         "ingredientProductId": ingSelector.currentValue,
                                         "quantity": parseFloat(ingQty.text) || 1,
-                                        "measurementUnitId": parseInt(ingUnitCombo.currentValue)
+                                        "unitId": parseInt(ingUnitCombo.currentValue)
                                     })
                                     ingQty.text = "";
                                     ingSelector.currentIndex = -1;
@@ -380,7 +420,7 @@ Item {
                                             horizontalAlignment: Text.AlignHCenter
                                             verticalAlignment: Text.AlignVCenter
                                         }
-                                        onClicked: controller.compositionModel.removeIngredient(model.id)
+                                        onClicked: controller.removeIngredient(model.id)
                                     }
                                 }
                             }

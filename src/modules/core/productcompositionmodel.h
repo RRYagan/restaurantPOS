@@ -8,13 +8,14 @@ struct ProductComposition
     int    localId = -1;
     QString  productId;
     QString id;
+    QString name;
     QString    ingredientProductId;
     double quantity = 0.0;
-    int    measurementUnitId = -1;
+    int    unitId = -1;
 
     bool isValid() const
     {
-        return measurementUnitId > 0
+        return unitId  > 0
                && quantity > 0;
     }
 };
@@ -29,6 +30,7 @@ public:
         IdRole = Qt::UserRole + 1,
         ProductIdRole,
         IngredientIdRole,
+        IngredientNameRole,
         QuantityRole,
         UnitRole
     };
@@ -56,4 +58,11 @@ signals:
 
 private:
     QString m_productId = "";
+
+    //column indices
+    int m_idCol;
+    int m_productCol;
+    int m_ingredientCol;
+    int m_qtyCol;
+    int m_unitCol;
 };

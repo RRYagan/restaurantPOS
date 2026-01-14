@@ -87,6 +87,24 @@ ApplicationWindow {
         ListElement { text: "Liters (L)"; valueId: 3 }
         ListElement { text: "Hours (hr)"; valueId: 4 }
     }
+
+    // --- NEW TEST MODELS FOR SETUP ---
+    ListModel {
+        id: globalInventoryModel
+        ListElement { text: "Select Inventory Item"; valueId: "" }
+        ListElement { text: "Beef Fillet (Raw)"; valueId: "inv-001" }
+        ListElement { text: "Cooking Oil"; valueId: "inv-002" }
+        ListElement { text: "Soda Syrup"; valueId: "inv-003" }
+        ListElement { text: "Packaging Boxes"; valueId: "inv-004" }
+    }
+
+    ListModel {
+        id: globalTypeModel
+        ListElement { text: "Standard Product"; valueId: "pt-1" }
+        ListElement { text: "Composite Item (Recipe)"; valueId: "pt-2" }
+        ListElement { text: "Service/Labor"; valueId: "pt-3" }
+    }
+
     StackView {
         id: rootStack
         anchors.fill: parent
@@ -171,6 +189,8 @@ ApplicationWindow {
                             categoryModel: globalCategoryModel
                             taxModel: globalTaxModel
                             unitModel: globalUnitModel
+                            inventoryModel: globalInventoryModel
+                            typeModel: globalTypeModel
 
                         } }
                     Component { id: userMgmtView; UserManagement {

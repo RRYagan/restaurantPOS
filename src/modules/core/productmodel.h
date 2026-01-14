@@ -4,58 +4,75 @@
 #include <QString>
 #include <QList>
 #include <QSqlTableModel>
+#include <QHash>
+#include <QByteArray>
 
 struct Product
 {
     int localId = -1;
     QString id;
+    QString inventoryProductId;
     QString kraUniqueItemCode;
     QString internalName;
-    QString categoryCode;
+    QString categoryCode;   // Maps to product_category_id
+    QString productTypeId;
     double  sellingPrice = 0.0;
     int     taxClassificationId = -1;
-    int     measurementUnitId = -1;
+    int     quantity = 0;
+    int     unitId = -1;
 
     bool isValid() const
     {
         return !internalName.isEmpty()
-        && measurementUnitId > 0;
+        && !inventoryProductId.isEmpty()
+            && unitId  > 0;
     }
 };
 
 class ProductModel : public QSqlTableModel {
     Q_OBJECT
 
-
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
+        InventoryIdRole,
         KraCodeRole,
         NameRole,
         CategoryRole,
+        TypeRole,
         PriceRole,
         TaxRole,
+        QuantityRole,
         UnitRole
     };
 
     explicit ProductModel(QObject* parent = nullptr,
                           QSqlDatabase db = QSqlDatabase());
 
+    // Core Model Overrides
     QVariant data(const QModelIndex& index, int role) const override;
-    bool setData(const QModelIndex& index,
-                 const QVariant& value,
-                 int role) override;
-
+    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
     QHash<int, QByteArray> roleNames() const override;
 
+    // Database Operations
     QList<Product> getAllProducts() const;
     bool addProduct(const Product &product);
     bool updateProduct(const Product& product);
-    bool removeProduct(const QString& productId); // Changed from int to QString
+    bool removeProduct(const QString& productId);
     Product productAt(int row) const;
-    //  Product getProductByKraCode(const QString &code);
-    //  bool updatePrice(int id, double newPrice);
-    //  QList<Product> getProductsByCategory(const QString &catCode);
+
+private:
+    // Cached Column Indices
+    int m_idCol;
+    int m_invCol;
+    int m_kraCol;
+    int m_nameCol;
+    int m_catCol;
+    int m_typeCol;
+    int m_priceCol;
+    int m_taxCol;
+    int m_qtyCol;
+    int m_unitCol;
 };
 
-#endif
+#endif // PRODUCTMODEL_H

@@ -13,6 +13,9 @@ Item {
     property var categoryModel
     property var taxModel
     property var unitModel
+    property var inventoryModel
+    property var typeModel
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -58,6 +61,8 @@ Item {
                 categoryModel: setupRoot.categoryModel
                 taxModel: setupRoot.taxModel
                 unitModel: setupRoot.unitModel
+                inventoryModel: setupRoot.inventoryModel
+                typeModel: setupRoot.typeModel
             }
         }
     }

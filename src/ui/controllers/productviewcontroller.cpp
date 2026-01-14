@@ -9,61 +9,54 @@ ProductViewController::ProductViewController(QObject* parent)
     m_compositionModel = new ProductCompositionModel(this);
 }
 
-// THE UNITED SAVE FUNCTION
 bool ProductViewController::saveProduct(const QVariantMap& data) {
     Product p;
-    // Map the localId to check for update status
+
+    // Mapping payload from QML to Struct
     p.localId = data.value("localId", -1).toInt();
     p.id = data.value("id").toString();
     p.internalName = data.value("name").toString().trimmed();
     p.kraUniqueItemCode = data.value("kraCode").toString();
     p.sellingPrice = data.value("price").toDouble();
-    p.categoryCode = data.value("categoryCode").toString();
+
+    // New fields from the updated SetupScreen UI
+    p.inventoryProductId = data.value("inventoryId").toString();
+    p.productTypeId = data.value("typeId").toString();
+    p.quantity = data.value("quantity").toInt();
+
+    // Categorization and Units
+    p.categoryCode = data.value("categoryId").toString();
     p.taxClassificationId = data.value("taxId").toInt();
-    p.measurementUnitId = data.value("unitId").toInt();
+    p.unitId = data.value("unitId").toInt();
 
-    if (!p.isValid()) return false;
+    // Validate using the logic in your Product struct
+    if (!p.isValid()) {
+        qWarning() << "Validation failed: Ensure Name, Inventory Link, and Unit are provided.";
+        return false;
+    }
 
-    // The logic check you requested
-    bool isUpdate = (p.localId != -1);
+    // Logic to determine Update vs Add
+    bool isUpdate = !p.id.isEmpty();
 
     if (!isUpdate) {
-        // NEW PRODUCT: Generate the DB ID (UUID)
         p.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         return m_productModel->addProduct(p);
     } else {
-        // EXISTING PRODUCT: Update using the existing UUID
         return m_productModel->updateProduct(p);
     }
 }
-
-// Helper to map QVariantMap keys to Product struct members
-// Product ProductViewController::mapToProduct(const QVariantMap& map)
-// {
-//     Product p;
-//     // Map the keys used in your QML payload
-//     p.id = map.value("id", -1).toInt();
-//     p.internalName = map.value("name").toString().trimmed();
-//     p.sellingPrice = map.value("price").toDouble();
-//     p.kraUniqueItemCode = map.value("kraCode").toString();
-//     p.categoryCode = map.value("categoryCode").toString();
-//     p.taxClassificationId = map.value("taxId").toInt();
-//     p.measurementUnitId = map.value("unitId").toInt();
-//     return p;
-// }
 
 bool ProductViewController::saveIngredient(const QVariantMap& data) {
     ProductComposition c;
     int localFlag = data.value("localId", -1).toInt();
 
     c.id = data.value("uid").toString();
-    c.productId = data.value("productId").toString(); // UUID of parent
-    c.ingredientProductId = data.value("ingredientProductId").toString(); // UUID of ingredient
+    c.productId = data.value("productId").toString();
+    c.ingredientProductId = data.value("ingredientProductId").toString();
     c.quantity = data.value("quantity").toDouble();
-    c.measurementUnitId = data.value("measurementUnitId").toInt();
+    c.unitId = data.value("unitId").toInt();
 
-
-    if (localFlag == -1) {
+    if (localFlag == -1 && c.id.isEmpty()) {
         c.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         return m_compositionModel->addIngredient(c);
     } else {
@@ -71,17 +64,14 @@ bool ProductViewController::saveIngredient(const QVariantMap& data) {
     }
 }
 
-bool ProductViewController::removeProduct(const QString& productId)
-{
+bool ProductViewController::removeProduct(const QString& productId) {
     return m_productModel->removeProduct(productId);
 }
 
-bool ProductViewController::removeIngredient(const QString& id)
-{
+bool ProductViewController::removeIngredient(const QString& id) {
     return m_compositionModel->removeIngredient(id);
 }
 
-void ProductViewController::setCurrentProduct(const QString& productId)
-{
+void ProductViewController::setCurrentProduct(const QString& productId) {
     m_compositionModel->setProductId(productId);
 }
