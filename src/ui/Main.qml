@@ -59,7 +59,7 @@ ApplicationWindow {
     // OrdersView { id: globalOrdersModel }
     // OrderDetailView { id: globalOrderDetailModel }
     // UserView { id: globalUserModel }
-    // InventoryView { id: globalInventoryModel }
+    InventoryViewController { id: globalInventoryModel }
 
     property bool sidebarCollapsed: width < 900
     // global data
@@ -89,14 +89,14 @@ ApplicationWindow {
     }
 
     // --- NEW TEST MODELS FOR SETUP ---
-    ListModel {
-        id: globalInventoryModel
-        ListElement { text: "Select Inventory Item"; valueId: "" }
-        ListElement { text: "Beef Fillet (Raw)"; valueId: "inv-001" }
-        ListElement { text: "Cooking Oil"; valueId: "inv-002" }
-        ListElement { text: "Soda Syrup"; valueId: "inv-003" }
-        ListElement { text: "Packaging Boxes"; valueId: "inv-004" }
-    }
+    // ListModel {
+    //     id: globalInventoryModel
+    //     ListElement { text: "Select Inventory Item"; valueId: "" }
+    //     ListElement { text: "Beef Fillet (Raw)"; valueId: "inv-001" }
+    //     ListElement { text: "Cooking Oil"; valueId: "inv-002" }
+    //     ListElement { text: "Soda Syrup"; valueId: "inv-003" }
+    //     ListElement { text: "Packaging Boxes"; valueId: "inv-004" }
+    // }
 
     ListModel {
         id: globalTypeModel
@@ -200,7 +200,7 @@ ApplicationWindow {
                         id: inventoryMgmtView;
                         InventoryManagement {
                             // Use the global ID you defined at the top of Main.qml
-                            // invModel: globalInventoryModel
+                            invModel: globalInventoryModel
                             // usrModel: globalUserModel
                         }
                     }

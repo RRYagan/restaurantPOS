@@ -11,7 +11,7 @@ Rectangle {
 
     Component.onCompleted: {
         if (itemData && itemData.id !== undefined) {
-                invView.historyProxy.filterId = itemData.id;
+                invView.filterId = itemData.id;
             }
         }
 
@@ -61,7 +61,7 @@ Rectangle {
                     spacing: 5
                     Text { text: "CURRENT STOCK"; color: "#95a5a6"; font.pixelSize: 12; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
                     Text {
-                        text: itemData ? itemData.quantity + " " + (itemData.unit || "pcs") : "0"
+                        text: itemData ? itemData.quantityAvailable + " " + (itemData.unit || "pcs") : "0"
                         color: "#2ecc71"
                         font.pixelSize: 32; font.bold: true
                     }
@@ -98,11 +98,11 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: invView.historyProxy
+            model: invView
             spacing: 5
 
             Binding {
-                    target: invView.historyProxy
+                    target: invView
                     property: "filterId"
                     value: (itemData && itemData.id !== undefined) ? itemData.id : -1                }
 

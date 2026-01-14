@@ -124,9 +124,9 @@ CREATE TABLE IF NOT EXISTS product_composition (
 CREATE TABLE IF NOT EXISTS inventory (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
-    packages_available REAL NOT NULL DEFAULT 0,
+    packages_available INTEGER NOT NULL DEFAULT 0,
     packaging_unit_id INTEGER NOT NULL,
-    quantity_av ailable REAL NOT NULL DEFAULT 0.0,
+    quantity_available REAL NOT NULL DEFAULT 0.0,
     quantity_unit_id INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,  

@@ -4,7 +4,6 @@ import QtQuick.Layouts
 
 Dialog {
     id: root
-    // Dynamic Title based on mode [cite: 54]
     title: isEditMode ? "Edit Stock Item" : "Add New Stock"
     modal: true
     anchors.centerIn: parent
@@ -12,22 +11,16 @@ Dialog {
     standardButtons: Dialog.Save | Dialog.Cancel
 
     property bool isEditMode: false
-    property var targetData: null // Stores the full item map when editing
+    property var targetData: null
+
+    // Access the controller passed from the parent page
+    // Ensure 'invModel' (the InventoryViewController) is accessible here
+    property var controller: inventoryPage.invModel
 
     width: Math.min(parent.width * 0.9, 400)
-    x: {
-            var preferredX = (parent.width - width) / 2 // Default to center
-            // Clamp: Math.max(0, Math.min(preferredX, ScreenWidth - DialogWidth))
-            return Math.max(10, Math.min(preferredX, parent.width - width - 10))
-        }
-
-        y: {
-            var preferredY = (parent.height - height) / 2
-            return Math.max(10, Math.min(preferredY, parent.height - height - 10))
-        }
 
     background: Rectangle {
-        color: "#2c0505" // Matches your dark glassy red theme [cite: 8, 30, 53]
+        color: "#2c0505"
         border.color: Qt.rgba(1, 1, 1, 0.2)
         radius: 12
     }
@@ -50,57 +43,109 @@ Dialog {
         RowLayout {
             spacing: 10
             ColumnLayout {
+                Text { text: "Packages"; color: "#95a5a6"; font.pixelSize: 12 }
+                SpinBox {
+                    id: pkgField
+                    editable: true
+                    from: 0
+                    to: 9999
+                    value: 0
+                    Layout.fillWidth: true
+                }
+            }
+            ColumnLayout {
+                Text { text: "Package Unit"; color: "#95a5a6"; font.pixelSize: 12 }
+                ComboBox {
+                    id: pkgUnitField
+                    // Using IDs to match your quantityUnitId schema
+                    model: ListModel {
+                        ListElement { text: "Bottles"; value: 1 }
+                        ListElement { text: "Bags"; value: 2 }
+                        ListElement { text: "Bundle"; value: 3 }
+                    }
+                    textRole: "text"
+                    valueRole: "value"
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        RowLayout {
+            spacing: 10
+            ColumnLayout {
                 Text { text: "Quantity"; color: "#95a5a6"; font.pixelSize: 12 }
                 SpinBox {
                     id: qtyField
                     editable: true
                     from: 0
                     to: 9999
+                    value: 0
                     Layout.fillWidth: true
                 }
             }
             ColumnLayout {
-                Text { text: "Unit"; color: "#95a5a6"; font.pixelSize: 12 }
+                Text { text: "Unit ID"; color: "#95a5a6"; font.pixelSize: 12 }
                 ComboBox {
                     id: unitField
-                    model: ["pcs", "kg", "ltr", "box", "pkt"]
+                    // Using IDs to match your quantityUnitId schema
+                    model: ListModel {
+                        ListElement { text: "pcs"; value: 1 }
+                        ListElement { text: "kg"; value: 2 }
+                        ListElement { text: "ltr"; value: 3 }
+                    }
+                    textRole: "text"
+                    valueRole: "value"
                     Layout.fillWidth: true
                 }
             }
         }
     }
 
-    // Function to prepare the dialog for editing [cite: 52]
     function openForEdit(data) {
-        if (!data) {
-                    console.error("StockDialog: Received null data for edit");
-                    return;
-                }
+        if (!data) return;
         isEditMode = true
         targetData = data
+
+        // Match the updated roles from your C++ model
         nameField.text = data.name
-        qtyField.value = data.quantity
-        var idx = unitField.find(data.unit || "pcs")
+        pkgField.value = data.packagesAvailable
+        // Find unit index by ID
+        var pkg_idx = pkgUnitField.indexOfValue(data.packagingUnitId)
+        pkgUnitField.currentIndex = pkg_idx !== -1 ? pkg_idx : 0
+
+        qtyField.value = data.quantityAvailable
+        // Find unit index by ID
+        var idx = unitField.indexOfValue(data.quantityUnitId)
         unitField.currentIndex = idx !== -1 ? idx : 0
         open()
     }
 
-    // Function to prepare the dialog for adding [cite: 52]
     function openForAdd() {
         isEditMode = false
         targetData = null
         nameField.clear()
+        pkgField.value = 0
+        pkgUnitField.currentIndex=0
         qtyField.value = 0
+        unitField.currentIndex = 0
         open()
     }
 
     onAccepted: {
+        // Prepare the Map/Object for the C++ Controller
+        var payload = {
+            "name": nameField.text,
+            "packagesAvailable": pkgField.value,
+            "packagingUnitId": pkgUnitField,
+            "quantityAvailable": qtyField.value,
+            "quantityUnitId": unitField.currentValue
+        }
+
         if (isEditMode && targetData) {
-            // Call the C++ update method
-            globalInventoryModel.updateStock(targetData.id, nameField.text, qtyField.value, unitField.currentText)
+            payload["id"] = targetData.id // Include ID for updates
+            controller.updateStock(payload)
         } else {
-            // Call the C++ add method
-            globalInventoryModel.addStock(nameField.text, qtyField.value, unitField.currentText)
+            controller.addStock(payload)
         }
     }
 }

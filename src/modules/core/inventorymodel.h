@@ -1,31 +1,50 @@
 #ifndef INVENTORYMODEL_H
 #define INVENTORYMODEL_H
 
-#include <QString>
-#include <QList>
+#include <QSqlTableModel>
+#include <QSqlDatabase>
+#include <QVariantMap>
 
-struct InventoryStock {
-    int id;
-    int productId;
-    QString productName;
-    double currentQuantity;
-    double minimumThreshold;
-    QString unitName;
-};
-
-class InventoryModel {
+class InventoryModel : public QSqlTableModel {
+    Q_OBJECT
 public:
-    // GET: Retrieve current stock for a specific product
-    static InventoryStock getStockByProduct(int productId);
+    explicit InventoryModel(QObject* parent = nullptr, QSqlDatabase db = QSqlDatabase());
 
-    // GET: Retrieve list of products that are below their minimum threshold (Low Stock Report)
-    static QList<InventoryStock> getLowStockAlerts();
+    enum Roles {
+        IdRole = Qt::UserRole + 1,
+        NameRole,
+        PackagesAvailableRole,
+        PackagingUnitIdRole,
+        PackagingUnitNameRole,
+        QuantityAvailableRole,
+        QuantityUnitIdRole,
+        QuantityUnitNameRole,
+        CreatedAtRole,
+        UpdatedAtRole
+    };
 
-    // UPDATE: Manually set a minimum threshold for alerts
-    static bool setMinimumThreshold(int productId, double threshold);
+    // --- READ ---
+    QVariant data(const QModelIndex& index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
 
-    // READ: Get full inventory status for all products
-    static QList<InventoryStock> getFullInventoryStatus();
+    // --- CRUD METHODS ---
+    Q_INVOKABLE bool createItem(const QVariantMap& data);
+    Q_INVOKABLE bool updateItem(const QVariantMap& data);
+    Q_INVOKABLE bool removeItem(const QString& id);
+    Q_INVOKABLE void allItems(); // Refresh/Clear filters
+
+private:
+    // Column Index Cache
+    int m_idCol;
+    int m_nameCol;
+    int m_pkgAvailCol;
+    int m_pkgUnitCol;
+    int m_qtyAvailCol;
+    int m_qtyUnitCol;
+    int m_createdCol;
+    int m_updatedCol;
+
+    void cacheIndices();
 };
 
 #endif

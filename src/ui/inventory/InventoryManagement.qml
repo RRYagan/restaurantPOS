@@ -5,33 +5,26 @@ import POS.UI
 
 Rectangle {
     id: inventoryPage
-    color: "transparent" // Reveal dark red background from Main.qml
+    color: "transparent"
 
+    // invModel here should be your InventoryViewController instance
     property var invModel
     property var usrModel
     readonly property bool isManager: usrModel ? usrModel.isAdmin : false
-
-    // Unified Delete Dialog instance
 
     Loader {
         id: confirmLoader
         active: false
         anchors.fill: parent
-        sourceComponent: ConfirmDialog {
-            id: invDeleteDialog
-            // The dialog will automatically close and 'active' stays true
-            // until we manually reset it or change pages
-        }
+        sourceComponent: ConfirmDialog { id: invDeleteDialog }
     }
 
-    // Loader for the Add/Edit Stock Dialog
     Loader {
         id: stockLoader
         anchors.fill: parent
         active: false
         sourceComponent: StockDialog { id: internalStockDialog }
     }
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -45,23 +38,20 @@ Rectangle {
             font.bold: true
         }
 
-        // Search and Filter Header
         RowLayout {
             Layout.fillWidth: true
-            spacing: 15 // Adds clean gap between the two elements
+            spacing: 15
 
             TextField {
                 id: searchBar
                 placeholderText: "Search inventory..."
                 Layout.fillWidth: true
-                // Set a fixed height for uniformity
                 Layout.preferredHeight: 45
                 color: "white"
                 verticalAlignment: TextInput.AlignVCenter
                 leftPadding: 15
-
-                // --- LOGIC: Connect to the UniversalFilterProxy ---
-                onTextChanged: invModel.searchString = text
+                // Search logic (Assuming your Proxy is exposed via the controller)
+                onTextChanged: invModel.inventoryModel.searchString = text
 
                 background: Rectangle {
                     color: Qt.rgba(1, 1, 1, 0.1)
@@ -69,45 +59,30 @@ Rectangle {
                     border.color: searchBar.activeFocus ? "#c0392b" : Qt.rgba(1, 1, 1, 0.2)
                 }
             }
-            // Near your Search Bar RowLayout
+
             ComboBox {
                 id: filterStatus
                 model: ["All Items", "Low Stock", "Out of Stock"]
                 Layout.preferredHeight: 45
                 Layout.preferredWidth: 150
-                onCurrentIndexChanged: {
-                        // Assuming invModel is your InventoryView which exposes the proxy
-                        invModel.proxy.filterMode = currentIndex
-                    }
+                onCurrentIndexChanged: invModel.inventoryModel.filterMode = currentIndex
             }
+
             Button {
                 id: addBtn
                 text: "+ Add Stock"
-                visible: inventoryPage.isManager
-                // Match the height of the TextField
                 Layout.preferredHeight: 45
                 Layout.preferredWidth: 140
-
-                contentItem: Text {
-                    text: addBtn.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.bold: true
-                }
-
-                background: Rectangle {
-                    color: addBtn.pressed ? "#a03023" : (addBtn.hovered ? "#d35400" : "#c0392b")
-                    radius: 8
-                }
-
                 onClicked: {
                     stockLoader.active = true
                     stockLoader.item.openForAdd()
                 }
+                background: Rectangle {
+                    color: addBtn.pressed ? "#a03023" : (addBtn.hovered ? "#d35400" : "#c0392b")
+                    radius: 8
+                }
             }
         }
-
 
         Loader {
             id: menuLoader
@@ -119,156 +94,130 @@ Rectangle {
                 target: menuLoader.item
                 ignoreUnknownSignals: true
 
-                // --- ACTION: DELETE ---
+                // --- ACTION: DELETE (Updated for new deleteStock(QString)) ---
                 function onDeleteRequested(data) {
                     confirmLoader.active = true
-                    var invDeleteDialog = confirmLoader.item
+                    var dialog = confirmLoader.item
+                    dialog.title = "Delete Stock Item"
+                    dialog.itemLabel = data.name
 
-                    invDeleteDialog.title = "Delete Stock Item"
-                    invDeleteDialog.itemLabel = data.name
-                    // Use your existing property-based logic
-                    invDeleteDialog.targetModel = globalInventoryModel
-                    invDeleteDialog.targetId = data.id
-                    invDeleteDialog.deleteMethod = "deleteStock"
-                    invDeleteDialog.onConfirmed = null // Use the built-in method call
-                    invDeleteDialog.open()
+                    // Direct call to controller via confirm callback
+                    dialog.onConfirmed = function() {
+                        invModel.deleteStock(data.id)
+                    }
+                    dialog.open()
                 }
 
-                // --- ACTION: QUICK UPDATE (+1 Stock) ---
+                // --- ACTION: QUICK UPDATE (Updated for updateStock(QVariantMap)) ---
                 function onUpdateRequested(data) {
                     confirmLoader.active = true
-                    var invDeleteDialog = confirmLoader.item
+                    var dialog = confirmLoader.item
+                    dialog.title = "Confirm Stock Update"
+                    dialog.itemLabel = "+1 to " + data.name
 
-                    invDeleteDialog.title = "Confirm Stock Update"
-                    invDeleteDialog.itemLabel = "+1 to " + data.name
-
-                    // Use a callback for the specific update logic
-                    invDeleteDialog.onConfirmed = function() {
-                        globalInventoryModel.updateStock(
-                            data.id,
-                            data.name,
-                            data.quantity + 1,
-                            data.unit
-                        )
+                    dialog.onConfirmed = function() {
+                        // Pass a Map/Object to the controller
+                        invModel.updateStock({
+                            "id": data.id,
+                            "name": data.name,
+                            "quantityAvailable": data.quantityAvailable + 1,
+                            "quantityUnitId": data.quantityUnitId
+                        })
                     }
-                    invDeleteDialog.open()
+                    dialog.open()
                 }
 
-                // --- ACTION: EDIT ---
                 function onEditRequested(data) {
-                    // console.log("data on edit", data)
                     if (data) {
                         stockLoader.active = true
-
                         stockLoader.item.openForEdit(data)
-                }
+                    }
                 }
             }
-        }// Inventory List
+        }
+
         ListView {
             id: invList
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: invModel.proxy
+            // Use the model property from the controller
+            model: invModel.inventoryModel
             clip: true
             spacing: 12
-
-
 
             delegate: Rectangle {
                 width: invList.width
                 height: 70
-                color: Qt.rgba(0.15, 0.02, 0.02, 0.8) // Dark glassy red
+                color: Qt.rgba(0.15, 0.02, 0.02, 0.8)
                 radius: 10
-                border.color: Qt.rgba(1, 1, 1, 0.1)
-                Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        color: infoMouseArea.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                        radius: 8
-                        z: -1
-                    }
+                border.width: model.id === invModel.inventoryId ? 2 : 0
+                border.color: "#c0392b"
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        anchors.rightMargin: 15
-                        spacing: 0 // We'll manage spacing inside the items
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 15
+                    anchors.rightMargin: 15
 
-                        // SECTION 1: Navigable Info (Acts on this section only)
-                        MouseArea {
-                            id: infoMouseArea
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            hoverEnabled: true
+                    MouseArea {
+                        id: infoMouseArea
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        hoverEnabled: true
+                        onClicked: {
+                            // Update selection in controller
+                            invModel.inventoryId = model.id
+                            contentStack.push("InventoryDetails.qml", {
+                                "itemData": model,
+                                "invController": invModel
+                            })
+                        }
 
-                            onClicked: {
-                                contentStack.push("InventoryDetails.qml", {
-                                                      "itemData": model.displayData,
-                                                      "invView": invModel
-                                                  })
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 15
+
+                            ColumnLayout {
+                                Layout.preferredWidth: 200
+                                Text { text: model.name; color: "white"; font.bold: true }
+                                Text { text: "ID: #" + model.id; color: "#95a5a6"; font.pixelSize: 11 }
                             }
 
-                            // Visible content for the info section
-                            RowLayout {
-                                anchors.fill: parent
-                                spacing: 15
+                            Item { Layout.fillWidth: true }
 
-                                ColumnLayout {
-                                    Layout.preferredWidth: 200
-                                    spacing: 2
+                            Rectangle {
+                                width: 110; height: 26; radius: 13
+                                color: model.quantityAvailable < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
+                                RowLayout {
+                                    anchors.centerIn: parent; spacing: 4
                                     Text {
-                                        text: model.displayData.name
-                                        color: "white"
+                                        text: model.quantityAvailable
+                                        color: model.quantityAvailable < 10 ? "#ff7675" : "#2ecc71"
                                         font.bold: true
                                     }
                                     Text {
-                                        text: "ID: #" + model.displayData.id
-                                        color: "#95a5a6"
-                                        font.pixelSize: 11
+                                        text: model.quantityUnitName
+                                        color: model.quantityAvailable < 10 ? "#ff7675" : "#2ecc71"
+                                        font.pixelSize: 10
                                     }
                                 }
-
-                                // Middle Section (e.g., Stock Level)
-                                Item { Layout.fillWidth: true } // Spacer to push items apart
-
-                                Rectangle {
-                                    width: 80; height: 26; radius: 13
-                                    color: model.displayData.quantity < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: model.displayData.quantity + " " + (model.displayData.unit || "pcs")
-                                        color: model.displayData.quantity < 10 ? "#ff7675" : "#2ecc71"
-                                        font.pixelSize: 12; font.bold: true
-                                    }
-                                }
-                            }
-                        }
-
-                        // SECTION 2: Action Button (Acts independently)
-                        Button {
-                            id: moreButton
-                            text: "⋮"
-                            flat: true
-                            Layout.preferredWidth: 45
-                            Layout.fillHeight: true
-                            font.pixelSize: 20
-
-                            onClicked: {
-                                menuLoader.active = true
-                                menuLoader.item.targetData = model.displayData
-                                var pos = moreButton.mapToItem(inventoryPage, 0, moreButton.height)
-                                menuLoader.item.popup(pos.x - (menuLoader.item.width - moreButton.width), pos.y)
-                            }
-
-                            background: Rectangle {
-                                color: moreButton.hovered ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                                radius: 4
                             }
                         }
                     }
-        }}
+
+                    Button {
+                        id: moreButton
+                        text: "⋮"; flat: true
+                        Layout.preferredWidth: 45
+                        onClicked: {
+                            invModel.inventoryId = model.id
+                            menuLoader.active = true
+                            menuLoader.item.targetData = model
+                            var pos = moreButton.mapToItem(inventoryPage, 0, moreButton.height)
+                            menuLoader.item.popup(pos.x - (menuLoader.item.width - moreButton.width), pos.y)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-
-
