@@ -72,23 +72,24 @@ CREATE TABLE IF NOT EXISTS product (
     inventory_product_id TEXT NOT NULL,
     kra_unique_item_code TEXT UNIQUE NOT NULL,
     internal_product_name TEXT NOT NULL,
-    product_category_id TEXT NOT NULL,
-    product_type_id Text NOT NULL,
-    default_selling_price REAL DEFAULT 0.0,
-    tax_classification_id INTEGER,
-    quantity INTEGER NOT NULL,
-    quantity_unit_id INTEGER NOT NULL,
+    product_category_id INTEGER NOT NULL,
+    product_type_id INTEGER NOT NULL,
+    currency_code TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    default_selling_price REAL DEFAULT 0.0 NOT NULL,
+    tax_classification_code TEXT NOT NULL,
+    tax_amount REAL NOT NULL,
+    quantity REAL NOT NULL,
+    quantity_unit_code TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tax_classification_id) REFERENCES tax_classification(id),
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(id),
     FOREIGN KEY (product_type_id) REFERENCES product_type(id),
     FOREIGN KEY (product_category_id) REFERENCES product_category(id),
     FOREIGN KEY (inventory_product_id) REFERENCES inventory(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS product_category (
-    id TEXT PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY NOT NULL,
     product_category_name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP   
@@ -110,28 +111,44 @@ INSERT OR IGNORE INTO product_category (id, product_category_name) VALUES
 CREATE TABLE IF NOT EXISTS product_composition (
     id TEXT PRIMARY KEY NOT NULL,
     product_id TEXT NOT NULL,
+    --either inv_item or N/A: new item req composition of several inv_items
     inventory_product_id TEXT NOT NULL,
     required_quantity REAL NOT NULL CHECK(required_quantity > 0),
-    quantity_unit_id INTEGER NOT NULL,
+    quantity_unit_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
     FOREIGN KEY (inventory_product_id) REFERENCES inventory(id),
     UNIQUE(product_id, inventory_product_id),
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(id)
+    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code)
 );
 
 CREATE TABLE IF NOT EXISTS inventory (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
     packages_available INTEGER NOT NULL DEFAULT 0,
-    packaging_unit_id INTEGER NOT NULL,
+    packaging_unit_id TEXT NOT NULL,
     quantity_available REAL NOT NULL DEFAULT 0.0,
-    quantity_unit_id INTEGER NOT NULL,
+    quantity_unit_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,  
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(id),
-     FOREIGN KEY (packaging_unit_id) REFERENCES packaging_unit(id)
+    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code),
+     FOREIGN KEY (packaging_unit_id) REFERENCES packaging_unit(packaging_unit)
+);
+INSERT OR IGNORE INTO inventory (
+    id, 
+    name, 
+    packages_available, 
+    packaging_unit_id, 
+    quantity_available, 
+    quantity_unit_id
+) VALUES (
+    'NONE',       -- Unique ID to represent N/A
+    'N/A',        -- Display Name in ComboBox
+    0,            -- Default values
+    'NONE',       -- Dummy FK
+    0.0,          -- Dummy value
+    'NONE'        -- Dummy FK
 );
 
 CREATE TABLE IF NOT EXISTS inventory_movement_log (
@@ -286,13 +303,13 @@ CREATE TABLE IF NOT EXISTS packaging_unit (
 
 CREATE TABLE IF NOT EXISTS currency (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    currency_code CHARACTER(3) NOT NULL UNIQUE,
+    currency_code TEXT NOT NULL UNIQUE,
     currency_name TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS country (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    country_code CHARACTER(2) NOT NULL UNIQUE,
+    country_code TEXT NOT NULL UNIQUE,
     country_name TEXT NOT NULL
 );
 -- =============================================================================

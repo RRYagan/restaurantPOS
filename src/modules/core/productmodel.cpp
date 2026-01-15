@@ -19,66 +19,89 @@ ProductModel::ProductModel(QObject* parent, QSqlDatabase db)
     m_catCol   = fieldIndex("product_category_id");
     m_typeCol  = fieldIndex("product_type_id");
     m_priceCol = fieldIndex("default_selling_price");
-    m_taxCol   = fieldIndex("tax_classification_id");
+    m_taxCol   = fieldIndex("tax_classification_code");
     m_qtyCol   = fieldIndex("quantity");
-    m_unitCol  = fieldIndex("quantity_unit_id");
+    m_unitCol  = fieldIndex("quantity_unit_code");
+    m_currencyCol = fieldIndex("currency_code");
+    m_countryCol  = fieldIndex("country_code");
+    m_taxAmtCol   = fieldIndex("tax_amount");
 
     if (!select()) {
         qCritical() << "Select failed for table 'product':" << lastError().text();
     }
 }
-
 QHash<int, QByteArray> ProductModel::roleNames() const
 {
     return {
         { IdRole, "id" },
-        { InventoryIdRole, "inventoryId" },
-        { KraCodeRole, "kraCode" },
-        { NameRole, "name" },
-        { CategoryRole, "categoryId" },
-        { TypeRole, "typeId" },
-        { PriceRole, "price" },
-        { TaxRole, "taxId" },
+        { InventoryIdRole, "inventoryProductId" }, // Refactored to match QML naming
+        { KraCodeRole, "kraUniqueItemCode" },      // Refactored
+        { NameRole, "internalProductName" },       // Refactored
+        { CategoryRole, "productCategoryId" },     // Refactored
+        { TypeRole, "productTypeId" },
+        { CurrencyRole, "currencyCode" },            // NEW
+        { CountryOriginRole, "countryCode" },  // NEW
+        { PriceRole, "defaultSellingPrice" },      // Refactored
+        { TaxRole, "taxClassificationCode" },        // Refactored
+        { TaxAmountRole, "taxAmount" },            // NEW
         { QuantityRole, "quantity" },
-        { UnitRole, "unitId" }
+        { UnitRole, "quantityUnitCode" }             // Refactored
     };
 }
 
 QVariant ProductModel::data(const QModelIndex& index, int role) const
 {
-    if (!index.isValid()) return {};
+    if (!index.isValid()) return QVariant();
+
+    // Fallback for standard Qt roles (DisplayRole, EditRole, etc.)
     if (role < Qt::UserRole) return QSqlTableModel::data(index, role);
 
     const int row = index.row();
 
     switch (role) {
-    case IdRole:          return QSqlTableModel::data(this->index(row, m_idCol));
-    case InventoryIdRole: return QSqlTableModel::data(this->index(row, m_invCol));
-    case KraCodeRole:     return QSqlTableModel::data(this->index(row, m_kraCol));
-    case NameRole:        return QSqlTableModel::data(this->index(row, m_nameCol));
-    case CategoryRole:    return QSqlTableModel::data(this->index(row, m_catCol));
-    case TypeRole:        return QSqlTableModel::data(this->index(row, m_typeCol));
-    case PriceRole:       return QSqlTableModel::data(this->index(row, m_priceCol));
-    case TaxRole:         return QSqlTableModel::data(this->index(row, m_taxCol));
-    case QuantityRole:    return QSqlTableModel::data(this->index(row, m_qtyCol));
-    case UnitRole:        return QSqlTableModel::data(this->index(row, m_unitCol));
-    default:              return {};
+    case IdRole:              return QSqlTableModel::data(this->index(row, m_idCol));
+    case InventoryIdRole:     return QSqlTableModel::data(this->index(row, m_invCol));
+    case KraCodeRole:         return QSqlTableModel::data(this->index(row, m_kraCol));
+    case NameRole:            return QSqlTableModel::data(this->index(row, m_nameCol));
+    case CategoryRole:        return QSqlTableModel::data(this->index(row, m_catCol));
+    case TypeRole:            return QSqlTableModel::data(this->index(row, m_typeCol));
+    case CurrencyRole:        return QSqlTableModel::data(this->index(row, m_currencyCol)); // NEW
+    case CountryOriginRole:   return QSqlTableModel::data(this->index(row, m_countryCol));  // NEW
+    case PriceRole:           return QSqlTableModel::data(this->index(row, m_priceCol));
+    case TaxRole:             return QSqlTableModel::data(this->index(row, m_taxCol));
+    case TaxAmountRole:       return QSqlTableModel::data(this->index(row, m_taxAmtCol));   // NEW
+    case QuantityRole:        return QSqlTableModel::data(this->index(row, m_qtyCol));
+    case UnitRole:            return QSqlTableModel::data(this->index(row, m_unitCol));
+    default:
+        return QVariant();
     }
 }
 
 bool ProductModel::setData(const QModelIndex& index, const QVariant& value, int role)
 {
     if (!index.isValid()) return false;
+
     QSqlRecord rec = record(index.row());
 
     switch (role) {
-    case NameRole:     rec.setValue(m_nameCol, value); break;
-    case PriceRole:    rec.setValue(m_priceCol, value); break;
-    case QuantityRole: rec.setValue(m_qtyCol, value); break;
-    case CategoryRole: rec.setValue(m_catCol, value); break;
-    default:           return false;
+    case IdRole:              rec.setValue(m_idCol, value); break;
+    case InventoryIdRole:     rec.setValue(m_invCol, value); break;
+    case KraCodeRole:         rec.setValue(m_kraCol, value); break;
+    case NameRole:            rec.setValue(m_nameCol, value); break;
+    case CategoryRole:        rec.setValue(m_catCol, value); break;
+    case TypeRole:            rec.setValue(m_typeCol, value); break;
+    case CurrencyRole:        rec.setValue(m_currencyCol, value); break;      // NEW
+    case CountryOriginRole:   rec.setValue(m_countryCol, value); break;       // NEW
+    case PriceRole:           rec.setValue(m_priceCol, value); break;
+    case TaxRole:             rec.setValue(m_taxCol, value); break;
+    case TaxAmountRole:       rec.setValue(m_taxAmtCol, value); break;        // NEW
+    case QuantityRole:        rec.setValue(m_qtyCol, value); break;
+    case UnitRole:            rec.setValue(m_unitCol, value); break;
+    default:
+        return false;
     }
 
+    // Since EditStrategy is likely OnManualSubmit, this updates the local cache
     if (setRecord(index.row(), rec)) {
         emit dataChanged(index, index, {role});
         return true;
@@ -86,60 +109,115 @@ bool ProductModel::setData(const QModelIndex& index, const QVariant& value, int 
     return false;
 }
 
-bool ProductModel::addProduct(const Product &p)
-{
+// In productmodel.cpp
+
+bool ProductModel::addProduct(const QVariantMap &data) {
     QSqlQuery query(database());
-    query.prepare("INSERT INTO product (id, inventory_product_id, kra_unique_item_code, "
-                  "internal_product_name, product_category_id, product_type_id, "
-                  "default_selling_price, tax_classification_id, quantity, quantity_unit_id) "
-                  "VALUES (:id, :inv, :kra, :name, :cat, :type, :price, :tax, :qty, :unit)");
 
-    QString finalId = p.id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : p.id;
+    double price = data.value("defaultSellingPrice").toDouble();
+    double taxRate = data.value("taxRate").toDouble();
+    double taxAmount = price * (taxRate / 100.0);
 
-    query.bindValue(":id", finalId);
-    query.bindValue(":inv", p.inventoryProductId);
-    query.bindValue(":kra", p.kraUniqueItemCode);
-    query.bindValue(":name", p.internalName);
-    query.bindValue(":cat", p.categoryCode);
-    query.bindValue(":type", p.productTypeId);
-    query.bindValue(":price", p.sellingPrice);
-    query.bindValue(":tax", p.taxClassificationId);
-    query.bindValue(":qty", p.quantity);
-    query.bindValue(":unit", p.unitId);
+    // Using unique placeholder names that are NOT substrings of each other
+    query.prepare(R"(
+        INSERT INTO product (
+            id, inventory_product_id, kra_unique_item_code,
+            internal_product_name, product_category_id, product_type_id,
+            currency_code, country_code, default_selling_price,
+            tax_classification_code, tax_amount, quantity, quantity_unit_code
+        ) VALUES (
+            :p_id, :p_inv, :p_kra, :p_name, :p_cat, :p_type, :p_curr, :p_country,
+            :p_price, :p_taxcode, :p_taxamt, :p_qty, :p_unit
+        )
+    )");
+
+    QString id = data.value("id").toString();
+    if (id.isEmpty()) id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    // Ensure bindValue names match the new unique names exactly
+    query.bindValue(":p_id", id);
+    query.bindValue(":p_inv", data.value("inventoryProductId"));
+    query.bindValue(":p_kra", data.value("kraUniqueItemCode"));
+    query.bindValue(":p_name", data.value("internalProductName"));
+    query.bindValue(":p_cat", data.value("productCategoryId"));
+    query.bindValue(":p_type", data.value("productTypeId"));
+    query.bindValue(":p_curr", data.value("currencyCode"));
+    query.bindValue(":p_country", data.value("countryCode"));
+    query.bindValue(":p_price", price);
+    query.bindValue(":p_taxcode", data.value("taxClassificationCode"));
+    query.bindValue(":p_taxamt", taxAmount);
+    query.bindValue(":p_qty", data.value("quantity").toDouble());
+    query.bindValue(":p_unit", data.value("quantityUnitCode"));
 
     if (!query.exec()) {
-        qWarning() << "Insert Error:" << query.lastError().text();
+        qCritical() << "==== DATABASE INSERT ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
+
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
         return false;
     }
+
     select();
     return true;
 }
 
-bool ProductModel::updateProduct(const Product& p)
-{
+bool ProductModel::updateProduct(const QVariant &data) {
+    QVariantMap p = data.toMap();
     QSqlQuery query(database());
-    query.prepare("UPDATE product SET inventory_product_id = :inv, internal_product_name = :name, "
-                  "default_selling_price = :price, tax_classification_id = :tax, "
-                  "quantity_unit_id = :unit, product_category_id = :cat, "
-                  "product_type_id = :type, quantity = :qty, kra_unique_item_code = :kra "
-                  "WHERE id = :id");
 
-    query.bindValue(":id", p.id);
-    query.bindValue(":inv", p.inventoryProductId);
-    query.bindValue(":name", p.internalName);
-    query.bindValue(":price", p.sellingPrice);
-    query.bindValue(":tax", p.taxClassificationId);
-    query.bindValue(":unit", p.unitId);
-    query.bindValue(":cat", p.categoryCode);
-    query.bindValue(":type", p.productTypeId);
-    query.bindValue(":qty", p.quantity);
-    query.bindValue(":kra", p.kraUniqueItemCode);
+    double price = p.value("defaultSellingPrice").toDouble();
+    double taxRate = p.value("taxRate").toDouble();
+    double taxAmount = price * (taxRate / 100.0);
+
+    query.prepare(R"(
+        UPDATE product
+        SET inventory_product_id = :inv,
+            kra_unique_item_code = :kra,
+            internal_product_name = :name,
+            product_category_id = :cat,
+            product_type_id = :type,
+            currency_code = :curr,
+            country_code = :country,
+            default_selling_price = :price,
+            tax_classification_code = :taxId,
+            tax_amount = :taxAmt,
+            quantity = :qty,
+            quantity_unit_code = :unit,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    )");
+
+    query.bindValue(":id", p.value("id"));
+    query.bindValue(":inv", p.value("inventoryProductId"));
+    query.bindValue(":kra", p.value("kraUniqueItemCode"));
+    query.bindValue(":name", p.value("internalProductName"));
+    query.bindValue(":cat", p.value("productCategoryId"));
+    query.bindValue(":type", p.value("productTypeId"));
+    query.bindValue(":curr", p.value("currencyCode"));
+    query.bindValue(":country", p.value("countryCode"));
+    query.bindValue(":price", price);
+    query.bindValue(":taxId", p.value("taxClassificationCode"));
+    query.bindValue(":taxAmt", taxAmount);
+    query.bindValue(":qty", p.value("quantity").toDouble());
+    query.bindValue(":unit", p.value("quantityUnitCode"));
 
     if (!query.exec()) {
-        qWarning() << "Update Error:" << query.lastError().text();
+        qCritical() << "==== DATABASE INSERT ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
+
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
         return false;
     }
-    select();
+
+    select(); // Refresh model cache
     return true;
 }
 
@@ -163,23 +241,36 @@ QList<Product> ProductModel::getAllProducts() const
     return products;
 }
 
+
 Product ProductModel::productAt(int row) const
 {
     Product p;
     if (row < 0 || row >= rowCount()) return p;
 
     QSqlRecord rec = record(row);
+
+    // Core Identity
     p.id                  = rec.value(m_idCol).toString();
     p.inventoryProductId  = rec.value(m_invCol).toString();
     p.kraUniqueItemCode   = rec.value(m_kraCol).toString();
-    p.internalName        = rec.value(m_nameCol).toString();
-    p.categoryCode        = rec.value(m_catCol).toString();
-    p.productTypeId       = rec.value(m_typeCol).toString();
-    p.sellingPrice        = rec.value(m_priceCol).toDouble();
-    p.taxClassificationId = rec.value(m_taxCol).toInt();
-    p.quantity            = rec.value(m_qtyCol).toInt();
-    p.unitId   = rec.value(m_unitCol).toInt();
+    p.internalProductName        = rec.value(m_nameCol).toString();
 
+    // Classifications
+    p.productCategoryId        = rec.value(m_catCol).toString();
+    p.productTypeId       = rec.value(m_typeCol).toString();
+
+    // New Schema Fields (Mandatory)
+    p.currencyCode          = rec.value(m_currencyCol).toString();   // NEW
+    p.countryCode = rec.value(m_countryCol).toString();    // NEW
+
+    // Financials
+    p.defaultSellingPrice        = rec.value(m_priceCol).toDouble();
+    p.taxClassificationCode = rec.value(m_taxCol).toString();
+    p.taxAmount           = rec.value(m_taxAmtCol).toDouble();     // NEW
+
+    // Inventory/Stock
+    p.quantity            = rec.value(m_qtyCol).toInt();
+    p.quantityUnitCode    = rec.value(m_unitCol).toString();
 
     return p;
 }

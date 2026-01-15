@@ -7,26 +7,29 @@
 #include <QHash>
 #include <QByteArray>
 
-struct Product
-{
+struct Product {
     int localId = -1;
     QString id;
     QString inventoryProductId;
-    //TODO; add formula: country_origin + product_type + packaging_unit + auto_icr -> KEN2NTBA0000001
     QString kraUniqueItemCode;
-    QString internalName;
-    QString categoryCode;   // Maps to product_category_id
+    QString internalProductName;
+    QString productCategoryId;
     QString productTypeId;
-    double  sellingPrice = 0.0;
-    int     taxClassificationId = -1;
-    int     quantity = 0;
-    int     unitId = -1;
+    QString currencyCode;      // NEW: From schema
+    QString countryCode; // NEW: From schema
+    double defaultSellingPrice = 0.0;
+    QString taxClassificationCode = "";
+    double taxAmount = 0.0;  // NEW: From schema
+    double quantity = 0;
+    QString quantityUnitCode = "";
 
-    bool isValid() const
-    {
-        return !internalName.isEmpty()
-        && !inventoryProductId.isEmpty()
-            && unitId  > 0;
+    bool isValid() const {
+        return !id.isEmpty() &&
+               !inventoryProductId.isEmpty() &&
+               !kraUniqueItemCode.isEmpty() &&
+               !currencyCode.isEmpty() &&
+               !countryCode.isEmpty() &&
+               !quantityUnitCode.isEmpty();
     }
 };
 
@@ -41,8 +44,11 @@ public:
         NameRole,
         CategoryRole,
         TypeRole,
+        CurrencyRole,       // NEW
+        CountryOriginRole,  // NEW
         PriceRole,
         TaxRole,
+        TaxAmountRole,      // NEW
         QuantityRole,
         UnitRole
     };
@@ -57,23 +63,26 @@ public:
 
     // Database Operations
     QList<Product> getAllProducts() const;
-    bool addProduct(const Product &product);
-    bool updateProduct(const Product& product);
+    bool addProduct(const QVariantMap &data);
+    bool updateProduct(const QVariant &data);
     bool removeProduct(const QString& productId);
     Product productAt(int row) const;
 
 private:
-    // Cached Column Indices
+    // Cached Column Indices based on the updated schema
     int m_idCol;
     int m_invCol;
     int m_kraCol;
     int m_nameCol;
     int m_catCol;
     int m_typeCol;
+    int m_currencyCol; // NEW: currency_id
+    int m_countryCol;  // NEW: country_origin_id
     int m_priceCol;
-    int m_taxCol;
+    int m_taxCol;      // tax_classification_id
+    int m_taxAmtCol;   // NEW: tax_amount
     int m_qtyCol;
-    int m_unitCol;
+    int m_unitCol;     // quantity_unit_id
 };
 
 #endif // PRODUCTMODEL_H

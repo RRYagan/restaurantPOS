@@ -6,17 +6,26 @@
 #include <QIcon>
 #include <QResource>
 #include <QDir>
+#include <QQmlContext>
 
 // Include your manager
 #include "databasemanager.h"
+#include "lookupmodel.h"
 
 // This macro is required for static linking of QML modules
 Q_IMPORT_QML_PLUGIN(POS_UIPlugin)
 
+// Helper function to turn "table_name" into "tableNameModel"
+QString formatPropertyName(QString name) {
+    QStringList parts = name.split('_');
+    for (int i = 1; i < parts.size(); ++i) {
+        parts[i][0] = parts[i][0].toUpper();
+    }
+    return parts.join("") + "Model";
+}
+
 int main(int argc, char *argv[])
 {
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
     QGuiApplication app(argc, argv);
 
@@ -36,6 +45,29 @@ int main(int argc, char *argv[])
     }
 
     QQmlApplicationEngine engine;
+
+    // 1. List of your lookup tables from the SQL schema
+    QStringList lookupTables = {
+        "tax_classification", "product_type", "stock_movement_category",
+        "purchase_receipt_type", "payment_method", "sales_receipt_type",
+        "transaction_type", "quantity_unit", "packaging_unit",
+        "currency", "country","product_category"
+    };
+
+    // 2. Loop and register each one safely
+    for (const QString &tableName : lookupTables) {
+        // Create the model instance
+        LookupModel *model = new LookupModel(tableName, &app);
+
+        // Format name: e.g., "tax_classification" -> "taxClassificationModel"
+        // QString propertyName = formatPropertyName(tableName);
+        QString propertyName = "_" + formatPropertyName(tableName);
+
+        // Register to QML context
+        engine.rootContext()->setContextProperty(propertyName, model);
+
+        qDebug() << "Registered QML property:" << propertyName << "for table:" << tableName;
+    }
 
     QObject::connect(
         &engine,

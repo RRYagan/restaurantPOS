@@ -81,50 +81,87 @@ Item {
                 delegate: ItemDelegate {
                     width: productList.width - 40
                     x: 20
-                    height: 70
+                    height: 75 // Slightly increased height for more data
 
                     background: Rectangle {
                         color: hovered ? "#F8F9FA" : "white"
                         radius: 8
-                        border.color: "#EEEEEE"
-                        border.width: 1
+                        border.color: highlighted ? "#2E7D32" : "#EEEEEE"
+                        border.width: highlighted ? 2 : 1
                     }
 
                     contentItem: RowLayout {
+                        spacing: 15
+
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
+
                             Text {
-                                text: model.name
+                                // Refactored Name: internalProductName
+                                text: model.internalProductName
                                 font.bold: true
                                 font.pixelSize: 14
                                 color: "#212121"
                             }
-                            Text {
-                                text: "Category: " + model.category
-                                color: "#757575"
-                                font.pixelSize: 11
+
+                            RowLayout {
+                                spacing: 10
+                                Text {
+                                    // Refactored Category: productCategoryId
+                                    text: "Cat: " + model.productCategoryId
+                                    color: "#757575"
+                                    font.pixelSize: 11
+                                }
+                                Text {
+                                    // NEW: countryOriginId
+                                    text: " | Origin: " + model.countryCode
+                                    color: "#9E9E9E"
+                                    font.pixelSize: 11
+                                }
                             }
                         }
-                        Text {
-                            text: "$" + parseFloat(model.price).toFixed(2)
-                            color: "#2E7D32" // Themed Accent
-                            font.bold: true
-                            font.pixelSize: 15
+
+                        ColumnLayout {
+                            Layout.alignment: Qt.AlignRight
+                            spacing: 0
+
+                            Text {
+                                // Refactored Price: defaultSellingPrice
+                                // Showing currencyId dynamically
+                                text: model.currencyCode+ " " + parseFloat(model.defaultSellingPrice).toFixed(2)
+                                color: "#2E7D32"
+                                font.bold: true
+                                font.pixelSize: 15
+                            }
+
+                            Text {
+                                // NEW: taxAmount
+                                text: "+" + parseFloat(model.taxAmount).toFixed(2) + " Tax"
+                                color: "#757575"
+                                font.pixelSize: 10
+                                visible: model.taxAmount > 0
+                            }
                         }
                     }
 
                     onClicked: {
                         controller.productId = model.id
+                        // Map the QVariantMap to exactly match the Controller's saveProduct expectations
                         menuSetupRoot.currentProduct = {
                             "id": model.id,
-                            "localId": model.localId,
-                            "name": model.name,
-                            "price": model.price,
-                            "kraCode": model.kraCode,
-                            "categoryCode": model.category,
-                            "taxId": model.taxId,
-                            "unitId": model.unitId
+                            "internalProductName": model.internalProductName,
+                            "productCategoryId": model.productCategoryId,
+                            "kraUniqueItemCode": model.kraUniqueItemCode,
+                            "inventoryProductId": model.inventoryProductId,
+                            "productTypeId": model.productTypeId,
+                            "currencyCode": model.currencyCode, // Ensure this matches your model's role name
+                            "countryCode": model.countryCode,
+                            "defaultSellingPrice": model.defaultSellingPrice,
+                            "taxAmount": model.taxAmount,
+                            "taxClassificationCode": model.taxClassificationCode,
+                            "quantity": model.quantity,
+                            "quantityUnitCode": model.quantityUnitCode
                         }
                         menuSetupRoot.isEditing = true
                     }
@@ -171,112 +208,139 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 30
                         columns: 2
-                        rowSpacing: 15 // Slightly reduced to fit more fields comfortably
+                        rowSpacing: 12
                         columnSpacing: 20
 
+                        // 1. Identification
                         Label { text: "Display Name:"; font.bold: true }
                         TextField {
                             id: nameIn
-                            text: currentProduct ? currentProduct.name : ""
-                            Layout.fillWidth: true
-                        }
-
-
-                        Label { text: "Price ($):"; font.bold: true }
-                        TextField {
-                            id: priceIn
-                            text: currentProduct ? currentProduct.price : ""
+                            text: currentProduct ? currentProduct.internalProductName : ""
                             Layout.fillWidth: true
                         }
 
                         Label { text: "KRA Code:"; font.bold: true }
                         TextField {
                             id: kraIn
-                            text: currentProduct ? currentProduct.kraCode : ""
+                            text: currentProduct ? currentProduct.kraUniqueItemCode : ""
                             Layout.fillWidth: true
                         }
+                        // 4. Financials
+                        Label { text: "Price:"; font.bold: true }
+                        TextField {
+                            id: priceIn
+                            text: currentProduct ? currentProduct.defaultSellingPrice : ""
+                            Layout.fillWidth: true
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        }
+                        // 2. mandatory Region/Currency (NEW)
+                        Label { text: "Currency:"; font.bold: true }
+                        ComboBox {
+                            id: currencyCombo
+                            Layout.fillWidth: true
+                            model: _currencyModel
+                            textRole: "currency_code"
+                            valueRole: "currency_code"
+                            currentIndex: currentProduct ? indexOfValue(currentProduct.currencyCode) : indexOfValue("KES")
+                        }
 
-                        // --- NEW FIELDS ADDED BELOW ---
 
-                        Label { text: "Inventory Item:"; font.bold: true }
+                        Label { text: "Country of Origin:"; font.bold: true }
+                        ComboBox {
+                            id: countryCombo
+                            Layout.fillWidth: true
+                            model: _countryModel
+                            textRole: "country_code"
+                            valueRole: "country_code"
+                           currentIndex: currentProduct ? indexOfValue(currentProduct.countryCode) : indexOfValue("KE")
+                        }
+
+                        // 3. Inventory & Type
+                        Label { text: "Inventory Link:"; font.bold: true }
                         ComboBox {
                             id: invCombo
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-
-                            // 1. Link to the InventoryModel instance
-                            // Make sure this is the model, not the controller itself
                             model: menuSetupRoot.inventoryModel
-
-                            // 2. Define which data to show and which data to store
-                            textRole: "name"    // Shows the 'name' string in the dropdown
-                            valueRole: "id"      // Uses the UUID string as the underlying value
-
-                            // 3. Set the initial selection based on the product's linked inventory
-                            // indexOfValue searches the model for the row where "id" === currentProduct.inventoryId
-                            currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
-
-                            // Placeholder text if nothing is selected
-                            displayText: currentIndex === -1 ? "Select Inventory Item..." : currentText
-
-                            // 4. Update the selection
-                            onActivated: (index) => {
-                                let selectedId = valueAt(index)
-                                console.log("Linking Product to Inventory ID:", selectedId)
-
-                                // If your model tracks the active ID, update it here
-                                menuSetupRoot.inventoryModel.inventoryId = selectedId
-                            }
+                            textRole: "name"
+                            valueRole: "id"
+                            currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryProductId) : 0
                         }
 
                         Label { text: "Product Type:"; font.bold: true }
                         ComboBox {
                             id: typeCombo
                             Layout.fillWidth: true
-                            model: menuSetupRoot.typeModel // Assuming you have a types list
-                            textRole: "text"
-                            valueRole: "valueId"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.typeId, "valueId") : 0
+                            model: _productTypeModel
+                            textRole: "type_code_name"
+                            valueRole: "id"
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.productTypeId, "type_code_name") : 0
                         }
-
-
-
-                        // --- END OF NEW FIELDS ---
-
-                        Label { text: "Category:"; font.bold: true }
+                        Label { text: "Product Category:"; font.bold: true }
                         ComboBox {
                             id: catCombo
                             Layout.fillWidth: true
-                            model: menuSetupRoot.categoryModel
-                            textRole: "text"
-                            valueRole: "code"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.categoryId, "code") : 0
+                            Layout.preferredHeight: 45
+
+                            // Connect to the model provided by your root or controller
+                            model: _productCategoryModel
+
+                            // What the user sees
+                            textRole: "product_category_name"
+
+                            // What is actually saved to the DB
+                            valueRole: "id"
+
+                            // Ensure it selects the current category when editing
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.productCategoryId, "id") : -1
+
+                            displayText: currentIndex === -1 ? "Select Category..." : currentText
                         }
+
+
 
                         Label { text: "Tax Type:"; font.bold: true }
                         ComboBox {
                             id: taxCombo
                             Layout.fillWidth: true
-                            model: menuSetupRoot.taxModel
-                            textRole: "text"
-                            valueRole: "valueId"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxId, "valueId") : 0
+                            model: _taxClassificationModel
+                            textRole: "tax_classification_name"
+                            valueRole: "tax_type_code"
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxClassificationId, "tax_type_code") : 0
                         }
-                        Label { text: "Stock Quantity:"; font.bold: true }
+                        // 2. Display the Tax Rate
+                        Label { text: "Tax Rate:"; font.bold: true }
+                        Text {
+                            id: textRate
+                            // Use a function or a direct binding to the currentValue of the combo
+                            property real rate: {
+                                if (taxCombo.currentValue !== undefined) {
+                                    return _taxClassificationModel.getValueById(taxCombo.currentValue, "tax_percentage_rate")
+                                }
+                                return 0.0
+                            }
+
+                            text: rate + "%"
+                            font.bold: true
+                            color: "#2E7D32"
+                        }
+
+                        // 5. Stock & Units
+                        Label { text: "Initial Stock:"; font.bold: true }
                         TextField {
                             id: qtyIn
+
                             text: currentProduct ? currentProduct.quantity : "0"
-                            validator: IntValidator { bottom: 0 }
                             Layout.fillWidth: true
                         }
+
                         Label { text: "Unit:"; font.bold: true }
                         ComboBox {
                             id: unitCombo
                             Layout.fillWidth: true
-                            model: menuSetupRoot.unitModel
-                            textRole: "text"
-                            valueRole: "valueId"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.unitId, "valueId") : 0
+                            model: _quantityUnitModel
+                            textRole: "quantity_unit_code_name"
+                            valueRole: "quantity_unit_code_name"
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.quantityUnitId, "quantity_unit_code_name") : 0
                         }
 
                         Button {
@@ -284,22 +348,24 @@ Item {
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             Layout.topMargin: 10
-                            height: 45
                             highlighted: true
-                            enabled: nameIn.text.trim().length > 0
                             onClicked: {
-                                // Updated payload to include all required DB fields
+                                // IMPORTANT: The keys here MUST match the controller's data.value("key")
                                 let payload = {
+                                    "localId": -1,
                                     "id": currentProduct ? currentProduct.id : "",
-                                    "name": nameIn.text,
-                                    "price": parseFloat(priceIn.text) || 0.0,
-                                    "kraCode": kraIn.text,
-                                    "inventoryId": invCombo.currentValue,
-                                    "typeId": typeCombo.currentValue,
-                                    "quantity": parseInt(qtyIn.text) || 0,
-                                    "categoryId": catCombo.currentValue,
-                                    "taxId": parseInt(taxCombo.currentValue),
-                                    "unitId": parseInt(unitCombo.currentValue)
+                                    "internalProductName": nameIn.text,
+                                    "productCategoryId": catCombo.currentValue,
+                                    "kraUniqueItemCode": kraIn.text,
+                                    "inventoryProductId": invCombo.currentValue,
+                                    "productTypeId": typeCombo.currentValue,
+                                    "currencyCode": currencyCombo.currentText,     // MUST NOT BE EMPTY
+                                    "countryCode": countryCombo.currentText, // MUST NOT BE EMPTY
+                                    "defaultSellingPrice": parseFloat(priceIn.text) || 0.0,
+                                    "taxClassificationCode": taxCombo.currentText,
+                                    "quantity": parseFloat(qtyIn.text) || 0,
+                                    "quantityUnitCode": unitCombo.currentText,
+                                    "taxRate": textRate.rate
                                 }
 
                                 if (controller.saveProduct(payload)) {
@@ -311,11 +377,12 @@ Item {
                         }
                     }
                 }
+
                 // --- SECTION 2: RECIPE / COMPOSITION ---
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 15
-                    visible: currentProduct !== null && currentProduct.id !== ""
+                    visible: currentProduct !== null && currentProduct.inventoryProductId === "NONE"
 
                     Text {
                         text: "Product Recipe / Ingredients"
@@ -344,30 +411,18 @@ Item {
                                     id: ingSelector
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 45
-
-                                    // 1. Link to the InventoryModel instance
-                                    // Make sure this is the model, not the controller itself
                                     model: menuSetupRoot.inventoryModel
-
-                                    // 2. Define which data to show and which data to store
-                                    textRole: "name"    // Shows the 'name' string in the dropdown
-                                    valueRole: "id"      // Uses the UUID string as the underlying value
-
-                                    // 3. Set the initial selection based on the product's linked inventory
-                                    // indexOfValue searches the model for the row where "id" === currentProduct.inventoryId
+                                    textRole: "name"
+                                    valueRole: "id"
                                     currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
-
-                                    // Placeholder text if nothing is selected
                                     displayText: currentIndex === -1 ? "Select Inventory Item..." : currentText
-
-                                    // 4. Update the selection
                                     onActivated: (index) => {
-                                        let selectedId = valueAt(index)
-                                        console.log("Linking Product to Inventory ID:", selectedId)
+                                                     let selectedId = valueAt(index)
+                                                     console.log("Linking Product to Inventory ID:", selectedId)
 
-                                        // If your model tracks the active ID, update it here
-                                        menuSetupRoot.inventoryModel.inventoryId = selectedId
-                                    }
+                                                     // If your model tracks the active ID, update it here
+                                                     menuSetupRoot.inventoryModel.inventoryId = selectedId
+                                                 }
                                 }
                             }
 
@@ -397,11 +452,11 @@ Item {
                                 enabled: ingSelector.currentIndex >= 0 && ingQty.text.length > 0
                                 onClicked: {
                                     controller.saveIngredient({
-                                        "productId": currentProduct.id,
-                                        "ingredientProductId": ingSelector.currentValue,
-                                        "quantity": parseFloat(ingQty.text) || 1,
-                                        "unitId": parseInt(ingUnitCombo.currentValue)
-                                    })
+                                                                  "productId": currentProduct.id,
+                                                                  "ingredientProductId": ingSelector.currentValue,
+                                                                  "quantity": parseFloat(ingQty.text) || 1,
+                                                                  "unitId": parseInt(ingUnitCombo.currentValue)
+                                                              })
                                     ingQty.text = "";
                                     ingSelector.currentIndex = -1;
                                     ingUnitCombo.currentIndex = -1;
