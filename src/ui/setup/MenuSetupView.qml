@@ -256,17 +256,6 @@ Item {
                            currentIndex: currentProduct ? indexOfValue(currentProduct.countryCode) : indexOfValue("KE")
                         }
 
-                        // 3. Inventory & Type
-                        // Label { text: "Inventory Link:"; font.bold: true }
-                        // ComboBox {
-                        //     id: invCombo
-                        //     Layout.fillWidth: true
-                        //     model: menuSetupRoot.inventoryModel
-                        //     textRole: "name"
-                        //     valueRole: "id"
-                        //     currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryProductId) : 0
-                        // }
-
                         Label { text: "Product Type:"; font.bold: true }
                         ComboBox {
                             id: typeCombo
@@ -420,9 +409,9 @@ Item {
                                     id: ingUnitCombo
                                     Layout.fillWidth: true
                                     model: _quantityUnitModel
-                                    textRole: "quantity_unit_code"
-                                    valueRole: "quantity_unit_code"
-                                    currentIndex: currentProduct ? findIndexByValue(model, currentProduct.unitId, "quantity_unit_code") : 0
+                                    textRole: "quantity_unit_code_name"
+                                    valueRole: "quantity_unit_code_name"
+                                    currentIndex: currentProduct ? findIndexByValue(model, currentProduct.unitId, "quantity_unit_code_name") : 0
                                 }
                             }
 
@@ -432,11 +421,12 @@ Item {
                                 Layout.alignment: Qt.AlignBottom
                                 enabled: ingSelector.currentIndex >= 0 && ingQty.text.length > 0
                                 onClicked: {
+                                    // console.log("ing", )
                                     controller.saveIngredient({
                                                                   "productId": currentProduct.id,
                                                                   "ingredientProductId": ingSelector.currentValue,
                                                                   "quantity": parseFloat(ingQty.text) || 1,
-                                                                  "unitId": parseInt(ingUnitCombo.currentValue)
+                                                                  "unitId": ingUnitCombo.currentValue
                                                               })
                                     ingQty.text = "";
                                     ingSelector.currentIndex = 0;

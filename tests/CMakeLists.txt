@@ -24,7 +24,7 @@ function(add_restaurant_test TEST_NAME SOURCES)
         Qt6::Test
         Qt6::Quick
         PosCoreDatabase
-        POS_UI   
+        POS_UI
         POS_UIplugin
 
     )
@@ -42,3 +42,5 @@ enable_testing()
 # add_restaurant_test(SalesViewTest tst_saleview.cpp)
 
 # add_restaurant_test(MenuScreenUITest tst_uimenuscreen.cpp)
+
+#add_restaurant_test(MenuScreenUITest tst_inventorytest.cpp)#[[]]

@@ -1,31 +1,28 @@
-#pragma once
+#ifndef PRODUCTCOMPOSITIONMODEL_H
+#define PRODUCTCOMPOSITIONMODEL_H
 
 #include <QSqlTableModel>
-#pragma once
+#include <QSqlDatabase>
+#include <QVariantMap>
+#include <cstdint>
 
-struct ProductComposition
-{
-    int    localId = -1;
-    QString  productId;
+struct ProductComposition {
     QString id;
-    QString name;
+    QString productId;
     QString ingredientProductId;
+    QString unitId;
     double quantity = 0.0;
-    QString    unitId = "";
 
-    bool isValid() const
-    {
-        return quantity > 0;
-    }
 };
 
-class ProductCompositionModel : public QSqlTableModel
-{
+class ProductCompositionModel : public QSqlTableModel {
     Q_OBJECT
     Q_PROPERTY(QString productId READ productId WRITE setProductId NOTIFY productIdChanged)
 
 public:
-    enum Roles {
+    explicit ProductCompositionModel(QObject* parent = nullptr, const QSqlDatabase& db = QSqlDatabase());
+
+    enum Roles : std::uint16_t {
         IdRole = Qt::UserRole + 1,
         ProductIdRole,
         IngredientIdRole,
@@ -34,23 +31,21 @@ public:
         UnitRole
     };
 
-    explicit ProductCompositionModel(QObject* parent = nullptr,
-                                     QSqlDatabase db = QSqlDatabase());
+    // --- READ ---
+    [[nodiscard]] auto data(const QModelIndex& index, int role) const -> QVariant override;
+    [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
 
-    QString productId() const;
-    void setProductId(const QString& id);
+    // --- PROPERTY ACCESSORS ---
+    [[nodiscard]] auto productId() const -> QString;
+    auto setProductId(const QString& id) -> void;
 
-    QVariant data(const QModelIndex& index, int role) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    // --- CRUD ---
+    auto addIngredient(const QVariantMap& data) -> bool;
+    auto updateIngredient(const QVariantMap& data) -> bool;
+    auto removeIngredient(const QString& compositionId) -> bool;
 
-    QList<ProductComposition> getAllCompositions() const;
-
-    // CRUD
-    bool addIngredient(const QVariantMap& data);
-    bool updateIngredient(const QVariantMap& data);
-    bool removeIngredient(const QString& compositionId);
-    // DTO
-    ProductComposition compositionAt(int row) const;
+    [[nodiscard]] auto compositionAt(int row) const -> ProductComposition;
+    [[nodiscard]] auto getAllCompositions() const -> QList<ProductComposition>;
 
 signals:
     void productIdChanged();
@@ -58,10 +53,12 @@ signals:
 private:
     QString m_productId = "";
 
-    //column indices
-    int m_idCol;
-    int m_productCol;
-    int m_ingredientCol;
-    int m_qtyCol;
-    int m_unitCol;
+    // Member initializers to satisfy cppcoreguidelines-pro-type-member-init
+    int m_idCol = -1;
+    int m_productCol = -1;
+    int m_ingredientCol = -1;
+    int m_qtyCol = -1;
+    int m_unitCol = -1;
 };
+
+#endif // PRODUCTCOMPOSITIONMODEL_H

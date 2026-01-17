@@ -22,19 +22,16 @@ public:
     ProductModel* productModel() const { return m_productModel; }
     ProductCompositionModel* compositionModel() const { return m_compositionModel; }
 
-    QString productId() const { return m_compositionModel->productId(); }
-    void setProductId(const QString& id) {
-        if (m_compositionModel->productId() != id) {
-            m_compositionModel->setProductId(id);
-            emit productIdChanged();
-        }
-    }
+    [[nodiscard]] QString productId() const; // Only the declaration
+    void setProductId(const QString& id);    // Only the declaration
+    // clang-tidy off
     // UNITED FUNCTIONS
     Q_INVOKABLE bool saveProduct(const QVariantMap& data);
     Q_INVOKABLE bool saveIngredient(const QVariantMap& data);
     Q_INVOKABLE bool removeProduct(const QString& productId);
     Q_INVOKABLE bool removeIngredient(const QString& id);
     Q_INVOKABLE void setCurrentProduct(const QString& productId);
+    // clang-tidy on
 
 signals:
     void productIdChanged();
@@ -43,7 +40,7 @@ private:
     // This helper prevents the "not declared in scope" error
     // Product mapToProduct(const QVariantMap& map);
 
-    ProductModel* m_productModel;
+    ProductModel* m_productModel=nullptr;
     ProductCompositionModel* m_compositionModel;
 };
 

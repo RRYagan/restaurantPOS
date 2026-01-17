@@ -7,21 +7,32 @@ class DatabaseManager : public QObject
 {
     Q_OBJECT
 public:
-    static DatabaseManager& instance();
+    // Singleton access using modern trailing return type
+    static auto instance() -> DatabaseManager&;
 
-    bool openDatabase(const QString& path = QString(), bool forceSeed = false);
-    void closeDatabase();
+    // Rule of Five: Explicitly delete copy and move operations
+    DatabaseManager(const DatabaseManager&) = delete;
+    auto operator=(const DatabaseManager&) -> DatabaseManager& = delete;
+    DatabaseManager(DatabaseManager&&) = delete;
+    auto operator=(DatabaseManager&&) -> DatabaseManager& = delete;
 
-    QSqlDatabase database() const { return m_db; }
+    // Define a default destructor
+    ~DatabaseManager() override = default;
+
+    auto openDatabase(const QString& path = QString(), bool forceSeed = false) -> bool;
+    auto closeDatabase() -> void;
+
+    [[nodiscard]] auto database() const -> QSqlDatabase { return m_db; }
 
 private:
     explicit DatabaseManager(QObject* parent = nullptr);
 
-    bool initMigrationSchema();
-    bool initializeIfNew();
-    bool runPendingMigrations();
-    bool applyMigration(const QString& resourcePath);
-    bool executeSqlResource(const QString& resourcePath);
+
+    auto initMigrationSchema() -> bool;
+    auto initializeIfNew() -> bool;
+    auto runPendingMigrations() -> bool;
+    auto applyMigration(const QString& resourcePath) -> bool;
+    auto executeSqlResource(const QString& resourcePath) -> bool;
 
 private:
     QSqlDatabase m_db;

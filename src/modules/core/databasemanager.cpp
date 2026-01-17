@@ -11,18 +11,19 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QSet>
+#include <algorithm>
 
 DatabaseManager::DatabaseManager(QObject* parent)
     : QObject(parent)
 {}
 
-DatabaseManager& DatabaseManager::instance()
+auto DatabaseManager::instance() -> DatabaseManager&
 {
     static DatabaseManager instance;
     return instance;
 }
 
-bool DatabaseManager::openDatabase(const QString& path, bool forceSeed)
+auto DatabaseManager::openDatabase(const QString& path, bool forceSeed) -> bool
 {
     m_dbPath = path;
     if (m_dbPath.isEmpty()) {
@@ -42,32 +43,41 @@ bool DatabaseManager::openDatabase(const QString& path, bool forceSeed)
     }
 
     if (!initMigrationSchema())
+    {
         return false;
-
-    if (m_isNewDatabase) {
-        if (!initializeIfNew())
-            return false;
     }
 
-    if (!runPendingMigrations())
-        return false;
+    if (m_isNewDatabase) {
+        if (!initializeIfNew()){
+            return false;
+        }
+    }
 
+    if (!runPendingMigrations()){
+        return false;
+    }
+
+    // Note: Ensure DatabaseSeeder constructor accepts const QSqlDatabase&
+    // to avoid performance-unnecessary-value-param warnings.
     DatabaseSeeder seeder(m_db);
     forceSeed ? seeder.forceSeed() : seeder.seedIfNeeded();
 
     return true;
 }
 
-void DatabaseManager::closeDatabase()
+auto DatabaseManager::closeDatabase() -> void
 {
     QString name = m_db.connectionName();
     if (m_db.isOpen())
+    {
         m_db.close();
+
+    }
     m_db = QSqlDatabase();
     QSqlDatabase::removeDatabase(name);
 }
 
-bool DatabaseManager::initMigrationSchema()
+auto DatabaseManager::initMigrationSchema() -> bool
 {
     QSqlQuery q(m_db);
     return q.exec(R"(
@@ -78,13 +88,13 @@ bool DatabaseManager::initMigrationSchema()
     )");
 }
 
-bool DatabaseManager::initializeIfNew()
+auto DatabaseManager::initializeIfNew() -> bool
 {
     qDebug() << "Initializing new database schema...";
     return executeSqlResource(":/sql/migrations/000_init.up.sql");
 }
 
-bool DatabaseManager::runPendingMigrations()
+auto DatabaseManager::runPendingMigrations() -> bool
 {
     QSqlQuery q(m_db);
     if (!q.exec("SELECT version FROM schema_migrations")) {
@@ -93,32 +103,36 @@ bool DatabaseManager::runPendingMigrations()
     }
 
     QSet<QString> applied;
-    while (q.next())
+    while (q.next()){
         applied.insert(q.value(0).toString());
+    }
 
     QStringList migrations;
     QDirIterator it(":/sql/migrations", QStringList() << "*.up.sql", QDir::Files);
     while (it.hasNext())
+    {
         migrations << it.next();
+    }
 
     std::sort(migrations.begin(), migrations.end());
 
-    for (const QString& path : migrations) {
+    for (const QString& path : std::as_const(migrations)) {
         QString version = QFileInfo(path).fileName().section('.', 0, 0);
         if (applied.contains(version))
-            continue;
+        { continue; }
 
         qDebug() << "Applying migration:" << version;
         if (!applyMigration(path))
+        {
             return false;
+        }
     }
     return true;
 }
 
-bool DatabaseManager::applyMigration(const QString& resourcePath)
+auto DatabaseManager::applyMigration(const QString& resourcePath) -> bool
 {
-    if (!executeSqlResource(resourcePath))
-        return false;
+    if (!executeSqlResource(resourcePath)) { return false; }
 
     QString version = QFileInfo(resourcePath).fileName().section('.', 0, 0);
     QSqlQuery q(m_db);
@@ -131,7 +145,8 @@ bool DatabaseManager::applyMigration(const QString& resourcePath)
     }
     return true;
 }
-bool DatabaseManager::executeSqlResource(const QString& resourcePath)
+
+auto DatabaseManager::executeSqlResource(const QString& resourcePath) -> bool
 {
     QFile file(resourcePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -149,8 +164,9 @@ bool DatabaseManager::executeSqlResource(const QString& resourcePath)
     for (const QString& line : sql.split('\n')) {
         QString trimmed = line.trimmed();
 
-        if (trimmed.startsWith("CREATE TRIGGER", Qt::CaseInsensitive))
+        if (trimmed.startsWith("CREATE TRIGGER", Qt::CaseInsensitive)) {
             inTrigger = true;
+        }
 
         current += line + "\n";
 
@@ -167,7 +183,9 @@ bool DatabaseManager::executeSqlResource(const QString& resourcePath)
     }
 
     if (!current.trimmed().isEmpty())
+    {
         statements << current.trimmed();
+    }
 
     QSqlQuery q(m_db);
 
@@ -176,9 +194,10 @@ bool DatabaseManager::executeSqlResource(const QString& resourcePath)
         return false;
     }
 
-    for (const QString& stmt : statements) {
-        if (stmt.isEmpty())
+    for (const QString& stmt : std::as_const(statements)) {
+        if (stmt.isEmpty()){
             continue;
+        }
 
         if (!q.exec(stmt)) {
             qCritical() << "SQL failed:\n"
@@ -189,6 +208,5 @@ bool DatabaseManager::executeSqlResource(const QString& resourcePath)
         }
     }
 
-    m_db.commit();
-    return true;
+    return m_db.commit();
 }

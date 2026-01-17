@@ -9,6 +9,18 @@ ProductViewController::ProductViewController(QObject* parent)
     m_compositionModel = new ProductCompositionModel(this);
 }
 
+// Keep this in productviewcontroller.cpp
+QString ProductViewController::productId() const {
+    return m_compositionModel->productId();
+}
+
+void ProductViewController::setProductId(const QString& id) {
+    if (m_compositionModel->productId() != id) {
+        m_compositionModel->setProductId(id);
+        emit productIdChanged();
+    }
+}
+
 bool ProductViewController::saveProduct(const QVariantMap& data) {
     int localFlag = data.value("localId", -1).toInt();
     QString id = data.value("id").toString();
@@ -25,10 +37,6 @@ bool ProductViewController::saveIngredient(const QVariantMap& data) {
     int localFlag = data.value("localId", -1).toInt();
 
     QString id = data.value("id").toString();
-    // c.productId = data.value("productId").toString();
-    // c.ingredientProductId = data.value("ingredientProductId").toString();
-    // c.quantity = data.value("quantity").toDouble();
-    // c.unitId = data.value("unitId").toInt();
 
     if (localFlag == -1 && id.isEmpty()) {
         return m_compositionModel->addIngredient(data);
