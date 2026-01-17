@@ -15,20 +15,15 @@ class InventoryViewController : public QObject {
 public:
     explicit InventoryViewController(QObject *parent = nullptr);
 
-    InventoryModel* inventoryModel() const { return m_inventoryModel; }
+    [[nodiscard]] auto inventoryModel() const -> InventoryModel* { return m_inventoryModel; }
 
 
     // Logic now uses the local m_inventoryId variable
-    QString inventoryId() const { return m_inventoryId; }
-    void setInventoryId(const QString& id) {
-        qDebug() << "Controller: inventoryId changed from" << m_inventoryId << "to" << id;
-        if (m_inventoryModel->inventoryId() != id) {
-            m_inventoryModel->setInventoryId(id);
-            emit inventoryIdChanged();
-        }
-    }
+    [[nodiscard]] auto inventoryId() const -> QString;
+    void setInventoryId(const QString& id);
 
 
+    // Updated: Now accepts a QVariantMap 'data'
     Q_INVOKABLE bool addStock(const QVariantMap &data);
     Q_INVOKABLE bool updateStock(const QVariantMap &data);
     Q_INVOKABLE bool deleteStock(const QString &id);
@@ -39,10 +34,8 @@ signals:
     void inventoryIdChanged();
 
 private:
-    InventoryModel* m_inventoryModel;
+    InventoryModel* m_inventoryModel = nullptr;
     QString m_inventoryId; // Added this to store the state
-
-    void debugInventoryData();
 };
 
 #endif

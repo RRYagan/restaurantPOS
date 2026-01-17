@@ -10,11 +10,7 @@ Item {
 
     // Fix: Changed from alias to var to receive globalProductModel from Main.qml
     property var controller
-    property var categoryModel
-    property var taxModel
-    property var unitModel
-    property var inventoryModel
-    property var typeModel
+
 
     ColumnLayout {
         anchors.fill: parent
@@ -59,11 +55,6 @@ Item {
             // Requirement 2: Menu setup to add product and ingredients
             MenuSetupView {
                 controller: setupRoot.controller
-                categoryModel: setupRoot.categoryModel
-                taxModel: setupRoot.taxModel
-                unitModel: setupRoot.unitModel
-                inventoryModel: setupRoot.inventoryModel
-                typeModel: setupRoot.typeModel
             }
         }
     }

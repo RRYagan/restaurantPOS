@@ -2,6 +2,8 @@ qt_add_qml_module(POS_UI
     STATIC
     URI POS.UI
     VERSION 1.0
+    RESOURCE_PREFIX /qt/qml
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/POS/UI"
 
     SOURCES
        # controllers/salesview.h controllers/salesview.cpp

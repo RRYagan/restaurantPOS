@@ -3,53 +3,30 @@
 #include <QSqlRecord>
 #include <QVariantMap>
 
-InventoryViewController::InventoryViewController(QObject *parent) : QObject(parent) {
-    m_inventoryModel = new InventoryModel(this);
+InventoryViewController::InventoryViewController(QObject *parent) : QObject(parent), m_inventoryModel(new InventoryModel(this)) {
     refresh();
-    debugInventoryData();
-
-
 }
 
-
-void InventoryViewController::debugInventoryData() {
-    if (!m_inventoryModel) {
-        qWarning() << "Controller: Cannot debug. Model is null.";
-        return;
-    }
-
-    int rowCount = m_inventoryModel->rowCount();
-    qDebug() << "------------------------------------------";
-    qDebug() << "CONTROLLER DEBUG: Inventory Table Overview";
-    qDebug() << "Total Items in Model:" << rowCount;
-
-    for (int i = 0; i < rowCount; ++i) {
-        // Fetch the database record for this row
-        QSqlRecord rec = m_inventoryModel->record(i);
-
-        QString id = rec.value("id").toString();
-        QString name = rec.value("name").toString();
-        double qty = rec.value("quantity_available").toDouble();
-        int unitId = rec.value("quantity_unit_id").toInt();
-
-        qDebug() << QString("Row %1 | ID: %2 | Name: %3 | Qty: %4 | UnitID: %5")
-                        .arg(i)
-                        .arg(id)
-                        .arg(name, -15) // Left-aligned name padding
-                        .arg(qty)
-                        .arg(unitId);
-    }
-    qDebug() << "------------------------------------------";
+auto InventoryViewController::inventoryId() const -> QString{
+    return m_inventoryId;
 }
+
+void InventoryViewController::setInventoryId(const QString& id) {
+    qDebug() << "Controller: inventoryId changed from" << m_inventoryId << "to" << id;
+    if (m_inventoryModel->inventoryId() != id) {
+        m_inventoryModel->setInventoryId(id);
+        emit inventoryIdChanged();
+    }
+}
+
 void InventoryViewController::refresh() {
     if (m_inventoryModel) {
         m_inventoryModel->select(); // This re-runs the SQL SELECT query
-        debugInventoryData();
     }
 }
 
 // Updated: Now accepts a QVariantMap 'data'
-bool InventoryViewController::addStock(const QVariantMap &data) {
+auto InventoryViewController::addStock(const QVariantMap &data) -> bool {
     if (!m_inventoryModel) return false;
 
     // We pass the map directly to the model's createItem
@@ -62,7 +39,7 @@ bool InventoryViewController::addStock(const QVariantMap &data) {
 }
 
 // Updated: Now accepts a QVariantMap 'data'
-bool InventoryViewController::updateStock(const QVariantMap &data) {
+auto InventoryViewController::updateStock(const QVariantMap &data) -> bool {
     if (!m_inventoryModel) return false;
 
     // Ensure the ID is present in the map before sending to model
@@ -74,7 +51,7 @@ bool InventoryViewController::updateStock(const QVariantMap &data) {
 }
 
 // Updated: Accepts the ID as a QVariant (string or int)
-bool InventoryViewController::deleteStock(const QString& id) {
+auto InventoryViewController::deleteStock(const QString& id) -> bool {
     if (!m_inventoryModel) return false;
 
     // Convert the variant ID to String to support your UUID schema

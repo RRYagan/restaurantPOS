@@ -3,14 +3,10 @@
 #include <QUuid>
 
 ProductViewController::ProductViewController(QObject* parent)
-    : QObject(parent)
-{
-    m_productModel = new ProductModel(this);
-    m_compositionModel = new ProductCompositionModel(this);
-}
+    : QObject(parent), m_productModel(new ProductModel(this)), m_compositionModel(new ProductCompositionModel(this)){}
 
 // Keep this in productviewcontroller.cpp
-QString ProductViewController::productId() const {
+auto ProductViewController::productId() const -> QString {
     return m_compositionModel->productId();
 }
 
@@ -21,7 +17,7 @@ void ProductViewController::setProductId(const QString& id) {
     }
 }
 
-bool ProductViewController::saveProduct(const QVariantMap& data) {
+auto ProductViewController::saveProduct(const QVariantMap& data) -> bool {
     int localFlag = data.value("localId", -1).toInt();
     QString id = data.value("id").toString();
      // 6. Persistence Logic
@@ -32,7 +28,7 @@ bool ProductViewController::saveProduct(const QVariantMap& data) {
     }
 }
 
-bool ProductViewController::saveIngredient(const QVariantMap& data) {
+auto ProductViewController::saveIngredient(const QVariantMap& data) -> bool {
     ProductComposition c;
     int localFlag = data.value("localId", -1).toInt();
 
@@ -45,11 +41,11 @@ bool ProductViewController::saveIngredient(const QVariantMap& data) {
     }
 }
 
-bool ProductViewController::removeProduct(const QString& productId) {
+auto ProductViewController::removeProduct(const QString& productId) -> bool {
     return m_productModel->removeProduct(productId);
 }
 
-bool ProductViewController::removeIngredient(const QString& id) {
+auto ProductViewController::removeIngredient(const QString& id) -> bool {
     return m_compositionModel->removeIngredient(id);
 }
 

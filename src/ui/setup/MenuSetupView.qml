@@ -5,12 +5,6 @@ import QtQuick.Layouts
 Item {
     id: menuSetupRoot
     property var controller
-    property var categoryModel
-    property var taxModel
-    property var unitModel
-    property var inventoryModel
-    property var typeModel
-
     property bool isEditing: false
     property var currentProduct: null
 

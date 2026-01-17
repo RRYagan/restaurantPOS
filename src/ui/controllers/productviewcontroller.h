@@ -19,8 +19,8 @@ class ProductViewController : public QObject
 public:
     explicit ProductViewController(QObject* parent = nullptr);
 
-    ProductModel* productModel() const { return m_productModel; }
-    ProductCompositionModel* compositionModel() const { return m_compositionModel; }
+    [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel; }
+    [[nodiscard]] auto compositionModel() const -> ProductCompositionModel* { return m_compositionModel; }
 
     [[nodiscard]] QString productId() const; // Only the declaration
     void setProductId(const QString& id);    // Only the declaration
@@ -41,7 +41,7 @@ private:
     // Product mapToProduct(const QVariantMap& map);
 
     ProductModel* m_productModel=nullptr;
-    ProductCompositionModel* m_compositionModel;
+    ProductCompositionModel* m_compositionModel=nullptr;
 };
 
 #endif

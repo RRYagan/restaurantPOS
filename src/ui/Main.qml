@@ -63,47 +63,6 @@ ApplicationWindow {
 
     property bool sidebarCollapsed: width < 900
     // global data
-    // --- GLOBAL DATA MODELS ---
-    ListModel {
-        id: globalCategoryModel
-        ListElement { text: "General"; code: "GEN" }
-        ListElement { text: "Food & Meals"; code: "FOOD" }
-        ListElement { text: "Beverages"; code: "BEV" }
-        ListElement { text: "Services"; code: "SERV" }
-    }
-
-    ListModel {
-        id: globalTaxModel
-        ListElement { text: "A - 16% (VAT)"; valueId: 1 }
-        ListElement { text: "B - 8% (Reduced)"; valueId: 2 }
-        ListElement { text: "C - 0% (Exempt)"; valueId: 3 }
-        ListElement { text: "E - 16% (Export)"; valueId: 4 }
-    }
-
-    ListModel {
-        id: globalUnitModel
-        ListElement { text: "Pieces (pcs)"; valueId: 1 }
-        ListElement { text: "Kilograms (kg)"; valueId: 2 }
-        ListElement { text: "Liters (L)"; valueId: 3 }
-        ListElement { text: "Hours (hr)"; valueId: 4 }
-    }
-
-    // --- NEW TEST MODELS FOR SETUP ---
-    // ListModel {
-    //     id: globalInventoryModel
-    //     ListElement { text: "Select Inventory Item"; valueId: "" }
-    //     ListElement { text: "Beef Fillet (Raw)"; valueId: "inv-001" }
-    //     ListElement { text: "Cooking Oil"; valueId: "inv-002" }
-    //     ListElement { text: "Soda Syrup"; valueId: "inv-003" }
-    //     ListElement { text: "Packaging Boxes"; valueId: "inv-004" }
-    // }
-
-    ListModel {
-        id: globalTypeModel
-        ListElement { text: "Standard Product"; valueId: "pt-1" }
-        ListElement { text: "Composite Item (Recipe)"; valueId: "pt-2" }
-        ListElement { text: "Service/Labor"; valueId: "pt-3" }
-    }
 
     StackView {
         id: rootStack
@@ -149,21 +108,12 @@ ApplicationWindow {
                             name: "System Setup",
                             icon: "⚙",
                             view: setupView
-                            // subItems: [
-                            //     // { name: "Menu Setup", view: menuSetupView },
-                            //     { name: "Table Setup", view: tableSetupView },
-                            //     { name: "Theme Setup", view: themeSetupView }
-                            // ]
+
                         },
                         { name: "User Management", view: userMgmtView, icon: "👤" },
                         { name: "Inventory", view: inventoryMgmtView, icon: "📦" }
                     ]
                 }
-
-                // fix:new model // Ensure the sub-views are defined in the contentStack area
-                // Component { id: menuSetupView; MenuSetupScreen { objectName: "Menu Setup" } }
-                // Component { id: tableSetupView; TableSetup { objectName: "Table Setup" } }
-                // Component { id: themeSetupView; ThemeSetup { objectName: "Theme Setup" } }
 
                 // --- MAIN VIEWPORT ---
                 // Now stretches edge-to-edge without a top bar
@@ -186,11 +136,6 @@ ApplicationWindow {
                         } }
                     Component { id: setupView; SetupScreen {
                             controller: globalProductModel
-                            categoryModel: globalCategoryModel
-                            taxModel: globalTaxModel
-                            unitModel: globalUnitModel
-                            inventoryModel: globalInventoryModel.inventoryModel
-                            typeModel: globalTypeModel
 
                         } }
                     Component { id: userMgmtView; UserManagement {
