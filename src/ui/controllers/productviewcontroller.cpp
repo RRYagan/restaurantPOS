@@ -1,4 +1,4 @@
-#include "productviewcontroller.h"
+ #include "productviewcontroller.h"
 #include <QDebug>
 #include <QUuid>
 
@@ -14,7 +14,6 @@ bool ProductViewController::saveProduct(const QVariantMap& data) {
     QString id = data.value("id").toString();
      // 6. Persistence Logic
     if (localFlag == -1 && id.isEmpty()) {
-        // data.value("id") = QUuid::createUuid().toString(QUuid::WithoutBraces);
         return m_productModel->addProduct(data);
     } else {
         return m_productModel->updateProduct(data);
@@ -25,17 +24,16 @@ bool ProductViewController::saveIngredient(const QVariantMap& data) {
     ProductComposition c;
     int localFlag = data.value("localId", -1).toInt();
 
-    c.id = data.value("uid").toString();
-    c.productId = data.value("productId").toString();
-    c.ingredientProductId = data.value("ingredientProductId").toString();
-    c.quantity = data.value("quantity").toDouble();
-    c.unitId = data.value("unitId").toInt();
+    QString id = data.value("id").toString();
+    // c.productId = data.value("productId").toString();
+    // c.ingredientProductId = data.value("ingredientProductId").toString();
+    // c.quantity = data.value("quantity").toDouble();
+    // c.unitId = data.value("unitId").toInt();
 
-    if (localFlag == -1 && c.id.isEmpty()) {
-        c.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        return m_compositionModel->addIngredient(c);
+    if (localFlag == -1 && id.isEmpty()) {
+        return m_compositionModel->addIngredient(data);
     } else {
-        return m_compositionModel->updateIngredient(c);
+        return m_compositionModel->updateIngredient(data);
     }
 }
 

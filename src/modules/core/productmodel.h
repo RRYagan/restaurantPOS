@@ -10,8 +10,8 @@
 struct Product {
     int localId = -1;
     QString id;
-    QString inventoryProductId;
-    QString kraUniqueItemCode;
+    // QString inventoryProductId;
+    QString kraItemCode;
     QString internalProductName;
     QString productCategoryId;
     QString productTypeId;
@@ -20,16 +20,15 @@ struct Product {
     double defaultSellingPrice = 0.0;
     QString taxClassificationCode = "";
     double taxAmount = 0.0;  // NEW: From schema
-    double quantity = 0;
-    QString quantityUnitCode = "";
+    // double quantity = 0;
+    // QString quantityUnitCode = "";
 
     bool isValid() const {
         return !id.isEmpty() &&
-               !inventoryProductId.isEmpty() &&
-               !kraUniqueItemCode.isEmpty() &&
+               // !inventoryProductId.isEmpty() &&
+               !kraItemCode.isEmpty() &&
                !currencyCode.isEmpty() &&
-               !countryCode.isEmpty() &&
-               !quantityUnitCode.isEmpty();
+               !countryCode.isEmpty();
     }
 };
 
@@ -49,12 +48,23 @@ public:
         PriceRole,
         TaxRole,
         TaxAmountRole,      // NEW
-        QuantityRole,
-        UnitRole
+        // QuantityRole,
+        // UnitRole
     };
 
     explicit ProductModel(QObject* parent = nullptr,
                           QSqlDatabase db = QSqlDatabase());
+
+    static QString generateId(const QString &origin,QString const product_type,QString const pkg_unit) {
+        // 1. Join the string parts
+        // QString base = parts.join(separator);
+
+        // 2. Format the counter: e.g., 5 -> "0000005"
+        QString formattedCounter = QString("%1").arg(5, 0, 10, QChar('0'));
+
+        // 3. Concatenate and return
+        return origin + product_type + pkg_unit +formattedCounter;
+    }
 
     // Core Model Overrides
     QVariant data(const QModelIndex& index, int role) const override;
@@ -81,8 +91,8 @@ private:
     int m_priceCol;
     int m_taxCol;      // tax_classification_id
     int m_taxAmtCol;   // NEW: tax_amount
-    int m_qtyCol;
-    int m_unitCol;     // quantity_unit_id
+    // int m_qtyCol;
+    // int m_unitCol;     // quantity_unit_id
 };
 
 #endif // PRODUCTMODEL_H

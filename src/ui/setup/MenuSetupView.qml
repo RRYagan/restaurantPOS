@@ -17,7 +17,7 @@ Item {
     // Background for the entire page
     Rectangle {
         anchors.fill: parent
-        color: "#FFFFFF"
+        color: "transparent"
     }
 
     // Helper to find index for ComboBoxes
@@ -33,6 +33,7 @@ Item {
         anchors.fill: parent
         currentIndex: menuSetupRoot.isEditing ? 1 : 0
 
+
         // --- VIEW 0: SEARCHABLE LIST ---
         ColumnLayout {
             spacing: 0
@@ -41,7 +42,8 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 80
-                color: "white"
+                // color: "white"
+                color: "transparent"
 
                 RowLayout {
                     anchors.fill: parent
@@ -54,7 +56,7 @@ Item {
                         background: Rectangle {
                             radius: 10
                             color: "#F5F5F5"
-                            border.color: "#E0E0E0"
+                            // border.color: "#E0E0E0"
                         }
                     }
 
@@ -152,16 +154,15 @@ Item {
                             "id": model.id,
                             "internalProductName": model.internalProductName,
                             "productCategoryId": model.productCategoryId,
-                            "kraUniqueItemCode": model.kraUniqueItemCode,
-                            "inventoryProductId": model.inventoryProductId,
+                            "kraItemCode": model.kraItemCode,
+                            // "inventoryProductId": model.inventoryProductId,
                             "productTypeId": model.productTypeId,
                             "currencyCode": model.currencyCode, // Ensure this matches your model's role name
                             "countryCode": model.countryCode,
                             "defaultSellingPrice": model.defaultSellingPrice,
                             "taxAmount": model.taxAmount,
                             "taxClassificationCode": model.taxClassificationCode,
-                            "quantity": model.quantity,
-                            "quantityUnitCode": model.quantityUnitCode
+
                         }
                         menuSetupRoot.isEditing = true
                     }
@@ -222,7 +223,7 @@ Item {
                         Label { text: "KRA Code:"; font.bold: true }
                         TextField {
                             id: kraIn
-                            text: currentProduct ? currentProduct.kraUniqueItemCode : ""
+                            text: currentProduct ? currentProduct.kraItemCode : ""
                             Layout.fillWidth: true
                         }
                         // 4. Financials
@@ -256,15 +257,15 @@ Item {
                         }
 
                         // 3. Inventory & Type
-                        Label { text: "Inventory Link:"; font.bold: true }
-                        ComboBox {
-                            id: invCombo
-                            Layout.fillWidth: true
-                            model: menuSetupRoot.inventoryModel
-                            textRole: "name"
-                            valueRole: "id"
-                            currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryProductId) : 0
-                        }
+                        // Label { text: "Inventory Link:"; font.bold: true }
+                        // ComboBox {
+                        //     id: invCombo
+                        //     Layout.fillWidth: true
+                        //     model: menuSetupRoot.inventoryModel
+                        //     textRole: "name"
+                        //     valueRole: "id"
+                        //     currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryProductId) : 0
+                        // }
 
                         Label { text: "Product Type:"; font.bold: true }
                         ComboBox {
@@ -303,9 +304,9 @@ Item {
                             id: taxCombo
                             Layout.fillWidth: true
                             model: _taxClassificationModel
-                            textRole: "tax_classification_name"
+                            textRole: "tax_type_code"
                             valueRole: "tax_type_code"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxClassificationId, "tax_type_code") : 0
+                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxClassificationCode, "tax_type_code") : 0
                         }
                         // 2. Display the Tax Rate
                         Label { text: "Tax Rate:"; font.bold: true }
@@ -324,24 +325,6 @@ Item {
                             color: "#2E7D32"
                         }
 
-                        // 5. Stock & Units
-                        Label { text: "Initial Stock:"; font.bold: true }
-                        TextField {
-                            id: qtyIn
-
-                            text: currentProduct ? currentProduct.quantity : "0"
-                            Layout.fillWidth: true
-                        }
-
-                        Label { text: "Unit:"; font.bold: true }
-                        ComboBox {
-                            id: unitCombo
-                            Layout.fillWidth: true
-                            model: _quantityUnitModel
-                            textRole: "quantity_unit_code_name"
-                            valueRole: "quantity_unit_code_name"
-                            currentIndex: currentProduct ? findIndexByValue(model, currentProduct.quantityUnitId, "quantity_unit_code_name") : 0
-                        }
 
                         Button {
                             text: "Save Product Information"
@@ -356,15 +339,13 @@ Item {
                                     "id": currentProduct ? currentProduct.id : "",
                                     "internalProductName": nameIn.text,
                                     "productCategoryId": catCombo.currentValue,
-                                    "kraUniqueItemCode": kraIn.text,
-                                    "inventoryProductId": invCombo.currentValue,
+                                    "kraItemCode": kraIn.text,
+                                    // "inventoryProductId": invCombo.currentValue,
                                     "productTypeId": typeCombo.currentValue,
                                     "currencyCode": currencyCombo.currentText,     // MUST NOT BE EMPTY
                                     "countryCode": countryCombo.currentText, // MUST NOT BE EMPTY
                                     "defaultSellingPrice": parseFloat(priceIn.text) || 0.0,
                                     "taxClassificationCode": taxCombo.currentText,
-                                    "quantity": parseFloat(qtyIn.text) || 0,
-                                    "quantityUnitCode": unitCombo.currentText,
                                     "taxRate": textRate.rate
                                 }
 
@@ -382,7 +363,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 15
-                    visible: currentProduct !== null && currentProduct.inventoryProductId === "NONE"
+                    visible: currentProduct !== null
 
                     Text {
                         text: "Product Recipe / Ingredients"
@@ -438,10 +419,10 @@ Item {
                                 ComboBox {
                                     id: ingUnitCombo
                                     Layout.fillWidth: true
-                                    model: menuSetupRoot.unitModel
-                                    textRole: "text"
-                                    valueRole: "valueId"
-                                    currentIndex: -1
+                                    model: _quantityUnitModel
+                                    textRole: "quantity_unit_code"
+                                    valueRole: "quantity_unit_code"
+                                    currentIndex: currentProduct ? findIndexByValue(model, currentProduct.unitId, "quantity_unit_code") : 0
                                 }
                             }
 
@@ -458,8 +439,8 @@ Item {
                                                                   "unitId": parseInt(ingUnitCombo.currentValue)
                                                               })
                                     ingQty.text = "";
-                                    ingSelector.currentIndex = -1;
-                                    ingUnitCombo.currentIndex = -1;
+                                    ingSelector.currentIndex = 0;
+                                    ingUnitCombo.currentIndex = 0;
                                 }
                             }
                         }

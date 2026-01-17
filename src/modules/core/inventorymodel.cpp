@@ -19,6 +19,7 @@ void InventoryModel::cacheIndices() {
     m_nameCol     = fieldIndex("name");
     m_pkgAvailCol = fieldIndex("packages_available");
     m_pkgUnitCol  = fieldIndex("packaging_unit_id");
+    m_qpPkgCol     = fieldIndex(("quantity_per_package"));
     m_qtyAvailCol = fieldIndex("quantity_available");
     m_qtyUnitCol  = fieldIndex("quantity_unit_id");
     m_createdCol  = fieldIndex("created_at");
@@ -31,19 +32,20 @@ QVariant InventoryModel::data(const QModelIndex& index, int role) const {
     int row = index.row();
 
     // Handle Unit Name lookups
-    if (role == QuantityUnitNameRole || role == PackagingUnitNameRole) {
-        int col = (role == QuantityUnitNameRole) ? m_qtyUnitCol : m_pkgUnitCol;
-        int unitId = QSqlTableModel::data(this->index(row, col)).toInt();
+    // if (role == QuantityUnitNameRole || role == PackagingUnitNameRole) {
+    //     int col = (role == QuantityUnitNameRole) ? m_qtyUnitCol : m_pkgUnitCol;
+    //     int pkgUnitId = QSqlTableModel::data(this->index(row, m_pkgUnitCol)).toInt();
+    //     int qtyUnitId = QSqlTableModel::data(this->index(row, m_qtyUnitCol)).toInt();
 
-        QSqlQuery query;
-        // Use the appropriate table based on your schema (quantity_unit or packaging_unit)
-        QString table = (role == QuantityUnitNameRole) ? "quantity_unit" : "packaging_unit";
-        query.prepare(QString("SELECT name FROM %1 WHERE id = :id").arg(table));
-        query.bindValue(":id", unitId);
+    //     QSqlQuery query;
+    //     // Use the appropriate table based on your schema (quantity_unit or packaging_unit)
+    //     // QString table = (role == QuantityUnitNameRole) ? "quantity_unit" : "packaging_unit";
+    //     query.prepare(QString("SELECT name FROM %1 WHERE id = :id").arg(table));
+    //     query.bindValue(":id", unitId);
 
-        if (query.exec() && query.next()) return query.value(0).toString();
-        return "units";
-    }
+    //     if (query.exec() && query.next()) return query.value(0).toString();
+    //     return "units";
+    // }
 
     // Standard roles
     switch (role) {
@@ -52,6 +54,7 @@ QVariant InventoryModel::data(const QModelIndex& index, int role) const {
     case QuantityAvailableRole: return QSqlTableModel::data(this->index(row, m_qtyAvailCol));
     case PackagesAvailableRole: return QSqlTableModel::data(this->index(row, m_pkgAvailCol));
     case PackagingUnitIdRole:   return QSqlTableModel::data(this->index(row, m_pkgUnitCol));
+    case QuantityPerPackageRole: return QSqlTableModel::data(this->index(row, m_qpPkgCol));
     case QuantityUnitIdRole:    return QSqlTableModel::data(this->index(row, m_qtyUnitCol));
     case CreatedAtRole:         return QSqlTableModel::data(this->index(row, m_createdCol));
     case UpdatedAtRole:         return QSqlTableModel::data(this->index(row, m_updatedCol));
@@ -67,6 +70,7 @@ QHash<int, QByteArray> InventoryModel::roleNames() const {
         { QuantityUnitNameRole, "quantityUnitName" }, // New
         { PackagesAvailableRole, "packagesAvailable" },
         { PackagingUnitNameRole, "packagingUnitName" }, // New
+        {QuantityPerPackageRole, "quantityPerPackage"},
         { CreatedAtRole, "createdAt" },
         { UpdatedAtRole, "updatedAt" }
     };
@@ -77,13 +81,14 @@ bool InventoryModel::createItem(const QVariantMap& data) {
     QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     // We omit created_at/updated_at to let DB handle DEFAULT values
-    query.prepare("INSERT INTO inventory (id, name, packages_available, packaging_unit_id, "
-                  "quantity_available, quantity_unit_id) VALUES (:id, :name, :pkg, :pUnit, :qty, :qUnit)");
+    query.prepare("INSERT INTO inventory (id, name, total_packages_available, packaging_unit_id, "
+                  "quantity_per_package,quantity_unit_id, total_quantity_available) VALUES (:id, :name, :pkg, :pUnit,:qp_pkg, :qty, :qUnit)");
 
     query.bindValue(":id", newId);
     query.bindValue(":name", data.value("name").toString());
     query.bindValue(":pkg", data.value("packagesAvailable").toInt());
     query.bindValue(":pUnit", data.value("packagingUnitId").toInt());
+    query.bindValue(":qp_pkg", data.value("quantityPerPackage").toInt());
     query.bindValue(":qty", data.value("quantityAvailable").toDouble());
     query.bindValue(":qUnit", data.value("quantityUnitId").toInt());
 
@@ -99,14 +104,15 @@ bool InventoryModel::createItem(const QVariantMap& data) {
 bool InventoryModel::updateItem(const QVariantMap& data) {
     QSqlQuery query(database());
     // Explicitly set updated_at to CURRENT_TIMESTAMP
-    query.prepare("UPDATE inventory SET name=:name, packages_available=:pkg, "
-                  "packaging_unit_id=:pUnit, quantity_available=:qty, "
+    query.prepare("UPDATE inventory SET name=:name, total_packages_available=:pkg, "
+                  "packaging_unit_id=:pUnit, quantity_per_package:qp_pkg, total_quantity_available=:qty, "
                   "quantity_unit_id=:qUnit WHERE id=:id");
 
     query.bindValue(":id", data.value("id").toString());
     query.bindValue(":name", data.value("name").toString());
     query.bindValue(":pkg", data.value("packagesAvailable").toInt());
     query.bindValue(":pUnit", data.value("packagingUnitId").toInt());
+    query.bindValue(":qp_pkg", data.value("quantityPerPackage").toInt());
     query.bindValue(":qty", data.value("quantityAvailable").toDouble());
     query.bindValue(":qUnit", data.value("quantityUnitId").toInt());
 
@@ -137,9 +143,10 @@ InventoryItem InventoryModel::inventoryAt(int row) const {
 
     c.id                = rec.value("id").toString();
     c.name              = rec.value("name").toString();
-    c.packagesAvailable = rec.value("packages_available").toInt();
+    c.packagesAvailable = rec.value("total_packages_available").toInt();
     c.packagingUnitId   = rec.value("packaging_unit_id").toInt();
-    c.quantityAvailable = rec.value("quantity_available").toDouble();
+    c.quantityPerPackage = rec.value("quantoty_per_package").toInt();
+    c.quantityAvailable = rec.value("total_quantity_available").toDouble();
     c.quantityUnitId    = rec.value("quantity_unit_id").toInt();
     c.createdAt         = rec.value("created_at").toString();
     c.updatedAt         = rec.value("updated_at").toString();

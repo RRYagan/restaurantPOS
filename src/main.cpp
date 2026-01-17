@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
     for (const QString &tableName : lookupTables) {
         // Create the model instance
         LookupModel *model = new LookupModel(tableName, &app);
+        model->select();
 
         // Format name: e.g., "tax_classification" -> "taxClassificationModel"
         // QString propertyName = formatPropertyName(tableName);

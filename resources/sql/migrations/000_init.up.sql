@@ -69,23 +69,24 @@ CREATE TABLE IF NOT EXISTS user_session (
 
 CREATE TABLE IF NOT EXISTS product (
     id TEXT PRIMARY KEY NOT NULL,
-    inventory_product_id TEXT NOT NULL,
-    kra_unique_item_code TEXT UNIQUE NOT NULL,
     internal_product_name TEXT NOT NULL,
+    kra_item_code TEXT NOT NULL,
     product_category_id INTEGER NOT NULL,
     product_type_id INTEGER NOT NULL,
     currency_code TEXT NOT NULL,
     country_code TEXT NOT NULL,
     default_selling_price REAL DEFAULT 0.0 NOT NULL,
-    tax_classification_code TEXT NOT NULL,
+    tax_classification_code TEXT NOT NULL, -- Linked to KRA codes (A, B, C, E)
     tax_amount REAL NOT NULL,
-    quantity REAL NOT NULL,
-    quantity_unit_code TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Mandatory Foreign Keys
     FOREIGN KEY (product_type_id) REFERENCES product_type(id),
     FOREIGN KEY (product_category_id) REFERENCES product_category(id),
-    FOREIGN KEY (inventory_product_id) REFERENCES inventory(id) ON DELETE CASCADE
+    FOREIGN KEY (tax_classification_code) REFERENCES tax_classification(tax_type_code),
+    FOREIGN KEY (currency_code) REFERENCES currency(currency_code),
+    FOREIGN KEY (country_code) REFERENCES country(country_code)
 );
 
 CREATE TABLE IF NOT EXISTS product_category (
@@ -109,46 +110,36 @@ INSERT OR IGNORE INTO product_category (id, product_category_name) VALUES
 
 
 CREATE TABLE IF NOT EXISTS product_composition (
-    id TEXT PRIMARY KEY NOT NULL,
+    id TEXT NOT NULL,
     product_id TEXT NOT NULL,
-    --either inv_item or N/A: new item req composition of several inv_items
-    inventory_product_id TEXT NOT NULL,
-    required_quantity REAL NOT NULL CHECK(required_quantity > 0),
-    quantity_unit_id TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    inventory_id TEXT NOT NULL,
+    required_quantity REAL NOT NULL, -- Amount of 'quantity_unit_id' to deduct
+    quantity_unit TEXT NOT NULL,
+    
     FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
-    FOREIGN KEY (inventory_product_id) REFERENCES inventory(id),
-    UNIQUE(product_id, inventory_product_id),
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code)
+    FOREIGN KEY (inventory_id) REFERENCES inventory(id),
+    PRIMARY KEY (product_id, inventory_id)
+     FOREIGN KEY (quantity_unit) REFERENCES quantity_unit(quantity_unit_code)
 );
 
 CREATE TABLE IF NOT EXISTS inventory (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
-    packages_available INTEGER NOT NULL DEFAULT 0,
-    packaging_unit_id TEXT NOT NULL,
-    quantity_available REAL NOT NULL DEFAULT 0.0,
-    quantity_unit_id TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,  
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code),
-     FOREIGN KEY (packaging_unit_id) REFERENCES packaging_unit(packaging_unit)
-);
-INSERT OR IGNORE INTO inventory (
-    id, 
-    name, 
-    packages_available, 
-    packaging_unit_id, 
-    quantity_available, 
-    quantity_unit_id
-) VALUES (
-    'NONE',       -- Unique ID to represent N/A
-    'N/A',        -- Display Name in ComboBox
-    0,            -- Default values
-    'NONE',       -- Dummy FK
-    0.0,          -- Dummy value
-    'NONE'        -- Dummy FK
+    
+    -- Packaging Logic (The "Crate" or "Box")
+    packaging_unit_id TEXT NOT NULL,      -- FK to packaging_unit (e.g., 'BC' for Bottlecrate)
+    total_packages_available REAL DEFAULT 0, -- e.g., 2.0 crates
+    
+    -- Quantity Logic (The "Bottle" or "ML")
+    quantity_per_package REAL NOT NULL,    -- e.g., 24.0 (bottles per crate)
+    quantity_unit_id TEXT NOT NULL,       -- FK to quantity_unit (e.g., 'U' for Pieces)
+    
+    -- Total units available (Calculated: packages * quantity_per_package)
+    total_quantity_available REAL DEFAULT 0, -- e.g., 48.0 bottles
+    
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (packaging_unit_id) REFERENCES packaging_unit(packaging_unit_code),
+    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code)
 );
 
 CREATE TABLE IF NOT EXISTS inventory_movement_log (
@@ -167,6 +158,26 @@ CREATE TABLE IF NOT EXISTS inventory_movement_log (
 -- =============================================================================
 -- 4. LEDGERS & INVENTORY
 -- =============================================================================
+CREATE TABLE IF NOT EXISTS customer_order (
+    id TEXT PRIMARY KEY NOT NULL,
+    table_number TEXT,
+    waiter_id TEXT,
+    order_status TEXT CHECK(order_status IN ('open', 'closed', 'voided')) DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (waiter_id) REFERENCES tbl_user(id)
+);
+
+CREATE TABLE IF NOT EXISTS order_item (
+    id TEXT PRIMARY KEY NOT NULL,
+    order_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    unit_price REAL NOT NULL, -- Snapshot of price at time of order
+    service_state TEXT CHECK(service_state IN ('ordered', 'preparing', 'served')) DEFAULT 'ordered',
+    FOREIGN KEY (order_id) REFERENCES customer_order(id),
+    FOREIGN KEY (product_id) REFERENCES product(id)
+);
+
 
 CREATE TABLE IF NOT EXISTS sale (
     id TEXT PRIMARY KEY NOT NULL,
@@ -201,34 +212,31 @@ CREATE TABLE IF NOT EXISTS purchase (
 -- 5. STOCK BALANCE TRIGGER (DIRECTION-AWARE)
 -- =============================================================================
 
-CREATE TRIGGER IF NOT EXISTS trg_inventory_balance
-AFTER INSERT ON inventory_movement_log
+CREATE TRIGGER IF NOT EXISTS trg_deplete_inventory_logic
+AFTER UPDATE ON order_item
+FOR EACH ROW
+WHEN NEW.service_state = 'served' AND OLD.service_state != 'served'
 BEGIN
-    INSERT INTO inventory(product_id, current_quantity)
-    VALUES (
-NEW.product_id,
-CASE
-    WHEN (
-        SELECT flow_direction
-        FROM stock_movement_category
-        WHERE id = NEW.movement_category_id
-    ) = 'INCOMING'
-    THEN NEW.movement_quantity
-    ELSE -NEW.movement_quantity
-END
-    )
-    ON CONFLICT(product_id) DO UPDATE SET
-current_quantity = current_quantity +
-CASE
-    WHEN (
-        SELECT flow_direction
-        FROM stock_movement_category
-        WHERE id = NEW.movement_category_id
-    ) = 'INCOMING'
-    THEN NEW.movement_quantity
-    ELSE -NEW.movement_quantity
-END,
-updated_at = CURRENT_TIMESTAMP;
+    UPDATE inventory
+    SET 
+        -- 1. Subtract the individual units used
+        total_quantity_available = total_quantity_available - (
+            SELECT pc.required_quantity * NEW.quantity
+            FROM product_composition pc
+            WHERE pc.product_id = NEW.product_id
+        ),
+        -- 2. Recalculate how many full/partial packages that represents
+        total_packages_available = (total_quantity_available - (
+            SELECT pc.required_quantity * NEW.quantity
+            FROM product_composition pc
+            WHERE pc.product_id = NEW.product_id
+        )) / quantity_per_package,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = (
+        SELECT pc.inventory_id
+        FROM product_composition pc
+        WHERE pc.product_id = NEW.product_id
+    );
 END;
 
 -- =============================================================================

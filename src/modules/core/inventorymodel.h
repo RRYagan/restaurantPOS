@@ -10,6 +10,7 @@ struct InventoryItem {
     QString name;
     int packagesAvailable;
     int packagingUnitId;
+    double quantityPerPackage;
     double quantityAvailable;
     int quantityUnitId;
     QString createdAt;
@@ -57,6 +58,7 @@ public:
         PackagesAvailableRole,
         PackagingUnitIdRole,
         PackagingUnitNameRole,
+        QuantityPerPackageRole,
         QuantityAvailableRole,
         QuantityUnitIdRole,
         QuantityUnitNameRole,
@@ -93,6 +95,7 @@ private:
     int m_nameCol;
     int m_pkgAvailCol;
     int m_pkgUnitCol;
+    int m_qpPkgCol;
     int m_qtyAvailCol;
     int m_qtyUnitCol;
     int m_createdCol;

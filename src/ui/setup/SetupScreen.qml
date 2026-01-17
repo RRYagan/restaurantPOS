@@ -20,12 +20,13 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        // Navigation Header using whiteTheme [cite: 44]
+        // Navigation Header
         Rectangle {
             Layout.fillWidth: true
             height: 60
-            color: whiteTheme.surface
-            border.color: whiteTheme.border
+            color: window.theme.background
+            // border.color: whiteTheme.border
+
 
             RowLayout {
                 anchors.fill: parent

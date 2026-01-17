@@ -10,7 +10,7 @@ ApplicationWindow {
     visible: true
     title: "Premium POS System"
 
-    property QtObject theme: whiteTheme
+    property QtObject theme: spicyRed
     // --- 2. DEFINE THE spicyRed DARK THEME ---
     QtObject {
         id: spicyRed

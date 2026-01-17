@@ -137,6 +137,7 @@ Dialog {
             "name": nameField.text,
             "packagesAvailable": pkgField.value,
             "packagingUnitId": pkgUnitField,
+            "quantityPerPackage":10,
             "quantityAvailable": qtyField.value,
             "quantityUnitId": unitField.currentValue
         }

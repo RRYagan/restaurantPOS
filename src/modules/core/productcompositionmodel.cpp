@@ -14,7 +14,7 @@ ProductCompositionModel::ProductCompositionModel(QObject* parent, QSqlDatabase d
     // Initialized based on the provided CREATE TABLE schema
     m_idCol         = fieldIndex("id");
     m_productCol    = fieldIndex("product_id");
-    m_ingredientCol = fieldIndex("inventory_product_id");
+    m_ingredientCol = fieldIndex("inventory_id");
     m_qtyCol        = fieldIndex("required_quantity");
     m_unitCol       = fieldIndex("quantity_unit_id");
 }
@@ -75,29 +75,38 @@ void ProductCompositionModel::setProductId(const QString& id)
 }
 
 
-bool ProductCompositionModel::addIngredient(const ProductComposition& c)
+bool ProductCompositionModel::addIngredient(const QVariantMap& data)
 {
-    if (c.productId.isEmpty() || c.ingredientProductId.isEmpty()) {
-        qWarning() << "Invalid composition payload";
-        return false;
-    }
+    // QVariantMap c = data;
+    // QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    // if (c.productId.isEmpty() || c.ingredientProductId.isEmpty()) {
+    //     qWarning() << "Invalid composition payload";
+    //     return false;
+    // }
 
     QSqlQuery query(database());
     // Updated to use product_id and inventory_product_id
-    query.prepare("INSERT INTO product_composition (id, product_id, inventory_product_id, "
-                  "required_quantity, quantity_unit_id) "
+    query.prepare("INSERT INTO product_composition (id, product_id, inventory_id, "
+                  "required_quantity, quantity_unit) "
                   "VALUES (:id, :p_id, :ing_id, :qty, :unit)");
 
-    QString finalId = c.id.isEmpty() ? QUuid::createUuid().toString(QUuid::WithoutBraces) : c.id;
+    QString finalId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     query.bindValue(":id", finalId);
-    query.bindValue(":p_id", c.productId);
-    query.bindValue(":ing_id", c.ingredientProductId);
-    query.bindValue(":qty", c.quantity);
-    query.bindValue(":unit", c.unitId );
+    query.bindValue(":p_id", data.value("productId"));
+    query.bindValue(":ing_id", data.value("ingredientProductId"));
+    query.bindValue(":qty", data.value("quantity"));
+    query.bindValue(":unit", data.value("unitId"));
 
     if (!query.exec()) {
-        qWarning() << "Raw Insert Failed:" << query.lastError().text();
+        qCritical() << "==== DATABASE INSERT ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
+
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
         return false;
     }
 
@@ -105,23 +114,30 @@ bool ProductCompositionModel::addIngredient(const ProductComposition& c)
     return true;
 }
 
-bool ProductCompositionModel::updateIngredient(const ProductComposition& c)
+bool ProductCompositionModel::updateIngredient(const QVariantMap& data)
 {
     QSqlQuery query(database());
     // Updated to use inventory_product_id and required_quantity
     query.prepare("UPDATE product_composition SET "
-                  "inventory_product_id = :ing_id, "
-                  "required_quantity = :qty, "
-                  "quantity_unit_id = :unit "
+                  "inventory_id = :ing_id, "
+                  "required_quantity = :qty,quantity_unit:unit "
                   "WHERE id = :id");
 
-    query.bindValue(":id", c.id);
-    query.bindValue(":ing_id", c.ingredientProductId);
-    query.bindValue(":qty", c.quantity);
-    query.bindValue(":unit", c.unitId );
+    query.bindValue(":id", data.value("id"));
+    // query.bindValue(":p_id", data.value("productId"));
+    query.bindValue(":ing_id", data.value("ingredientProductId"));
+    query.bindValue(":qty", data.value("quantity"));
+    query.bindValue(":unit", data.value("unitId"));
 
     if (!query.exec()) {
-        qWarning() << "Raw Update Failed:" << query.lastError().text();
+        qCritical() << "==== DATABASE UPDATE ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
+
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
         return false;
     }
 
@@ -165,7 +181,7 @@ ProductComposition ProductCompositionModel::compositionAt(int row) const
     c.productId            = rec.value("product_id").toString();
     c.ingredientProductId  = rec.value("inventory_product_id").toString();
     c.quantity             = rec.value("required_quantity").toDouble();
-    c.unitId               = rec.value("quantity_unit_id").toInt();
+    c.unitId               = rec.value("quantity_unit_id").toString();
 
     return c;
 }

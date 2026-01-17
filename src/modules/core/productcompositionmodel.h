@@ -9,14 +9,13 @@ struct ProductComposition
     QString  productId;
     QString id;
     QString name;
-    QString    ingredientProductId;
+    QString ingredientProductId;
     double quantity = 0.0;
-    int    unitId = -1;
+    QString    unitId = "";
 
     bool isValid() const
     {
-        return unitId  > 0
-               && quantity > 0;
+        return quantity > 0;
     }
 };
 
@@ -47,8 +46,8 @@ public:
     QList<ProductComposition> getAllCompositions() const;
 
     // CRUD
-    bool addIngredient(const ProductComposition& c);
-    bool updateIngredient(const ProductComposition& c);
+    bool addIngredient(const QVariantMap& data);
+    bool updateIngredient(const QVariantMap& data);
     bool removeIngredient(const QString& compositionId);
     // DTO
     ProductComposition compositionAt(int row) const;
