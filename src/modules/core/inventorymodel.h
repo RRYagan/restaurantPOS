@@ -9,10 +9,10 @@ struct InventoryItem {
     QString id;
     QString name;
     int packagesAvailable;
-    int packagingUnitId;
+    QString packagingUnitId = "";
     double quantityPerPackage;
     double quantityAvailable;
-    int quantityUnitId;
+    QString quantityUnitId = "";
     QString createdAt;
     QString updatedAt;
 
@@ -56,11 +56,11 @@ public:
         IdRole = Qt::UserRole + 1,
         NameRole,
         PackagesAvailableRole,
-        PackagingUnitIdRole,
+        // PackagingUnitIdRole,
         PackagingUnitNameRole,
         QuantityPerPackageRole,
         QuantityAvailableRole,
-        QuantityUnitIdRole,
+        // QuantityUnitIdRole,
         QuantityUnitNameRole,
         CreatedAtRole,
         UpdatedAtRole

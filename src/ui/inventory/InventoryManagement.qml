@@ -185,6 +185,44 @@ Rectangle {
                             Item { Layout.fillWidth: true }
 
                             Rectangle {
+
+                                // return {
+                                //     { IdRole, "id" },
+                                //     { NameRole, "name" },
+                                //     { QuantityAvailableRole, "quantityAvailable" },
+                                //     { QuantityUnitNameRole, "quantityUnitName" }, // New
+                                //     { PackagesAvailableRole, "packagesAvailable" },
+                                //     { PackagingUnitNameRole, "packagingUnitName" }, // New
+                                //     {QuantityPerPackageRole, "quantityPerPackage"},
+                                //     { CreatedAtRole, "createdAt" },
+                                //     { UpdatedAtRole, "updatedAt" }
+                                // };
+                                width: 110; height: 26; radius: 13
+                                color: model.packagesAvailable < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
+                                RowLayout {
+                                    anchors.centerIn: parent; spacing: 4
+                                    Text {
+                                        text: model.packagesAvailable
+                                        color: model.packagesAvailable < 10 ? "#ff7675" : "#2ecc71"
+                                        font.bold: true
+                                    }
+                                    Text {
+                                        text: model.packagingUnitName
+                                        color: model.packagesAvailable < 10 ? "#ff7675" : "#2ecc71"
+                                        font.pixelSize: 10
+                                    }
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Rectangle {
+
+                                // int packagesAvailable;
+                                // int packagingUnitId;
+                                // double quantityPerPackage;
+                                // double quantityAvailable;
+                                // int quantityUnitId;
                                 width: 110; height: 26; radius: 13
                                 color: model.quantityAvailable < 10 ? Qt.rgba(1, 0, 0, 0.2) : Qt.rgba(0, 1, 0, 0.1)
                                 RowLayout {

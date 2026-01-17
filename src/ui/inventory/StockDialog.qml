@@ -17,7 +17,7 @@ Dialog {
     // Ensure 'invModel' (the InventoryViewController) is accessible here
     property var controller: inventoryPage.invModel
 
-    width: Math.min(parent.width * 0.9, 400)
+    width: Math.min(parent.width * 0.9, 800)
 
     background: Rectangle {
         color: "#2c0505"
@@ -43,7 +43,7 @@ Dialog {
         RowLayout {
             spacing: 10
             ColumnLayout {
-                Text { text: "Packages"; color: "#95a5a6"; font.pixelSize: 12 }
+                Text { text: "Total No. of Packages Available"; color: "#95a5a6"; font.pixelSize: 12 }
                 SpinBox {
                     id: pkgField
                     editable: true
@@ -58,24 +58,22 @@ Dialog {
                 ComboBox {
                     id: pkgUnitField
                     // Using IDs to match your quantityUnitId schema
-                    model: ListModel {
-                        ListElement { text: "Bottles"; value: 1 }
-                        ListElement { text: "Bags"; value: 2 }
-                        ListElement { text: "Bundle"; value: 3 }
-                    }
-                    textRole: "text"
-                    valueRole: "value"
+                    model: _packagingUnitModel
+                    textRole: "packaging_unit_code_name"
+                    valueRole: "packaging_unit_code"
                     Layout.fillWidth: true
                 }
             }
+
+
         }
 
         RowLayout {
             spacing: 10
             ColumnLayout {
-                Text { text: "Quantity"; color: "#95a5a6"; font.pixelSize: 12 }
+                Text { text: "No. Items per Package"; color: "#95a5a6"; font.pixelSize: 12 }
                 SpinBox {
-                    id: qtyField
+                    id: qtypkgField
                     editable: true
                     from: 0
                     to: 9999
@@ -84,17 +82,26 @@ Dialog {
                 }
             }
             ColumnLayout {
+                Text { text: "Total No. Items Available"; color: "#95a5a6"; font.pixelSize: 12 }
+                Text {
+                    id: qtyField
+                    // editable: true
+                    // from: 0
+                    // to: 9999
+                    // value: 0
+                    property real totalNo: (qtypkgField.value * pkgField.value)
+                    text: totalNo
+                    Layout.fillWidth: true
+                }
+            }
+            ColumnLayout {
                 Text { text: "Unit ID"; color: "#95a5a6"; font.pixelSize: 12 }
                 ComboBox {
                     id: unitField
                     // Using IDs to match your quantityUnitId schema
-                    model: ListModel {
-                        ListElement { text: "pcs"; value: 1 }
-                        ListElement { text: "kg"; value: 2 }
-                        ListElement { text: "ltr"; value: 3 }
-                    }
-                    textRole: "text"
-                    valueRole: "value"
+                    model: _quantityUnitModel
+                    textRole: "quantity_unit_code_name"
+                    valueRole: "quantity_unit_code"
                     Layout.fillWidth: true
                 }
             }
@@ -126,19 +133,21 @@ Dialog {
         nameField.clear()
         pkgField.value = 0
         pkgUnitField.currentIndex=0
-        qtyField.value = 0
+        qtypkgField.value = 0
+        // qtyField.value = 0
         unitField.currentIndex = 0
         open()
     }
 
     onAccepted: {
         // Prepare the Map/Object for the C++ Controller
+        console.log("pkg unit", pkgUnitField.value)
         var payload = {
             "name": nameField.text,
             "packagesAvailable": pkgField.value,
-            "packagingUnitId": pkgUnitField,
-            "quantityPerPackage":10,
-            "quantityAvailable": qtyField.value,
+            "packagingUnitId": pkgUnitField.currentValue,
+            "quantityPerPackage":qtypkgField.value,
+            "quantityAvailable": qtyField.text,
             "quantityUnitId": unitField.currentValue
         }
 

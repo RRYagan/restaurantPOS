@@ -31,31 +31,32 @@ QVariant InventoryModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) return QVariant();
     int row = index.row();
 
-    // Handle Unit Name lookups
     // if (role == QuantityUnitNameRole || role == PackagingUnitNameRole) {
-    //     int col = (role == QuantityUnitNameRole) ? m_qtyUnitCol : m_pkgUnitCol;
-    //     int pkgUnitId = QSqlTableModel::data(this->index(row, m_pkgUnitCol)).toInt();
-    //     int qtyUnitId = QSqlTableModel::data(this->index(row, m_qtyUnitCol)).toInt();
+    //     bool isQty = (role == QuantityUnitNameRole);
+    //     int col = isQty ? m_qtyUnitCol : m_pkgUnitCol;
+    //     QString unitId = QSqlTableModel::data(this->index(row, col)).toString();
 
-    //     QSqlQuery query;
-    //     // Use the appropriate table based on your schema (quantity_unit or packaging_unit)
-    //     // QString table = (role == QuantityUnitNameRole) ? "quantity_unit" : "packaging_unit";
-    //     query.prepare(QString("SELECT name FROM %1 WHERE id = :id").arg(table));
+    //     QSqlQuery query(database());
+    //     if (isQty) {
+    //         query.prepare("SELECT quantity_unit_code_name FROM quantity_unit WHERE quantity_unit_code = :id");
+    //     } else {
+    //         query.prepare("SELECT packaging_unit_code_name FROM packaging_unit WHERE packaging_unit_code = :id");
+    //     }
+
     //     query.bindValue(":id", unitId);
 
     //     if (query.exec() && query.next()) return query.value(0).toString();
-    //     return "units";
+    //     return "N/A";
     // }
-
     // Standard roles
     switch (role) {
     case IdRole:                return QSqlTableModel::data(this->index(row, m_idCol));
     case NameRole:              return QSqlTableModel::data(this->index(row, m_nameCol));
     case QuantityAvailableRole: return QSqlTableModel::data(this->index(row, m_qtyAvailCol));
     case PackagesAvailableRole: return QSqlTableModel::data(this->index(row, m_pkgAvailCol));
-    case PackagingUnitIdRole:   return QSqlTableModel::data(this->index(row, m_pkgUnitCol));
+    case PackagingUnitNameRole:   return QSqlTableModel::data(this->index(row, m_pkgUnitCol));
     case QuantityPerPackageRole: return QSqlTableModel::data(this->index(row, m_qpPkgCol));
-    case QuantityUnitIdRole:    return QSqlTableModel::data(this->index(row, m_qtyUnitCol));
+    case QuantityUnitNameRole:    return QSqlTableModel::data(this->index(row, m_qtyUnitCol));
     case CreatedAtRole:         return QSqlTableModel::data(this->index(row, m_createdCol));
     case UpdatedAtRole:         return QSqlTableModel::data(this->index(row, m_updatedCol));
     }
@@ -87,17 +88,24 @@ bool InventoryModel::createItem(const QVariantMap& data) {
     query.bindValue(":id", newId);
     query.bindValue(":name", data.value("name").toString());
     query.bindValue(":pkg", data.value("packagesAvailable").toInt());
-    query.bindValue(":pUnit", data.value("packagingUnitId").toInt());
+    query.bindValue(":pUnit", data.value("packagingUnitId").toString());
     query.bindValue(":qp_pkg", data.value("quantityPerPackage").toInt());
     query.bindValue(":qty", data.value("quantityAvailable").toDouble());
-    query.bindValue(":qUnit", data.value("quantityUnitId").toInt());
+    query.bindValue(":qUnit", data.value("quantityUnitId").toString());
+    if (!query.exec()) {
+        qCritical() << "==== DATABASE INSERT ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
 
-    if (query.exec()) {
-        select();
-        return true;
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
+        return false;
     }
-    qWarning() << "Create error:" << query.lastError().text();
-    return false;
+
+    select();
+    return true;
 }
 
 // --- UPDATE ---
@@ -116,11 +124,20 @@ bool InventoryModel::updateItem(const QVariantMap& data) {
     query.bindValue(":qty", data.value("quantityAvailable").toDouble());
     query.bindValue(":qUnit", data.value("quantityUnitId").toInt());
 
-    if (query.exec()) {
-        select();
-        return true;
+    if (!query.exec()) {
+        qCritical() << "==== DATABASE UPDATE ERROR ====";
+        qCritical() << "Error Text  :" << query.lastError().text();
+        qCritical() << "Full Query  :" << query.executedQuery();
+
+        QVariantList list = query.boundValues();
+        for (int i = 0; i < list.size(); ++i) {
+            qCritical() << "  " << query.boundValueName(i) << " -> " << list.at(i).toString();
+        }
+        return false;
     }
-    return false;
+
+    select();
+    return true;
 }
 
 // --- DELETE ---
@@ -144,10 +161,10 @@ InventoryItem InventoryModel::inventoryAt(int row) const {
     c.id                = rec.value("id").toString();
     c.name              = rec.value("name").toString();
     c.packagesAvailable = rec.value("total_packages_available").toInt();
-    c.packagingUnitId   = rec.value("packaging_unit_id").toInt();
+    c.packagingUnitId   = rec.value("packaging_unit_id").toString();
     c.quantityPerPackage = rec.value("quantoty_per_package").toInt();
     c.quantityAvailable = rec.value("total_quantity_available").toDouble();
-    c.quantityUnitId    = rec.value("quantity_unit_id").toInt();
+    c.quantityUnitId    = rec.value("quantity_unit_id").toString();
     c.createdAt         = rec.value("created_at").toString();
     c.updatedAt         = rec.value("updated_at").toString();
 
