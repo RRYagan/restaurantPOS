@@ -3,16 +3,21 @@
 
 #include <QAbstractListModel>
 #include <QList>
+#include <QVariantMap>
+// #include "product.h"
+#include "productmodel.h"
 
-// Forward declaration to avoid circular dependency
-struct StagedItem;
+struct StagedItem {
+    Product product;
+    double quantity;
+    double finalUnitPrice;
+    QString modifiersJson;
+};
 
-class OrderItemModel : public QAbstractListModel
-{
+class OrderItemModel : public QAbstractListModel {
     Q_OBJECT
-
 public:
-    enum OrderItemRoles {
+    enum OrderItemRoles: std::uint16_t {
         NameRole = Qt::UserRole + 1,
         QuantityRole,
         UnitPriceRole,
@@ -23,29 +28,42 @@ public:
 
     explicit OrderItemModel(QObject *parent = nullptr);
 
-    // Public wrappers for protected methods
-    auto prepareForAddition(int row) -> void { beginInsertRows(QModelIndex(), row, row); }
-    auto finishAddition() -> void { endInsertRows(); }
-
-    auto prepareForRemoval(int row) -> void { beginRemoveRows(QModelIndex(), row, row); }
-    auto finishRemoval() -> void { endRemoveRows(); }
-
-    auto notifyRowChanged(int row, const QVector<int>& roles = {}) -> void {
-        auto idx = index(row, 0);
-        emit dataChanged(idx, idx, roles);
-    }
-    // Links the model to the live list in SalesViewController
-    auto setSourceData(const QList<StagedItem>* source) -> void;
-
-    // Required overrides
-    [[nodiscard]] auto rowCount(const QModelIndex &parent = QModelIndex()) const -> int override;
-    [[nodiscard]] auto data(const QModelIndex &index, int role = Qt::DisplayRole) const -> QVariant override;
+    // Model Overrides
+    [[nodiscard]] auto rowCount(const QModelIndex &parent) const -> int override;
+    [[nodiscard]] auto data(const QModelIndex &index, int role) const -> QVariant override;
     [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
 
-    auto addOrderItem(const QVariantMap& data) -> bool;
+    [[nodiscard]] auto count() const -> int {
+        return static_cast<int>(m_stagedItems.size());
+    }
+
+    [[nodiscard]] auto isEmpty() const -> bool {
+        return m_stagedItems.isEmpty();
+    }
+
+    // Data Manipulation (Moved from Controller)
+    void addItem(const Product &p);
+    auto removeItem(int index) -> bool;
+    auto updateQuantity(int index, double qty) -> bool;
+    void clear();
+
+    // Database Persistence
+    auto addOrderItem(const QString &orderId) -> bool;
+
+    // Getters for calculation
+    [[nodiscard]] auto stagedItems() const -> const QList<StagedItem>& { return m_stagedItems; }
+    [[nodiscard]] auto totalAmount() const -> double;
+
+signals:
+    void countChanged();
+    void totalChanged();
 
 private:
-    const QList<StagedItem>* m_stagedItems = nullptr;
+    QList<StagedItem> m_stagedItems;
+    double m_cachedTotal = 0.0;
+
+    // Helper to update the cache safely
+    void recalculateTotal();
 };
 
 #endif

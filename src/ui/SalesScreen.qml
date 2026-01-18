@@ -7,20 +7,16 @@ Rectangle {
     id: root
     color: "transparent"
 
-    // property MenuViewController _salesModel: null
-    property string currentOrderId: ""
-    property string currentCategory: "All"
+    SalesViewController {
+        id: _salesModel
+        onOrderChanged: {
+                console.log("UI DEBUG: Total Amount updated to:", totalAmount)
+            }
 
-    // Tax Logic (Matching PaymentDialog 16% VAT)
-    readonly property double totalVal: {
-        if (!_salesModel || !_salesModel.totalFormatted) return 0.0;
-        let clean = _salesModel.totalFormatted.replace(/[^0-9.]/g, '');
-        return parseFloat(clean) || 0.0;
+            onItemCountChanged: {
+                console.log("UI DEBUG: Item count is now:", itemCount)
+            }
     }
-    readonly property double subTotal: totalVal / 1.16
-    readonly property double taxAmount: totalVal - subTotal
-
-    SalesViewController { id: _salesModel }
     ProductViewController { id: _productModel}
 
 
@@ -192,24 +188,14 @@ Rectangle {
             SplitView.minimumWidth: 300
             color: window.theme.sidePanelBg
             border.color: window.theme.border
-            // Dim the content slightly when busy
-            opacity: (_salesModel && _salesModel.isBusy) ? 0.5 : 1.0
-            enabled: !_salesModel || !_salesModel.isBusy
-
-            BusyIndicator {
-                id: loadingIcon
-                anchors.centerIn: parent
-                z: 10 // Ensure it sits above the list
-                running: _salesModel ? _salesModel.isBusy : false
-                visible: running
-            }
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 15
                 spacing: 10
-
-
+                // Dim the content slightly when busy
+                opacity: (_salesModel && _salesModel.isBusy) ? 0.5 : 1.0
+                enabled: !_salesModel || !_salesModel.isBusy
 
                 Text {
                     text: "Current Order"
@@ -324,41 +310,62 @@ Rectangle {
                     Layout.fillWidth: true
                     spacing: 8
 
+
+                    // Read values from the controller for cleaner calculations
+                    readonly property double currentTotal: _salesModel.totalAmount
+                    // Net = Total / 1.16 (assuming 16% VAT is inclusive)
+                    readonly property double netAmount: currentTotal / 1.16
+                    readonly property double taxValue: currentTotal - netAmount
+
                     Rectangle { Layout.fillWidth: true; height: 1; color: window.theme.border; opacity: 0.5 }
 
                     RowLayout {
                         Text { text: "Sub-total"; color: window.theme.textSecondary; font.pixelSize: 13 }
                         Item { Layout.fillWidth: true }
-                        Text { text: root.subTotal ? (root.subTotal.toFixed(2) + " Ksh.") : "--.-- "; color: window.theme.textSecondary; font.pixelSize: 13 }
+                        Text {
+                            text: _salesModel.itemCount > 0 ? netAmount.toFixed(2) + " Ksh." : "--.--"
+                            color: window.theme.textSecondary;
+                            font.pixelSize: 13
+                        }
                     }
 
                     RowLayout {
                         Text { text: "Tax (16%)"; color: window.theme.textSecondary; font.pixelSize: 13 }
                         Item { Layout.fillWidth: true }
-                        Text { text: root.taxAmount ? root.taxAmount.toFixed(2) + " Ksh." : "--.-- "; color: window.theme.textSecondary; font.pixelSize: 13 }
+                        Text {
+                            text: _salesModel.itemCount > 0 ? taxValue.toFixed(2) + " Ksh." : "--.--"
+                            color: window.theme.textSecondary;
+                            font.pixelSize: 13
+                        }
                     }
 
                     RowLayout {
                         Layout.topMargin: 5
                         Text { text: "Total Amount"; color: window.theme.textMain; font.bold: true; font.pixelSize: 18 }
                         Item { Layout.fillWidth: true }
-                        Text { text: (_salesModel && _salesModel.itemCount > 0 ? _salesModel.totalFormatted + " Ksh." : "--.--") ;
-                            color: window.theme.success; font.bold: true; font.pixelSize: 20 }
+                        Text {
+                            text: _salesModel.itemCount > 0 ? _salesModel.totalFormatted + " Ksh." : "--.--"
+                            color: window.theme.success;
+                            font.bold: true;
+                            font.pixelSize: 20
+                        }
                     }
                 }
-
                 // --- Action Buttons ---
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 10
                     Layout.topMargin: 5
 
+                    // PLACE ORDER BUTTON
                     Button {
                         id: orderButton
                         text: "PLACE ORDER"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
-                        enabled: _salesModel !== null && _salesModel.itemCount > 0
+
+                        // Disable if busy, if model is null, or if cart is empty
+                        enabled: !!_salesModel && !_salesModel.isBusy && _salesModel.itemCount > 0
 
                         contentItem: Text {
                             text: orderButton.text
@@ -371,7 +378,10 @@ Rectangle {
                         background: Rectangle {
                             color: orderButton.enabled ? window.theme.success : "#34495e"
                             radius: 6
+                            // Subtle visual feedback for press
+                            opacity: orderButton.pressed ? 0.8 : 1.0
                         }
+
                         onClicked: {
                             if (_salesModel.makeOrder()) {
                                 paymentLoader.active = true
@@ -380,12 +390,13 @@ Rectangle {
                         }
                     }
 
+                    // CANCEL ORDER BUTTON
                     Button {
                         id: clearButton
                         text: "CANCEL ORDER"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
-                        enabled: _salesModel !== null && _salesModel.itemCount > 0
+                        enabled: !!_salesModel && !_salesModel.isBusy && _salesModel.itemCount > 0
 
                         contentItem: Text {
                             text: clearButton.text
@@ -398,13 +409,31 @@ Rectangle {
                         background: Rectangle {
                             color: "transparent"
                             border.color: window.theme.danger
+                            border.width: 1
                             radius: 6
+                            // Fade out the border when disabled
                             opacity: clearButton.enabled ? 1.0 : 0.3
                         }
+
                         onClicked: _salesModel.clearOrder()
                     }
                 }
             }
+            // Overlay Layer (BusyIndicator)
+                BusyIndicator {
+                    id: loadingIcon
+                    anchors.centerIn: parent
+                    z: 10
+                    // Use optional chaining or a simple check to prevent errors if _salesModel is null
+                    running: !!_salesModel && _salesModel.isBusy
+                    visible: running
+
+                    // Optional: Add a smooth fade-in animation for the indicator
+                    OpacityAnimator on opacity {
+                        from: 0; to: 1; duration: 200
+                        running: loadingIcon.visible
+                    }
+                }
         }
     }
 }
