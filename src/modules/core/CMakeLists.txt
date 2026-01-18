@@ -27,6 +27,8 @@ add_library(PosCoreDatabase
     salesmodel.h salesmodel.cpp
     productcompositionmodel.h productcompositionmodel.cpp
     lookupmodel.h
+    ordermodel.h ordermodel.cpp
+    orderitemmodel.h orderitemmodel.cpp
 
 )
 # Use relative paths to the project root
