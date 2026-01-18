@@ -103,25 +103,40 @@ auto OrderItemModel::addOrderItem(const QVariantMap &data) -> bool {
     query.bindValue(":price", data.value("unit_price").toDouble());
 
     bool ok = query.exec();
-    if(ok) select();
+
+    if(ok) {
+        select();
+    }
     return ok;
 }
 
 auto OrderItemModel::updateOrderItem(const QVariantMap &data) -> bool {
     QString id = data.value("id").toString();
-    if (id.isEmpty()) return false;
+    if (id.isEmpty()){
+        return false;
+    }
 
     QSqlQuery query(database());
     QStringList updates;
-    if (data.contains("quantity"))      updates << "quantity = :q";
-    if (data.contains("service_state")) updates << "service_state = :s";
+    if (data.contains("quantity")){
+        updates << "quantity = :q";
+    }
+    if (data.contains("service_state")){
+        updates << "service_state = :s";
+    }
 
-    if (updates.isEmpty()) return false;
+    if (updates.isEmpty()){
+        return false;
+    }
 
     query.prepare(QString("UPDATE order_item SET %1 WHERE id = :id").arg(updates.join(", ")));
     query.bindValue(":id", id);
-    if (data.contains("quantity"))      query.bindValue(":q", data.value("quantity").toDouble());
-    if (data.contains("service_state")) query.bindValue(":s", data.value("service_state").toString());
+    if (data.contains("quantity")){
+        query.bindValue(":q", data.value("quantity").toDouble());
+    }
+    if (data.contains("service_state")){
+        query.bindValue(":s", data.value("service_state").toString());
+    }
 
     if (!query.exec()) return false;
     select();

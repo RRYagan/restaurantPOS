@@ -92,18 +92,31 @@ auto OrderModel::updateOrder(const QVariantMap &data) -> bool {
     QSqlQuery query(database());
     // Flexible update: allows updating table, waiter, or status via one map
     QStringList updates;
-    if (data.contains("table_number")) updates << "table_number = :t";
-    if (data.contains("waiter_id"))    updates << "waiter_id = :w";
-    if (data.contains("order_status")) updates << "order_status = :s";
+    if (data.contains("table_number")) {
+        updates << "table_number = :t";
+    }
+    if (data.contains("waiter_id")){
+        updates << "waiter_id = :w";
+    }
+    if (data.contains("order_status")){
+        updates << "order_status = :s";
+    }
 
-    if (updates.isEmpty()) return false;
+    if (updates.isEmpty()){
+        return false;
+    }
 
     query.prepare(QString("UPDATE customer_order SET %1 WHERE id = :id").arg(updates.join(", ")));
     query.bindValue(":id", id);
-    if (data.contains("table_number")) query.bindValue(":t", data.value("table_number").toString());
-    if (data.contains("waiter_id"))    query.bindValue(":w", data.value("waiter_id").toString());
+    if (data.contains("table_number")){
+        query.bindValue(":t", data.value("table_number").toString());
+    }
+    if (data.contains("waiter_id")){
+        query.bindValue(":w", data.value("waiter_id").toString());
+
+    }
     if (data.contains("order_status")) {
-        // Handle both raw string or enum-based status
+        /* Handle both raw string or enum-based status */
         query.bindValue(":s", data.value("order_status").toString());
     }
 
