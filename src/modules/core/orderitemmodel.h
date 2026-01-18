@@ -1,8 +1,6 @@
 #ifndef ORDERITEMMODEL_H
 #define ORDERITEMMODEL_H
 
-#include "ordermodel.h"
-
 #include <QSqlTableModel>
 #include <QSqlDatabase>
 #include <QVariantMap>
@@ -16,7 +14,23 @@ struct OrderItem {
     double unitPrice;
     QString serviceState;
     /* Helper calculation */
-    auto total() const -> double { return quantity * unitPrice; }
+    [[nodiscard]] auto total() const -> double { return quantity * unitPrice; }
+};
+
+
+struct ItemId { QString value; };
+enum class ServiceStateValue : std::uint8_t { Ordered, Preparing, Served };
+
+struct ServiceState {
+    ServiceStateValue value;
+    [[nodiscard]] auto toString() const -> QString {
+        switch (value) {
+        case ServiceStateValue::Ordered:   return "ordered";
+        case ServiceStateValue::Preparing: return "preparing";
+        case ServiceStateValue::Served:    return "served";
+        }
+        return "ordered";
+    }
 };
 
 class OrderItemModel : public QSqlTableModel {
@@ -53,11 +67,9 @@ public:
     auto setData(const QModelIndex& index, const QVariant& value, int role) -> bool override;
 
     /* --- CRUD --- */
-    /* Returns true if successful */
-    auto addItem(const QString& orderId, const QString& productId, double quantity, double unitPrice) -> bool;
-
-    auto updateQuantity(const QString& itemId, double quantity) -> bool;
-    auto updateServiceState(const OrderId& itemId, const ServiceState& state) -> bool;
+    /* Expects: { "order_id": str, "product_id": str, "quantity": real, "unit_price": real } */
+    auto addOrderItem(const QVariantMap &data) -> bool;
+    auto updateOrderItem(const QVariantMap &data) -> bool;
     auto removeItem(const QString& itemId) -> bool;
 
     /* --- HELPERS --- */

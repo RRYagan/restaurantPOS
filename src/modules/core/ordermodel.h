@@ -16,10 +16,19 @@ struct Order {
     QDateTime createdAt;
 };
 
-// ordermodel.h
 struct OrderId {
     QString value;
     explicit OrderId(QString v) : value(std::move(v)) {}
+};
+
+struct TableNumber {
+    QString value;
+    explicit TableNumber(QString v) : value(std::move(v)) {}
+};
+
+struct WaiterId {
+    QString value;
+    explicit WaiterId(QString v) : value(std::move(v)) {}
 };
 
 enum class OrderStatusValue: std::uint8_t {
@@ -28,11 +37,6 @@ enum class OrderStatusValue: std::uint8_t {
     Voided
 };
 
-enum class ServiceStateValue : std::uint8_t {
-    Ordered,
-    Preparing,
-    Served
-};
 
 struct OrderStatus {
     OrderStatusValue value;
@@ -55,34 +59,6 @@ struct OrderStatus {
     }
 };
 
-struct ServiceState {
-    ServiceStateValue value;
-
-    [[nodiscard]] auto toString() const -> QString {
-        switch (value) {
-        case ServiceStateValue::Ordered:   return "ordered";
-        case ServiceStateValue::Preparing: return "preparing";
-        case ServiceStateValue::Served:    return "served";
-        }
-        return "ordered";
-    }
-
-    static auto fromString(const QString& str) -> ServiceStateValue {
-        if (str == "preparing") return ServiceStateValue::Preparing;
-        if (str == "served")    return ServiceStateValue::Served;
-        return ServiceStateValue::Ordered;
-    }
-};
-
-struct TableNumber {
-    QString value;
-    explicit TableNumber(QString v) : value(std::move(v)) {}
-};
-
-struct WaiterId {
-    QString value;
-    explicit WaiterId(QString v) : value(std::move(v)) {}
-};
 
 
 class OrderModel : public QSqlTableModel {
@@ -105,18 +81,18 @@ public:
         CreatedAtRole
     };
 
-    // --- READ ---
+    /* --- READ --- */
     [[nodiscard]] auto data(const QModelIndex& index, int role) const -> QVariant override;
     [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
 
-    // --- WRITE ---
+    /* --- WRITE --- */
     auto setData(const QModelIndex& index, const QVariant& value, int role) -> bool override;
 
-    // --- CRUD ---
-    // Creates a new "open" order. Returns the new Order ID.
-    auto createOrder(const TableNumber& table, const WaiterId& waiter) -> QString;
-    // Updates status (e.g., to "closed" or "voided")
-    auto updateOrderStatus(const OrderId& orderId,const OrderStatus& status) -> bool;
+    /* --- CRUD --- */
+    /* Expects: { "table_number": string, "waiter_id": string } */
+    auto addOrder(const QVariantMap &data) -> QString;
+    /* Updates status (e.g., to "closed" or "voided") */
+    auto updateOrder(const QVariantMap &data) -> bool; /* Expects "id" and fields to change */
     auto removeOrder(const OrderId& orderId) -> bool;
     [[nodiscard]] auto orderAt(int row) const -> Order;
 
