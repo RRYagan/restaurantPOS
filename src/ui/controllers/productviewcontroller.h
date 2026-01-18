@@ -20,11 +20,15 @@ public:
     explicit ProductViewController(QObject* parent = nullptr);
 
     [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel; }
-    [[nodiscard]] auto compositionModel() const -> ProductCompositionModel* { return m_compositionModel; }
+    [[nodiscard]] auto compositionModel() const -> ProductCompositionModel*
+    {
+        return m_compositionModel;
+    }
 
-    [[nodiscard]] QString productId() const;
+    [[nodiscard]] auto productId() const -> QString;
     void setProductId(const QString& id);
 
+    /* QML Invokables: Trailing returns, [[nodiscard]] and auto not supported by moc */
     Q_INVOKABLE bool saveProduct(const QVariantMap& data);
     Q_INVOKABLE bool saveIngredient(const QVariantMap& data);
     Q_INVOKABLE bool removeProduct(const QString& productId);

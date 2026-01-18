@@ -9,7 +9,7 @@ auto ProductViewController::productId() const -> QString {
     return m_compositionModel->productId();
 }
 
-void ProductViewController::setProductId(const QString& id) {
+auto ProductViewController::setProductId(const QString& id) -> void {
     if (m_compositionModel->productId() != id) {
         m_compositionModel->setProductId(id);
         emit productIdChanged();
@@ -47,6 +47,6 @@ auto ProductViewController::removeIngredient(const QString& id) -> bool {
     return m_compositionModel->removeIngredient(id);
 }
 
-void ProductViewController::setCurrentProduct(const QString& productId) {
+auto ProductViewController::setCurrentProduct(const QString& productId) -> void {
     m_compositionModel->setProductId(productId);
 }

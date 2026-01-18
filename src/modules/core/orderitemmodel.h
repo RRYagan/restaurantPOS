@@ -28,7 +28,7 @@ public:
 
     explicit OrderItemModel(QObject *parent = nullptr);
 
-    // Model Overrides
+    /* Model Overrides */
     [[nodiscard]] auto rowCount(const QModelIndex &parent) const -> int override;
     [[nodiscard]] auto data(const QModelIndex &index, int role) const -> QVariant override;
     [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
@@ -41,16 +41,15 @@ public:
         return m_stagedItems.isEmpty();
     }
 
-    // Data Manipulation (Moved from Controller)
     void addItem(const Product &p);
     auto removeItem(int index) -> bool;
     auto updateQuantity(int index, double qty) -> bool;
     void clear();
 
-    // Database Persistence
+    /* Database Persistence */
     auto addOrderItem(const QString &orderId) -> bool;
 
-    // Getters for calculation
+    /* Getters for calculation */
     [[nodiscard]] auto stagedItems() const -> const QList<StagedItem>& { return m_stagedItems; }
     [[nodiscard]] auto totalAmount() const -> double;
 
@@ -62,7 +61,7 @@ private:
     QList<StagedItem> m_stagedItems;
     double m_cachedTotal = 0.0;
 
-    // Helper to update the cache safely
+    /* Helper to update the cache safely */
     void recalculateTotal();
 };
 

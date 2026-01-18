@@ -53,8 +53,6 @@ void OrderItemModel::addItem(const Product &p) {
         endInsertRows();
         emit countChanged();
     }
-
-    // ENSURE this is called outside the if/else to catch both cases
     recalculateTotal();
 }
 

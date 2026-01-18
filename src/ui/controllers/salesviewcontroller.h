@@ -25,32 +25,30 @@ class SalesViewController : public QObject {
 public:
     explicit SalesViewController(QObject* parent = nullptr);
 
-    // Getters for QML properties
+    /* Getters for QML properties */
     [[nodiscard]] auto orderModel() const -> OrderModel* { return m_orderModel; }
     [[nodiscard]] auto itemModel() const -> OrderItemModel* { return m_itemModel; }
     [[nodiscard]] auto currentOrderId() const -> QString { return m_currentOrderId; }
 
-    [[nodiscard]] bool isBusy() const { return m_isBusy; }
+    [[nodiscard]] auto isBusy() const -> bool { return m_isBusy; }
 
     [[nodiscard]] auto totalAmount() const -> double {
-        // Safety check: returns 0.0 if the model is null
+        /* Safety check: returns 0.0 if the model is null */
         return m_itemModel ? m_itemModel->totalAmount() : 0.0;
     }
-    [[nodiscard]] QString totalFormatted() const {
+    [[nodiscard]] auto totalFormatted() const -> QString {
         return QString::number(totalAmount(), 'f', 2);
     }
-    [[nodiscard]] int itemCount() const {
+    [[nodiscard]] auto itemCount() const -> int {
         return m_itemModel ? m_itemModel->count() : 0;
     }
 
-    // QML Invokables
+    /* QML Invokables: Trailing returns, [[nodiscard]] and auto not supported by moc */
     Q_INVOKABLE bool addItem(const QVariantMap& productData);
     Q_INVOKABLE bool removeItem(int index);
     Q_INVOKABLE bool updateQuantity(int index, double qty);
     Q_INVOKABLE void clearOrder();
-
-
-    // Transaction Management
+    /* Transaction Management */
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE bool finalizeSale(const QVariantMap& paymentData);
 
