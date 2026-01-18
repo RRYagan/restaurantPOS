@@ -90,7 +90,7 @@ public:
 
     /* --- CRUD --- */
     /* Expects: { "table_number": string, "waiter_id": string } */
-    auto addOrder(const QVariantMap &data) -> QString;
+    auto addOrder(const QVariantMap &data) -> bool;
     /* Updates status (e.g., to "closed" or "voided") */
     auto updateOrder(const QVariantMap &data) -> bool; /* Expects "id" and fields to change */
     auto removeOrder(const OrderId& orderId) -> bool;

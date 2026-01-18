@@ -16,14 +16,9 @@ public:
     explicit InventoryViewController(QObject *parent = nullptr);
 
     [[nodiscard]] auto inventoryModel() const -> InventoryModel* { return m_inventoryModel; }
-
-
-    // Logic now uses the local m_inventoryId variable
     [[nodiscard]] auto inventoryId() const -> QString;
     void setInventoryId(const QString& id);
 
-
-    // Updated: Now accepts a QVariantMap 'data'
     Q_INVOKABLE bool addStock(const QVariantMap &data);
     Q_INVOKABLE bool updateStock(const QVariantMap &data);
     Q_INVOKABLE bool deleteStock(const QString &id);
@@ -35,7 +30,7 @@ signals:
 
 private:
     InventoryModel* m_inventoryModel = nullptr;
-    QString m_inventoryId; // Added this to store the state
+    QString m_inventoryId; /* Added this to store the state */
 };
 
 #endif

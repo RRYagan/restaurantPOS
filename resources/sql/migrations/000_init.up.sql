@@ -174,23 +174,26 @@ CREATE TABLE IF NOT EXISTS order_item (
     quantity REAL NOT NULL,
     unit_price REAL NOT NULL, -- Snapshot of price at time of order
     service_state TEXT CHECK(service_state IN ('ordered', 'preparing', 'served')) DEFAULT 'ordered',
-    FOREIGN KEY (order_id) REFERENCES customer_order(id),
+
+    FOREIGN KEY (order_id) REFERENCES customer_order(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES product(id)
 );
 
 
 CREATE TABLE IF NOT EXISTS sale (
     id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT,
+    order_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
     sale_transaction_date TEXT NOT NULL,
     net_amount REAL NOT NULL, -- total - tax(value of item)
     gross_amount REAL NOT NULL, -- sub-total + surcharge (before tax)
     tax_amount REAL NOT NULL,
     total_amount REAL NOT NULL, -- gross + tax 
     kra_receipt_number TEXT UNIQUE,
-    kra_digital_signature TEXT,
+    kra_digital_signature TEXT ,
     payment_method_id INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES customer_order(id),
     FOREIGN KEY (user_id) REFERENCES tbl_user(id)
     FOREIGN KEY (payment_method_id) REFERENCES payment_method(id)
     

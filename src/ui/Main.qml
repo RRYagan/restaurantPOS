@@ -56,6 +56,7 @@ ApplicationWindow {
         id: globalProductModel
     }
     // SalesView { id: globalCartModel }
+
     // OrdersView { id: globalOrdersModel }
     // OrderDetailView { id: globalOrderDetailModel }
     // UserView { id: globalUserModel }

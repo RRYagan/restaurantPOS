@@ -16,6 +16,7 @@ qt_add_qml_module(POS_UI
        payment/paymentcontroller.h payment/paymentcontroller.cpp
        controllers/productviewcontroller.h controllers/productviewcontroller.cpp
        # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
+       controllers/salesviewcontroller.h controllers/salesviewcontroller.cpp
 
     QML_FILES
         OrdersScreen.qml
@@ -40,6 +41,7 @@ qt_add_qml_module(POS_UI
 
         # sales
         sales/ModifierDialog.qml
+
 
         UserManagement.qml
         LoginScreen.qml

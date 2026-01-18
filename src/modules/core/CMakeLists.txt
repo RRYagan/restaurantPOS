@@ -64,6 +64,7 @@ target_link_libraries(PosCoreDatabase
 
     PRIVATE
         Qt6::Core
+        POS_UI
 )
 
 

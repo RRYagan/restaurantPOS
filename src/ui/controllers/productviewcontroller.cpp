@@ -5,7 +5,6 @@
 ProductViewController::ProductViewController(QObject* parent)
     : QObject(parent), m_productModel(new ProductModel(this)), m_compositionModel(new ProductCompositionModel(this)){}
 
-// Keep this in productviewcontroller.cpp
 auto ProductViewController::productId() const -> QString {
     return m_compositionModel->productId();
 }
@@ -20,7 +19,6 @@ void ProductViewController::setProductId(const QString& id) {
 auto ProductViewController::saveProduct(const QVariantMap& data) -> bool {
     int localFlag = data.value("localId", -1).toInt();
     QString id = data.value("id").toString();
-     // 6. Persistence Logic
     if (localFlag == -1 && id.isEmpty()) {
         return m_productModel->addProduct(data);
     } else {

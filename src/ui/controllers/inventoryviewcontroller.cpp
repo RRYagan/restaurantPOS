@@ -3,7 +3,9 @@
 #include <QSqlRecord>
 #include <QVariantMap>
 
-InventoryViewController::InventoryViewController(QObject *parent) : QObject(parent), m_inventoryModel(new InventoryModel(this)) {
+InventoryViewController::InventoryViewController(QObject *parent) :
+    QObject(parent),
+    m_inventoryModel(new InventoryModel(this)) {
     refresh();
 }
 
@@ -21,15 +23,14 @@ void InventoryViewController::setInventoryId(const QString& id) {
 
 void InventoryViewController::refresh() {
     if (m_inventoryModel) {
-        m_inventoryModel->select(); // This re-runs the SQL SELECT query
+        m_inventoryModel->select(); /* This re-runs the SQL SELECT query */
     }
 }
 
-// Updated: Now accepts a QVariantMap 'data'
 auto InventoryViewController::addStock(const QVariantMap &data) -> bool {
     if (!m_inventoryModel) return false;
 
-    // We pass the map directly to the model's createItem
+    /* We pass the map directly to the model's createItem */
     if (m_inventoryModel->createItem(data)) {
         refresh();
         return true;
@@ -38,11 +39,10 @@ auto InventoryViewController::addStock(const QVariantMap &data) -> bool {
     return false;
 }
 
-// Updated: Now accepts a QVariantMap 'data'
 auto InventoryViewController::updateStock(const QVariantMap &data) -> bool {
     if (!m_inventoryModel) return false;
 
-    // Ensure the ID is present in the map before sending to model
+    /* Ensure the ID is present in the map before sending to model */
     if (data.contains("id") && m_inventoryModel->updateItem(data)) {
         refresh();
         return true;
@@ -54,7 +54,7 @@ auto InventoryViewController::updateStock(const QVariantMap &data) -> bool {
 auto InventoryViewController::deleteStock(const QString& id) -> bool {
     if (!m_inventoryModel) return false;
 
-    // Convert the variant ID to String to support your UUID schema
+    /* Convert the variant ID to String to support your UUID schema */
     if (m_inventoryModel->removeItem(id)) {
         refresh();
         return true;

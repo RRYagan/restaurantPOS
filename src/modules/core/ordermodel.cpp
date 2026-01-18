@@ -69,20 +69,20 @@ auto OrderModel::setData(const QModelIndex& index, const QVariant& value, int ro
     return false;
 }
 
-auto OrderModel::addOrder(const QVariantMap &data) -> QString {
-    QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+auto OrderModel::addOrder(const QVariantMap &data) -> bool {
+    // QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     QSqlQuery query(database());
     query.prepare("INSERT INTO customer_order (id, table_number, waiter_id) VALUES (:id, :t, :w)");
-    query.bindValue(":id", newId);
+    query.bindValue(":id", data.value("id").toString());
     query.bindValue(":t", data.value("table_number").toString());
     query.bindValue(":w", data.value("waiter_id").toString());
 
     if (!query.exec()) {
         qCritical() << "Add Order Error:" << query.lastError().text();
-        return {};
+        return false;
     }
     select();
-    return newId;
+    return true;
 }
 
 auto OrderModel::updateOrder(const QVariantMap &data) -> bool {

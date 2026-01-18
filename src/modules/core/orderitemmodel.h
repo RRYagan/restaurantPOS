@@ -1,88 +1,51 @@
 #ifndef ORDERITEMMODEL_H
 #define ORDERITEMMODEL_H
 
-#include <QSqlTableModel>
-#include <QSqlDatabase>
-#include <QVariantMap>
-#include <cstdint>
+#include <QAbstractListModel>
+#include <QList>
 
-struct OrderItem {
-    QString id;
-    QString orderId;
-    QString productId;
-    double quantity;
-    double unitPrice;
-    QString serviceState;
-    /* Helper calculation */
-    [[nodiscard]] auto total() const -> double { return quantity * unitPrice; }
-};
+// Forward declaration to avoid circular dependency
+struct StagedItem;
 
-
-struct ItemId { QString value; };
-enum class ServiceStateValue : std::uint8_t { Ordered, Preparing, Served };
-
-struct ServiceState {
-    ServiceStateValue value;
-    [[nodiscard]] auto toString() const -> QString {
-        switch (value) {
-        case ServiceStateValue::Ordered:   return "ordered";
-        case ServiceStateValue::Preparing: return "preparing";
-        case ServiceStateValue::Served:    return "served";
-        }
-        return "ordered";
-    }
-};
-
-class OrderItemModel : public QSqlTableModel {
+class OrderItemModel : public QAbstractListModel
+{
     Q_OBJECT
 
 public:
-    explicit OrderItemModel(QObject* parent = nullptr, const QSqlDatabase &db = QSqlDatabase());
-
-    ~OrderItemModel() override = default;
-    OrderItemModel(const OrderItemModel&) = delete;
-    auto operator=(const OrderItemModel&) -> OrderItemModel& = delete;
-    OrderItemModel(OrderItemModel&&) = delete;
-    auto operator=(OrderItemModel&&) -> OrderItemModel& = delete;
-
-    enum Roles : std::uint16_t {
-        IdRole = Qt::UserRole + 1,
-        OrderIdRole,
-        ProductIdRole,
+    enum OrderItemRoles {
+        NameRole = Qt::UserRole + 1,
         QuantityRole,
         UnitPriceRole,
-        ServiceStateRole,
-        RowTotalRole /* Computed role for UI convenience */
+        TotalPriceRole,
+        ModifiersRole,
+        ProductIdRole
     };
 
-    // --- CONFIGURATION ---
-    // Filters the model to show items only for this specific order
-    auto setOrderId(const QString& orderId) -> void;
+    explicit OrderItemModel(QObject *parent = nullptr);
 
-    /* --- READ --- */
-    [[nodiscard]] auto data(const QModelIndex& index, int role) const -> QVariant override;
+    // Public wrappers for protected methods
+    auto prepareForAddition(int row) -> void { beginInsertRows(QModelIndex(), row, row); }
+    auto finishAddition() -> void { endInsertRows(); }
+
+    auto prepareForRemoval(int row) -> void { beginRemoveRows(QModelIndex(), row, row); }
+    auto finishRemoval() -> void { endRemoveRows(); }
+
+    auto notifyRowChanged(int row, const QVector<int>& roles = {}) -> void {
+        auto idx = index(row, 0);
+        emit dataChanged(idx, idx, roles);
+    }
+    // Links the model to the live list in SalesViewController
+    auto setSourceData(const QList<StagedItem>* source) -> void;
+
+    // Required overrides
+    [[nodiscard]] auto rowCount(const QModelIndex &parent = QModelIndex()) const -> int override;
+    [[nodiscard]] auto data(const QModelIndex &index, int role = Qt::DisplayRole) const -> QVariant override;
     [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
 
-    /* --- WRITE --- */
-    auto setData(const QModelIndex& index, const QVariant& value, int role) -> bool override;
-
-    /* --- CRUD --- */
-    /* Expects: { "order_id": str, "product_id": str, "quantity": real, "unit_price": real } */
-    auto addOrderItem(const QVariantMap &data) -> bool;
-    auto updateOrderItem(const QVariantMap &data) -> bool;
-    auto removeItem(const QString& itemId) -> bool;
-
-    /* --- HELPERS --- */
-    [[nodiscard]] auto calculateOrderTotal() const -> double;
+    auto addOrderItem(const QVariantMap& data) -> bool;
 
 private:
-    QString m_currentOrderId;
-    int m_idCol = -1;
-    int m_orderIdCol = -1;
-    int m_productIdCol = -1;
-    int m_qtyCol = -1;
-    int m_priceCol = -1;
-    int m_stateCol = -1;
+    const QList<StagedItem>* m_stagedItems = nullptr;
 };
 
-#endif // ORDERITEMMODEL_H
+#endif
