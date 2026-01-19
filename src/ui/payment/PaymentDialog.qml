@@ -19,19 +19,12 @@ Dialog {
         radius: 12
     }
 
-    // property MenuViewController salesModel
+    // property MenuViewController _salesModel
     property PaymentController paymentCtrl
     property var currentUser: "Admin"
     // Place these at the top of PaymentDialog.qml
-    property double totalVal: {
-        if (!salesModel || !salesModel.totalFormatted) return 0.0;
-        // Remove commas and currency symbols if present
-        let clean = salesModel.totalFormatted.replace(/[^0-9.]/g, '');
-        return parseFloat(clean) || 0.0;
-    }
 
-    property double subTotal: totalVal / 1.16
-    property double taxVal: totalVal - subTotal
+
 
     StackView {
         id: paymentStack
@@ -74,13 +67,13 @@ Dialog {
                     columnSpacing: 50
 
                     Label { text: "Order ID:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: salesModel.currentOrderId; color: "white"; font.bold: true; font.pixelSize: 16 }
+                    Label { text: _salesModel.currentOrderId; color: "white"; font.bold: true; font.pixelSize: 16 }
 
                     Label { text: "Server:"; color: "#95a5a6"; font.pixelSize: 16 }
                     Label { text: currentUser; color: "white"; font.bold: true; font.pixelSize: 16 }
 
                     Label { text: "Items Count:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: salesModel.proxy ? salesModel.proxy.rowCount() : "0"; color: "white"; font.pixelSize: 16 }
+                    Label { text: _salesModel ? _salesModel.itemCount : "0"; color: "white"; font.pixelSize: 16 }
                 }
 
                 Item { Layout.fillHeight: true } // Spacer
@@ -93,7 +86,7 @@ Dialog {
                     Label { text: "Sub-Total"; color: "#95a5a6"; font.pixelSize: 16 }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: "KES " + root.subTotal.toLocaleString(Qt.locale("en_US"), "f", 2)
+                        text: "KES " + _salesModel.totalAmount
                         color: "white"; font.pixelSize: 16
                     }
                 }
@@ -101,10 +94,10 @@ Dialog {
                 // Tax Row
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: "VAT (16%)"; color: "#95a5a6"; font.pixelSize: 16 }
+                    Label { text: "VAT"; color: "#95a5a6"; font.pixelSize: 16 }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: "KES " + root.taxVal.toLocaleString(Qt.locale("en_US"), "f", 2)
+                        text: "KES " + _salesModel.totalTaxFormatted
                         color: "white"; font.pixelSize: 16
                     }
                 }
@@ -117,7 +110,7 @@ Dialog {
                     Label { text: "TOTAL "; color: "white"; font.pixelSize: 26; font.bold: true }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: salesModel.totalFormatted;
+                        text: _salesModel.totalFormatted;
                         color: "#2ecc71";
                         font.pixelSize: 32;
                         font.bold: true
@@ -162,7 +155,7 @@ Dialog {
                     text: "PAY LATER"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 70
-                    onClicked: { salesModel.clearOrder(); root.close(); }
+                    onClicked: { _salesModel.clearOrder(); root.close(); }
                 }
 
                 Item { Layout.fillHeight: true }
@@ -222,7 +215,7 @@ Dialog {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 80
                     onClicked: {
-                        paymentCtrl.amount = parseFloat(salesModel.totalFormatted.replace(/,/g, ''))
+                        paymentCtrl.amount = parseFloat(_salesModel.totalAmount)
                         paymentCtrl.startMpesaPayment("");
                         paymentStack.replace(mpesaPaymentView)
                     }
@@ -234,7 +227,7 @@ Dialog {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 80
                     onClicked: {
-                        paymentCtrl.amount = parseFloat(salesModel.totalFormatted.replace(/,/g, ''))
+                        paymentCtrl.amount = parseFloat(_salesModel.totalAmount);
                         paymentCtrl.startCashPayment()
                         paymentStack.replace(processingView)
                     }

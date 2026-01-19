@@ -171,12 +171,22 @@ CREATE TABLE IF NOT EXISTS order_item (
     id TEXT PRIMARY KEY NOT NULL,
     order_id TEXT NOT NULL,
     product_id TEXT NOT NULL,
+    
+    -- Transactional Data
     quantity REAL NOT NULL,
-    unit_price REAL NOT NULL, -- Snapshot of price at time of order
+    unit_price REAL NOT NULL,        -- Snapshot of price at time of order
+    
+    -- KRA / Tax Compliance Data (Snapshots)
+    kra_item_code TEXT,              -- From product.kra_item_code
+    tax_classification_code TEXT,    -- From product.tax_classification_code (A, B, C, E)
+    tax_percent REAL,                -- The rate at that moment (e.g., 16.0)
+    tax_amount REAL,                 -- Calculated: (unit_price * qty) * (tax_percent/100)
+    
     service_state TEXT CHECK(service_state IN ('ordered', 'preparing', 'served')) DEFAULT 'ordered',
 
     FOREIGN KEY (order_id) REFERENCES customer_order(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES product(id)
+    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (tax_classification_code) REFERENCES tax_classification(tax_type_code)
 );
 
 

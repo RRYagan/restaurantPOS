@@ -15,6 +15,7 @@ auto OrderItemModel::roleNames() const -> QHash<int, QByteArray> {
         {QuantityRole, "quantity"},
         {UnitPriceRole, "unitPrice"},
         {TotalPriceRole, "totalPrice"},
+        {TaxAmountRole, "taxAmount"},
         {ModifiersRole, "modifiers"},
         {ProductIdRole, "productId"}
     };
@@ -29,6 +30,7 @@ auto OrderItemModel::data(const QModelIndex &index, int role) const -> QVariant 
     case QuantityRole:  return item.quantity;
     case UnitPriceRole: return item.finalUnitPrice;
     case TotalPriceRole: return item.finalUnitPrice * item.quantity;
+    case TaxAmountRole:return item.taxAmountPerUnit * item.quantity;
     case ModifiersRole: return item.modifiersJson;
     case ProductIdRole: return item.product.id;
     default: return {};
@@ -45,11 +47,18 @@ void OrderItemModel::addItem(const Product &p) {
         it->quantity += 1.0;
         int row = static_cast<int>(std::distance(m_stagedItems.begin(), it));
         auto modelIndex = index(row, 0);
-        emit dataChanged(modelIndex, modelIndex, {QuantityRole, TotalPriceRole});
+        emit dataChanged(modelIndex, modelIndex, {QuantityRole, TotalPriceRole, TaxAmountRole});
     } else {
         int row = static_cast<int>(m_stagedItems.size());
         beginInsertRows(QModelIndex(), row, row);
-        m_stagedItems.append({p, 1.0, p.defaultSellingPrice, ""});
+        m_stagedItems.append({
+            p,
+            1.0,
+            p.defaultSellingPrice,
+            "",
+            p.taxClassificationCode,
+            p.taxAmount
+        });
         endInsertRows();
         emit countChanged();
     }
@@ -71,7 +80,7 @@ auto OrderItemModel::updateQuantity(int index, double qty) -> bool {
     if (index < 0 || index >= m_stagedItems.size()) return true;
     m_stagedItems[index].quantity = qty;
     auto idx = this->index(index, 0);
-    emit dataChanged(idx, idx, {QuantityRole, TotalPriceRole});
+    emit dataChanged(idx, idx, {QuantityRole, TotalPriceRole, TaxAmountRole});
     recalculateTotal();
     return true;
 }
@@ -86,35 +95,49 @@ void OrderItemModel::clear() {
     emit totalChanged();
 }
 
+auto OrderItemModel::totalTaxAmount() const -> double {
+    return m_cachedTaxTotal;
+}
 auto OrderItemModel::totalAmount() const -> double {
     return m_cachedTotal;
 }
+
 void OrderItemModel::recalculateTotal() {
     double tempTotal = 0.0;
+    double tempTax = 0.0;
+
     for (const auto &item : std::as_const(m_stagedItems)) {
         tempTotal += (item.finalUnitPrice * item.quantity);
+        // Correctly accumulate tax for all items in the list
+        tempTax += (item.taxAmountPerUnit * item.quantity);
     }
 
-    if (!qFuzzyCompare(m_cachedTotal, tempTotal)) {
-        m_cachedTotal = tempTotal;
-        // ADD THIS:
-        qDebug() << "OrderItemModel :: New Total Calculated:" << m_cachedTotal
-                 << " | Item Count:" << m_stagedItems.size();
+    bool totalChangedFlag = !qFuzzyCompare(m_cachedTotal, tempTotal);
+    bool taxChangedFlag = !qFuzzyCompare(m_cachedTaxTotal, tempTax);
 
+    if (totalChangedFlag || taxChangedFlag) {
+        m_cachedTotal = tempTotal;
+        m_cachedTaxTotal = tempTax;
+
+        qDebug() << "Totals Updated - Amount:" << m_cachedTotal << "Tax:" << m_cachedTaxTotal;
+
+        // This signal triggers the SalesViewController to notify QML
         emit totalChanged();
     }
 }
-auto OrderItemModel::addOrderItem(const QString &orderId) -> bool {
+
+auto OrderItemModel::submitOrderItem(const QString &orderId) -> bool {
     if (m_stagedItems.isEmpty()) return true;
 
     QSqlQuery query;
     query.prepare(R"(
-        INSERT INTO order_item (
-            id, order_id, product_id, quantity, unit_price, modifiers
-        ) VALUES (
-            :id, :oid, :pid, :qty, :price, :mods
-        )
-    )");
+    INSERT INTO order_item (
+        id, order_id, product_id, quantity, unit_price,
+        kra_item_code, tax_classification_code, tax_amount
+    ) VALUES (
+        :id, :oid, :pid, :qty, :price, :kcode, :tax_code, :tax_amt
+    )
+)");
 
     for (const auto &item : std::as_const(m_stagedItems)) {
         query.bindValue(":id", QUuid::createUuid().toString(QUuid::WithoutBraces));
@@ -122,7 +145,10 @@ auto OrderItemModel::addOrderItem(const QString &orderId) -> bool {
         query.bindValue(":pid", item.product.id);
         query.bindValue(":qty", item.quantity);
         query.bindValue(":price", item.finalUnitPrice);
-        query.bindValue(":mods", item.modifiersJson);
+        query.bindValue(":kcode", item.product.kraItemCode);
+        query.bindValue(":tax_code", item.product.taxClassificationCode);
+        query.bindValue(":tax_amt", item.taxAmountPerUnit * item.quantity);
+        // query.bindValue(":mods", item.modifiersJson);
 
         if (!query.exec()) {
             qCritical() << "Failed to insert order item:" << query.lastError().text();

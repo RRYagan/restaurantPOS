@@ -12,6 +12,8 @@ struct StagedItem {
     double quantity;
     double finalUnitPrice;
     QString modifiersJson;
+    QString taxClassificationCode;
+    double taxAmountPerUnit;
 };
 
 class OrderItemModel : public QAbstractListModel {
@@ -22,6 +24,7 @@ public:
         QuantityRole,
         UnitPriceRole,
         TotalPriceRole,
+        TaxAmountRole,
         ModifiersRole,
         ProductIdRole
     };
@@ -47,11 +50,12 @@ public:
     void clear();
 
     /* Database Persistence */
-    auto addOrderItem(const QString &orderId) -> bool;
+    auto submitOrderItem(const QString &orderId) -> bool;
 
     /* Getters for calculation */
     [[nodiscard]] auto stagedItems() const -> const QList<StagedItem>& { return m_stagedItems; }
     [[nodiscard]] auto totalAmount() const -> double;
+    [[nodiscard]] auto totalTaxAmount() const -> double;
 
 signals:
     void countChanged();
@@ -60,6 +64,7 @@ signals:
 private:
     QList<StagedItem> m_stagedItems;
     double m_cachedTotal = 0.0;
+    double m_cachedTaxTotal = 0.0;
 
     /* Helper to update the cache safely */
     void recalculateTotal();

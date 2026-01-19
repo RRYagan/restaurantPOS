@@ -56,33 +56,32 @@ auto SalesViewController::makeOrder() -> bool {
     if (m_itemModel->rowCount(QModelIndex()) == 0) return false;
     m_isBusy = true;
     emit isBusyChanged();
-
-    QSqlDatabase db = QSqlDatabase::database();
-    if (!db.transaction()) return false;
+    m_currentOrderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    // 2. Add all items from the OrderItemModel
+    if (!m_itemModel->submitOrderItem(m_currentOrderId)) {
+        // db.rollback();
+        return false;
+    }
+    /* emit order added successfully */
 
     // 1. Create the Parent Order
-    m_currentOrderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
     QVariantMap orderData;
     orderData.insert("id", m_currentOrderId);
     orderData.insert("order_status", "open");
+    orderData.insert("table_number", "1");
+    orderData.insert("waiter_id", "admi");
 
     if (!m_orderModel->addOrder(orderData)) {
-        db.rollback();
+        // db.rollback();
         return false;
     }
 
-    // 2. Add all items from the OrderItemModel
-    if (!m_itemModel->addOrderItem(m_currentOrderId)) {
-        db.rollback();
-        return false;
-    }
-
-    bool success = db.commit();
-    if (success) emit orderIdChanged();
+    emit orderIdChanged();
     m_isBusy = false;
     emit isBusyChanged();
 
-    return success;
+    return true;
 }
 
 auto SalesViewController::finalizeSale(const QVariantMap& paymentData) -> bool {

@@ -323,7 +323,7 @@ Rectangle {
                         Text { text: "Sub-total"; color: window.theme.textSecondary; font.pixelSize: 13 }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: _salesModel.itemCount > 0 ? netAmount.toFixed(2) + " Ksh." : "--.--"
+                            text: _salesModel.itemCount > 0 ? _salesModel.totalFormatted + " Ksh." : "--.--"
                             color: window.theme.textSecondary;
                             font.pixelSize: 13
                         }
@@ -333,7 +333,7 @@ Rectangle {
                         Text { text: "Tax (16%)"; color: window.theme.textSecondary; font.pixelSize: 13 }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: _salesModel.itemCount > 0 ? taxValue.toFixed(2) + " Ksh." : "--.--"
+                            text: _salesModel.itemCount > 0 ? _salesModel.totalTaxFormatted + " Ksh." : "--.--"
                             color: window.theme.textSecondary;
                             font.pixelSize: 13
                         }

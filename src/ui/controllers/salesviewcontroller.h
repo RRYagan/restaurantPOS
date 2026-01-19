@@ -21,6 +21,7 @@ class SalesViewController : public QObject {
     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY orderChanged)
     Q_PROPERTY(bool isBusy READ isBusy NOTIFY isBusyChanged)
     Q_PROPERTY(int itemCount READ itemCount NOTIFY itemCountChanged)
+    Q_PROPERTY(QString totalTaxFormatted READ totalTaxFormatted NOTIFY orderChanged)
 
 public:
     explicit SalesViewController(QObject* parent = nullptr);
@@ -38,6 +39,12 @@ public:
     }
     [[nodiscard]] auto totalFormatted() const -> QString {
         return QString::number(totalAmount(), 'f', 2);
+    }
+    [[nodiscard]] auto totalTaxAmount() const -> double {
+        return m_itemModel ? m_itemModel->totalTaxAmount() : 0.0;
+    }
+    [[nodiscard]] auto totalTaxFormatted() const -> QString {
+        return QString::number(totalTaxAmount(), 'f', 2);
     }
     [[nodiscard]] auto itemCount() const -> int {
         return m_itemModel ? m_itemModel->count() : 0;
