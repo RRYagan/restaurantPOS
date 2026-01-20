@@ -166,3 +166,17 @@ auto InventoryModel::removeItem(const QString& id) -> bool {
 
     return inventory_items;
 }
+
+[[nodiscard]] auto InventoryModel::getItemById(const QString& id) const -> InventoryItem {
+    for (int i = 0; i < rowCount(); ++i) {
+        // Access the ID column directly from the model data
+        QString currentId = index(i, m_idCol).data().toString();
+
+        if (currentId == id) {
+            return inventoryAt(i);
+        }
+    }
+
+    // Return an empty/default InventoryItem if not found
+    return {};
+}

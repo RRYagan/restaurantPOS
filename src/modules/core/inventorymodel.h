@@ -48,6 +48,7 @@ public:
     auto updateItem(const QVariantMap& data) -> bool;
     auto removeItem(const QString& id) -> bool;
 
+    [[nodiscard]] auto getItemById(const QString& id) const -> InventoryItem;
     [[nodiscard]] auto inventoryAt(int row) const -> InventoryItem;
     [[nodiscard]] auto allItems() -> QList<InventoryItem>;
 

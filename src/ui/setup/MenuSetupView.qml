@@ -378,21 +378,16 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Label { text: "Select Item"; font.pixelSize: 11; color: "#666" }
+
                                 ComboBox {
                                     id: ingSelector
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 45
                                     model: _inventoryModel.inventoryModel
                                     textRole: "name"
                                     valueRole: "id"
-                                    currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
-                                    displayText: currentIndex === -1 ? "Select Inventory Item..." : currentText
                                     onActivated: (index) => {
-                                                     let selectedId = valueAt(index)
-                                                     console.log("Linking Product to Inventory ID:", selectedId)
-                                                     // // If your model tracks the active ID, update it here
-                                                     // _inventoryModel.inventoryId = selectedId
-                                                 }
+                                        // This triggers the C++ setter, which emits inventoryIdChanged
+                                        _inventoryModel.inventoryId = valueAt(index)
+                                    }
                                 }
                             }
 
@@ -404,15 +399,25 @@ Item {
 
                             ColumnLayout {
                                 width: 120
-                                Label { text: "Unit"; font.pixelSize: 11; color: "#666" }
-                                ComboBox {
-                                    id: ingUnitCombo
-                                    Layout.fillWidth: true
-                                    model: _quantityUnitModel
-                                    textRole: "quantity_unit_code_name"
-                                    valueRole: "quantity_unit_code_name"
-                                    currentIndex: currentProduct ? findIndexByValue(model, currentProduct.unitId, "quantity_unit_code_name") : 0
+                                spacing: 4
+
+                                Label {
+                                    text: "Unit"
+                                    font.pixelSize: 11
+                                    color: "#666"
                                 }
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    visible: ingSelector.currentIndex !== -1
+
+                                    Text {
+                                        // Binds directly to the property we created in the View Controller
+                                        text: _inventoryModel.selectedUnitName
+                                        font.bold: true
+                                        color: "#2ecc71"
+                                    }
+                                }
+
                             }
 
                             Button {
@@ -421,16 +426,22 @@ Item {
                                 Layout.alignment: Qt.AlignBottom
                                 enabled: ingSelector.currentIndex >= 0 && ingQty.text.length > 0
                                 onClicked: {
-                                    // console.log("ing", )
+                                    // 1. Get the details map from the controller
+                                    let details = _inventoryModel.getInventoryDetails(ingSelector.currentValue);
+
+                                    // 2. Access the unit ID from that map
+                                    let selectedUnitId = details.quantityUnitId;
+
                                     _productModel.saveIngredient({
-                                                                     "productId": currentProduct.id,
-                                                                     "ingredientProductId": ingSelector.currentValue,
-                                                                     "quantity": parseFloat(ingQty.text) || 1,
-                                                                     "unitId": ingUnitCombo.currentValue
-                                                                 })
+                                        "productId": currentProduct.id,
+                                        "ingredientProductId": ingSelector.currentValue,
+                                        "quantity": parseFloat(ingQty.text) || 1,
+                                        "unitId": selectedUnitId
+                                    });
+
+                                    // Reset UI
                                     ingQty.text = "";
-                                    ingSelector.currentIndex = 0;
-                                    ingUnitCombo.currentIndex = 0;
+                                    ingSelector.currentIndex = -1;
                                 }
                             }
                         }

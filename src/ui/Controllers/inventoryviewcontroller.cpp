@@ -14,10 +14,10 @@ auto InventoryViewController::inventoryId() const -> QString{
 }
 
 void InventoryViewController::setInventoryId(const QString& id) {
-    qDebug() << "Controller: inventoryId changed from" << m_inventoryId << "to" << id;
-    if (m_inventoryModel->inventoryId() != id) {
+    if (m_inventoryId != id) {
+        m_inventoryId = id;
         m_inventoryModel->setInventoryId(id);
-        emit inventoryIdChanged();
+        emit inventoryIdChanged(); // This triggers QML to re-read 'selectedUnitName'
     }
 }
 
@@ -65,4 +65,15 @@ auto InventoryViewController::deleteStock(const QString& id) -> bool {
 
 void InventoryViewController::setCurrentInventoryProduct(const QString& id) {
     m_inventoryModel->setInventoryId(id);
+}
+
+QVariantMap InventoryViewController::getInventoryDetails(const QString& id) const {
+    // Call the method you created in the model
+    InventoryItem item = m_inventoryModel->getItemById(id);
+
+    QVariantMap map;
+    map["id"] = item.id;
+    map["quantityUnitId"] = item.quantityUnitId;
+    map["quantityAvailable"] = item.quantityAvailable;
+    return map;
 }
