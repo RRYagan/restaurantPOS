@@ -3,17 +3,7 @@
 
 #include <QString>
 #include <QDateTime>
-
-struct SaleRecord {
-    int id;
-    int userId;
-    QString saleDate; // YYYYMMDD
-    double grossAmount;
-    double taxAmount;
-    double netRevenue;
-    long long kraReceiptNumber;
-    QString kraSignature;
-};
+#include "types.h"
 
 class SalesModel {
 public:

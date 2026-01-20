@@ -3,16 +3,7 @@
 
 #include <QString>
 #include <QVariantList>
-
-struct User {
-    int id;
-    QString staffIdNumber;
-    QString fullName;
-    QString userRole;
-    QString loginUsername;
-    QString passwordHash;
-    bool isActive;
-};
+#include "types.h"
 
 class UserModel {
 public:

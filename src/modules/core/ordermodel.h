@@ -7,14 +7,8 @@
 #include <cstdint>
 #include <QDateTime>
 #include <cstdint>
+#include "types.h"
 
-struct Order {
-    QString id;
-    QString tableNumber;
-    QString waiterId;
-    QString orderStatus;
-    QDateTime createdAt;
-};
 
 struct OrderId {
     QString value;

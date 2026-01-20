@@ -6,15 +6,8 @@
 #include <QVariantMap>
 // #include "product.h"
 #include "productmodel.h"
+#include "types.h"
 
-struct StagedItem {
-    Product product;
-    double quantity;
-    double finalUnitPrice;
-    QString modifiersJson;
-    QString taxClassificationCode;
-    double taxAmountPerUnit;
-};
 
 class OrderItemModel : public QAbstractListModel {
     Q_OBJECT

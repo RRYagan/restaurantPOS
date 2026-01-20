@@ -5,15 +5,8 @@
 #include <QSqlDatabase>
 #include <QVariantMap>
 #include <cstdint>
+#include "types.h"
 
-struct ProductComposition {
-    QString id;
-    QString productId;
-    QString ingredientProductId;
-    QString unitId;
-    double quantity = 0.0;
-
-};
 
 class ProductCompositionModel : public QSqlTableModel {
     Q_OBJECT

@@ -5,20 +5,10 @@
 #include <QSqlDatabase>
 #include <QVariantMap>
 #include <cstdint>
+#include "types.h"
 
 // Assuming Product struct is defined here or included
-struct Product {
-    QString id;
-    QString kraItemCode;
-    QString internalProductName;
-    QString productCategoryId;
-    QString productTypeId;
-    QString currencyCode;
-    QString countryCode;
-    double defaultSellingPrice = 0.0;
-    QString taxClassificationCode;
-    double taxAmount = 0.0;
-};
+
 
 class ProductModel : public QSqlTableModel {
     Q_OBJECT

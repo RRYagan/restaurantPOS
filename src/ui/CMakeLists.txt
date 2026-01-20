@@ -11,12 +11,12 @@ qt_add_qml_module(POS_UI
        # controllers/orderdetailview.h controllers/orderdetailview.cpp
        # controllers/categoryview.h controllers/categoryview.cpp
        # controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
-       controllers/inventoryviewcontroller.h controllers/inventoryviewcontroller.cpp
+       Controllers/inventoryviewcontroller.h Controllers/inventoryviewcontroller.cpp
        # controllers/userview.h controllers/userview.cpp
-       payment/paymentcontroller.h payment/paymentcontroller.cpp
-       controllers/productviewcontroller.h controllers/productviewcontroller.cpp
+       Controllers/paymentcontroller.h Controllers/paymentcontroller.cpp
+       Controllers/productviewcontroller.h Controllers/productviewcontroller.cpp
        # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
-       controllers/salesviewcontroller.h controllers/salesviewcontroller.cpp
+       Controllers/salesviewcontroller.h Controllers/salesviewcontroller.cpp
 
     QML_FILES
         OrdersScreen.qml

@@ -7,19 +7,7 @@
 #include <QDateTime>
 #include <cstdint>
 #include <QDebug>
-
-struct InventoryItem {
-    // 1. IDs and Strings
-    QString id;
-    QString name;
-    QString packagingUnitId;
-    QString quantityUnitId;
-    double quantityPerPackage = 0.0;
-    double quantityAvailable = 0.0;
-    int32_t packagesAvailable = 0;
-    QDateTime createdAt;
-    QDateTime updatedAt;
-};
+#include "types.h"
 
 class InventoryModel : public QSqlTableModel {
     Q_OBJECT
