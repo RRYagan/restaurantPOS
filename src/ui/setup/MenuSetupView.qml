@@ -1,12 +1,19 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import POS.UI 1.0
 
 Item {
     id: menuSetupRoot
-    property var controller
     property bool isEditing: false
     property var currentProduct: null
+
+    ProductViewController {
+        id : _productModel
+    }
+    InventoryViewController {
+        id: _inventoryModel
+    }
 
     // Background for the entire page
     Rectangle {
@@ -70,7 +77,7 @@ Item {
                 id: productList
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                model: controller.productModel
+                model: _productModel.productModel
                 clip: true
                 spacing: 5
 
@@ -142,7 +149,7 @@ Item {
                     }
 
                     onClicked: {
-                        controller.productId = model.id
+                        _productModel.productId = model.id
                         // Map the QVariantMap to exactly match the Controller's saveProduct expectations
                         menuSetupRoot.currentProduct = {
                             "id": model.id,
@@ -247,7 +254,7 @@ Item {
                             model: _countryModel
                             textRole: "country_code"
                             valueRole: "country_code"
-                           currentIndex: currentProduct ? indexOfValue(currentProduct.countryCode) : indexOfValue("KE")
+                            currentIndex: currentProduct ? indexOfValue(currentProduct.countryCode) : indexOfValue("KE")
                         }
 
                         Label { text: "Product Type:"; font.bold: true }
@@ -265,7 +272,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 45
 
-                            // Connect to the model provided by your root or controller
+                            // Connect to the model provided by your root or _productModel
                             model: _productCategoryModel
 
                             // What the user sees
@@ -316,7 +323,7 @@ Item {
                             Layout.topMargin: 10
                             highlighted: true
                             onClicked: {
-                                // IMPORTANT: The keys here MUST match the controller's data.value("key")
+                                // IMPORTANT: The keys here MUST match the _productModel's data.value("key")
                                 let payload = {
                                     "localId": -1,
                                     "id": currentProduct ? currentProduct.id : "",
@@ -332,7 +339,7 @@ Item {
                                     "taxRate": textRate.rate
                                 }
 
-                                if (controller.saveProduct(payload)) {
+                                if (_productModel.saveProduct(payload)) {
                                     menuSetupRoot.isEditing = false
                                 } else {
                                     saveErrorAnim.start()
@@ -375,7 +382,7 @@ Item {
                                     id: ingSelector
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 45
-                                    model: menuSetupRoot.inventoryModel
+                                    model: _inventoryModel.inventoryModel
                                     textRole: "name"
                                     valueRole: "id"
                                     currentIndex: currentProduct ? indexOfValue(currentProduct.inventoryId) : -1
@@ -383,9 +390,8 @@ Item {
                                     onActivated: (index) => {
                                                      let selectedId = valueAt(index)
                                                      console.log("Linking Product to Inventory ID:", selectedId)
-
-                                                     // If your model tracks the active ID, update it here
-                                                     menuSetupRoot.inventoryModel.inventoryId = selectedId
+                                                     // // If your model tracks the active ID, update it here
+                                                     // _inventoryModel.inventoryId = selectedId
                                                  }
                                 }
                             }
@@ -416,12 +422,12 @@ Item {
                                 enabled: ingSelector.currentIndex >= 0 && ingQty.text.length > 0
                                 onClicked: {
                                     // console.log("ing", )
-                                    controller.saveIngredient({
-                                                                  "productId": currentProduct.id,
-                                                                  "ingredientProductId": ingSelector.currentValue,
-                                                                  "quantity": parseFloat(ingQty.text) || 1,
-                                                                  "unitId": ingUnitCombo.currentValue
-                                                              })
+                                    _productModel.saveIngredient({
+                                                                     "productId": currentProduct.id,
+                                                                     "ingredientProductId": ingSelector.currentValue,
+                                                                     "quantity": parseFloat(ingQty.text) || 1,
+                                                                     "unitId": ingUnitCombo.currentValue
+                                                                 })
                                     ingQty.text = "";
                                     ingSelector.currentIndex = 0;
                                     ingUnitCombo.currentIndex = 0;
@@ -436,7 +442,7 @@ Item {
                         spacing: 8
 
                         Repeater {
-                            model: controller.compositionModel
+                            model: _productModel.compositionModel
                             delegate: Rectangle {
                                 Layout.fillWidth: true
                                 height: 55
@@ -467,7 +473,7 @@ Item {
                                             font.bold: true; font.pixelSize: 14
                                         }
                                         Text {
-                                            text: "ID: " + model.ingredientId
+                                            text: "ID: " + model.ingredientProductId
                                             font.pixelSize: 11; color: "#9E9E9E"
                                         }
                                     }
@@ -481,7 +487,7 @@ Item {
                                             horizontalAlignment: Text.AlignHCenter
                                             verticalAlignment: Text.AlignVCenter
                                         }
-                                        onClicked: controller.removeIngredient(model.id)
+                                        onClicked: _productModel.removeIngredient(model.id)
                                     }
                                 }
                             }
@@ -490,7 +496,7 @@ Item {
                         // Placeholder if empty
                         Text {
                             text: "No ingredients added to this recipe yet."
-                            visible: controller.compositionModel.count === 0
+                            visible: _productModel.compositionModel.count === 0
                             Layout.alignment: Qt.AlignHCenter
                             Layout.topMargin: 20
                             color: "#999"

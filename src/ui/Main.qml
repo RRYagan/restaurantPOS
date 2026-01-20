@@ -125,23 +125,11 @@ ApplicationWindow {
                     clip: true
                     initialItem: salesView
 
-                    Component { id: salesView; SalesScreen {
-                            // salesModel: globalCartModel
-                        } }
-                    // Component { id: salesView; TestSales {} }
-                    Component { id: ordersView; OrdersScreen {
-                            // ordsModel: globalOrdersModel
-                        } }
-                    Component { id: orderDetailsView; OrderDetailsScreen {
-                            // detailsModel: globalOrderDetailModel
-                        } }
-                    Component { id: setupView; SetupScreen {
-                            controller: globalProductModel
-
-                        } }
-                    Component { id: userMgmtView; UserManagement {
-                            // staffModel: globalUserModel
-                        } }
+                    Component { id: salesView; SalesScreen {} }
+                    Component { id: ordersView; OrdersScreen {} }
+                    Component { id: orderDetailsView; OrderDetailsScreen {} }
+                    Component { id: setupView; SetupScreen {} }
+                    Component { id: userMgmtView; UserManagement {} }
                     Component {
                         id: inventoryMgmtView;
                         InventoryManagement {

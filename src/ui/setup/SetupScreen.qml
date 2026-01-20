@@ -52,10 +52,7 @@ Item {
                 onFloorPlanClicked: console.log("Floor plan nav")
             }
 
-            // Requirement 2: Menu setup to add product and ingredients
-            MenuSetupView {
-                controller: setupRoot.controller
-            }
+            MenuSetupView {}
         }
     }
 }
