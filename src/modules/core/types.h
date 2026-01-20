@@ -1,6 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include "money.h"
+
 #include <QDateTime>
 
 
@@ -12,9 +14,9 @@ struct Product {
     QString productTypeId;
     QString currencyCode;
     QString countryCode;
-    double defaultSellingPrice = 0.0;
+    Money defaultSellingPrice;
     QString taxClassificationCode;
-    double taxAmount = 0.0;
+    Money taxAmount;
 };
 
 struct ProductComposition {
@@ -51,10 +53,10 @@ struct Order {
 struct StagedItem {
     Product product;
     double quantity;
-    double finalUnitPrice;
+    Money finalUnitPrice;
     QString modifiersJson;
     QString taxClassificationCode;
-    double taxAmountPerUnit;
+    Money taxAmountPerUnit;
 };
 
 /*usermodel */
@@ -72,9 +74,9 @@ struct SaleRecord {
     int id;
     int userId;
     QString saleDate; // YYYYMMDD
-    double grossAmount;
-    double taxAmount;
-    double netRevenue;
+    Money grossAmount;
+    Money taxAmount;
+    Money netRevenue;
     long long kraReceiptNumber;
     QString kraSignature;
 };

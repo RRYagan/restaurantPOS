@@ -68,15 +68,14 @@ qt_add_qml_module(POS_UI
 
 
 
-target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")
-target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/controllers")
+# target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")
+target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Controllers")
 
 target_link_libraries(POS_UI
     PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
-        # PosCoreEntities
         PosCoreDatabase
         PosPayment
 )

@@ -1,4 +1,0 @@
-/home/kr/Documents/Plasteq/RestaurantPOS/pos/src/modules/core/build/Desktop_Qt_6_10_1-Debug/CMakeFiles/PosCoreEntities.dir
-/home/kr/Documents/Plasteq/RestaurantPOS/pos/src/modules/core/build/Desktop_Qt_6_10_1-Debug/CMakeFiles/PosCoreDatabase.dir
-/home/kr/Documents/Plasteq/RestaurantPOS/pos/src/modules/core/build/Desktop_Qt_6_10_1-Debug/CMakeFiles/edit_cache.dir
-/home/kr/Documents/Plasteq/RestaurantPOS/pos/src/modules/core/build/Desktop_Qt_6_10_1-Debug/CMakeFiles/rebuild_cache.dir

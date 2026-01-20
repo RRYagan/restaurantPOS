@@ -32,6 +32,7 @@ public:
         CurrencyRole,
         CountryOriginRole,
         PriceRole,
+        PriceFormattedRole,
         TaxRole,
         TaxAmountRole
     };
@@ -45,10 +46,11 @@ public:
 
     // --- CRUD METHODS ---
     auto addProduct(const QVariantMap &data) -> bool;
-    auto updateProduct(const QVariant &data) -> bool;
+    auto updateProduct(const QVariantMap &data) -> bool;
     auto removeProduct(const QString& productId) -> bool;
 
     [[nodiscard]] auto productAt(int row) const -> Product;
+    [[nodiscard]] Product getProductById(const QString &id) const;
     [[nodiscard]] auto getAllProducts() const -> QList<Product>;
 
 private:

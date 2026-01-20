@@ -17,15 +17,19 @@ auto ProductViewController::setProductId(const QString& id) -> void {
 }
 
 auto ProductViewController::saveProduct(const QVariantMap& data) -> bool {
-    int localFlag = data.value("localId", -1).toInt();
-    QString id = data.value("id").toString();
+    // Create a mutable copy of the data to modify prices
+    QVariantMap processedData = data;
+
+
+    int localFlag = processedData.value("localId", -1).toInt();
+    QString id = processedData.value("id").toString();
+
     if (localFlag == -1 && id.isEmpty()) {
-        return m_productModel->addProduct(data);
+        return m_productModel->addProduct(processedData);
     } else {
-        return m_productModel->updateProduct(data);
+        return m_productModel->updateProduct(processedData);
     }
 }
-
 auto ProductViewController::saveIngredient(const QVariantMap& data) -> bool {
     ProductComposition c;
     int localFlag = data.value("localId", -1).toInt();

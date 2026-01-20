@@ -47,8 +47,8 @@ public:
 
     /* Getters for calculation */
     [[nodiscard]] auto stagedItems() const -> const QList<StagedItem>& { return m_stagedItems; }
-    [[nodiscard]] auto totalAmount() const -> double;
-    [[nodiscard]] auto totalTaxAmount() const -> double;
+    [[nodiscard]] auto totalAmount() const -> Money;
+    [[nodiscard]] auto totalTaxAmount() const -> Money;
 
 signals:
     void countChanged();
@@ -56,8 +56,8 @@ signals:
 
 private:
     QList<StagedItem> m_stagedItems;
-    double m_cachedTotal = 0.0;
-    double m_cachedTaxTotal = 0.0;
+    Money m_cachedTotal;
+    Money m_cachedTaxTotal;
 
     /* Helper to update the cache safely */
     void recalculateTotal();

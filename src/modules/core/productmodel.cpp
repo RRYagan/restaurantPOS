@@ -39,6 +39,7 @@ auto ProductModel::roleNames() const -> QHash<int, QByteArray>
         { CurrencyRole, "currencyCode" },
         { CountryOriginRole, "countryCode" },
         { PriceRole, "defaultSellingPrice" },
+        {PriceFormattedRole, "priceFormatted"},
         { TaxRole, "taxClassificationCode" },
         { TaxAmountRole, "taxAmount" }
     };
@@ -53,17 +54,47 @@ auto ProductModel::roleNames() const -> QHash<int, QByteArray>
     const int row = index.row();
 
     switch (role) {
-    case IdRole:            return QSqlTableModel::data(this->index(row, m_idCol));
-    case KraCodeRole:       return QSqlTableModel::data(this->index(row, m_kraCol));
-    case NameRole:          return QSqlTableModel::data(this->index(row, m_nameCol));
-    case CategoryRole:      return QSqlTableModel::data(this->index(row, m_catCol));
-    case TypeRole:          return QSqlTableModel::data(this->index(row, m_typeCol));
-    case CurrencyRole:      return QSqlTableModel::data(this->index(row, m_currencyCol));
-    case CountryOriginRole: return QSqlTableModel::data(this->index(row, m_countryCol));
-    case PriceRole:         return QSqlTableModel::data(this->index(row, m_priceCol));
-    case TaxRole:           return QSqlTableModel::data(this->index(row, m_taxCol));
-    case TaxAmountRole:     return QSqlTableModel::data(this->index(row, m_taxAmtCol));
-    default:                return {};
+    case IdRole:            {
+        return QSqlTableModel::data(this->index(row, m_idCol));
+    }
+    case KraCodeRole:       {
+        return QSqlTableModel::data(this->index(row, m_kraCol));
+    }
+    case NameRole:          {
+        return QSqlTableModel::data(this->index(row, m_nameCol));
+    }
+    case CategoryRole:      {
+        return QSqlTableModel::data(this->index(row, m_catCol));
+    }
+    case TypeRole:          {
+        return QSqlTableModel::data(this->index(row, m_typeCol));
+
+    }
+    case CurrencyRole:      {
+        return QSqlTableModel::data(this->index(row, m_currencyCol));
+    }
+    case CountryOriginRole: {
+        return QSqlTableModel::data(this->index(row, m_countryCol));
+    }
+    case PriceRole:        {
+        qlonglong cents = QSqlTableModel::data(this->index(row, m_priceCol)).toLongLong();
+        return Money(cents).toKSH();
+    }
+    case PriceFormattedRole :        {
+        qlonglong cents = QSqlTableModel::data(this->index(row, m_priceCol)).toLongLong();
+        return Money(cents).toKSHString();
+    }
+    case TaxRole:           {
+        return QSqlTableModel::data(this->index(row, m_taxCol));
+    }
+    case TaxAmountRole:     {
+        qlonglong cents = QSqlTableModel::data(this->index(row, m_taxAmtCol)).toLongLong();
+        return Money(cents).toKSH();
+    }
+    default:                {
+        return QSqlTableModel::data(index, role);
+
+    }
     }
 }
 
@@ -98,9 +129,11 @@ auto ProductModel::addProduct(const QVariantMap &data) -> bool
 {
     QSqlQuery query(database());
 
-    double price = data.value("defaultSellingPrice").toDouble();
+    /* money in cents */
+    double ksh_value = data.value("defaultSellingPrice").toDouble();
+    Money price = Money::toCents(ksh_value);
     double taxRate = data.value("taxRate").toDouble();
-    double taxAmount = price * (taxRate / 100.0);
+    Money taxAmount = price * (taxRate / 100.0);
 
     query.prepare(R"(
         INSERT INTO product (
@@ -123,9 +156,9 @@ auto ProductModel::addProduct(const QVariantMap &data) -> bool
     query.bindValue(":p_type", data.value("productTypeId"));
     query.bindValue(":p_curr", data.value("currencyCode"));
     query.bindValue(":p_country", data.value("countryCode"));
-    query.bindValue(":p_price", price);
+    query.bindValue(":p_price", static_cast<qint64>(price.cents));
     query.bindValue(":p_taxcode", data.value("taxClassificationCode"));
-    query.bindValue(":p_taxamt", taxAmount);
+    query.bindValue(":p_taxamt", static_cast<qint64>(taxAmount.cents));
 
     if (!query.exec()) {
         qCritical() << "DB Insert Error:" << query.lastError().text();
@@ -136,14 +169,15 @@ auto ProductModel::addProduct(const QVariantMap &data) -> bool
     return true;
 }
 
-auto ProductModel::updateProduct(const QVariant &data) -> bool
+auto ProductModel::updateProduct(const QVariantMap &data) -> bool
 {
-    QVariantMap p = data.toMap();
+    // QVariantMap p = data.toMap();
     QSqlQuery query(database());
 
-    double price = p.value("defaultSellingPrice").toDouble();
-    double taxRate = p.value("taxRate").toDouble();
-    double taxAmount = price * (taxRate / 100.0);
+    /* money in cents */
+    Money price = Money::toCents(data.value("defaultSellingPrice").toDouble());
+    double taxRate = data.value("taxRate").toDouble();
+    Money taxAmount = price * (taxRate / 100.0);
 
     query.prepare(R"(
         UPDATE product SET
@@ -160,16 +194,16 @@ auto ProductModel::updateProduct(const QVariant &data) -> bool
         WHERE id = :id
     )");
 
-    query.bindValue(":id", p.value("id"));
-    query.bindValue(":kra", p.value("kraItemCode"));
-    query.bindValue(":name", p.value("internalProductName"));
-    query.bindValue(":cat", p.value("productCategoryId"));
-    query.bindValue(":type", p.value("productTypeId"));
-    query.bindValue(":curr", p.value("currencyCode"));
-    query.bindValue(":country", p.value("countryCode"));
-    query.bindValue(":price", price);
-    query.bindValue(":taxId", p.value("taxClassificationCode"));
-    query.bindValue(":taxAmt", taxAmount);
+    query.bindValue(":id", data.value("id"));
+    query.bindValue(":kra", data.value("kraItemCode"));
+    query.bindValue(":name", data.value("internalProductName"));
+    query.bindValue(":cat", data.value("productCategoryId"));
+    query.bindValue(":type", data.value("productTypeId"));
+    query.bindValue(":curr", data.value("currencyCode"));
+    query.bindValue(":country", data.value("countryCode"));
+    query.bindValue(":price", static_cast<qint64>(price.cents));
+    query.bindValue(":taxId", data.value("taxClassificationCode"));
+    query.bindValue(":taxAmt", static_cast<qint64>(taxAmount.cents));
 
     if (!query.exec()) {
         qCritical() << "DB Update Error:" << query.lastError().text();
@@ -205,10 +239,9 @@ auto ProductModel::removeProduct(const QString& productId) -> bool
     p.productTypeId          = rec.value(m_typeCol).toString();
     p.currencyCode          = rec.value(m_currencyCol).toString();
     p.countryCode           = rec.value(m_countryCol).toString();
-    p.defaultSellingPrice   = rec.value(m_priceCol).toDouble();
+    p.defaultSellingPrice   = Money(rec.value(m_priceCol).toLongLong());
     p.taxClassificationCode = rec.value(m_taxCol).toString();
-    p.taxAmount             = rec.value(m_taxAmtCol).toDouble();
-
+    p.taxAmount             = Money(rec.value(m_taxAmtCol).toLongLong());
     return p;
 }
 
@@ -220,4 +253,14 @@ auto ProductModel::removeProduct(const QString& productId) -> bool
         products.append(productAt(i));
     }
     return products;
+}
+Product ProductModel::getProductById(const QString &id) const {
+    for (int i = 0; i < rowCount(); ++i) {
+        // Use the cached column index for ID
+        if (record(i).value(m_idCol).toString() == id) {
+            return productAt(i); // Returns the full Product struct
+        }
+    }
+    qWarning() << "Product not found in model for ID:" << id;
+    return {};
 }

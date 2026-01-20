@@ -25,39 +25,53 @@ auto OrderItemModel::data(const QModelIndex &index, int role) const -> QVariant 
     if (!index.isValid() || index.row() >= m_stagedItems.size()) return {};
 
     const auto &item = m_stagedItems.at(index.row());
+    Money lineTotal = item.finalUnitPrice * item.quantity;
+    Money lineTaxAmount = item.taxAmountPerUnit * item.quantity;
+
     switch (role) {
-    case NameRole:      return item.product.internalProductName;
-    case QuantityRole:  return item.quantity;
-    case UnitPriceRole: return item.finalUnitPrice;
-    case TotalPriceRole: return item.finalUnitPrice * item.quantity;
-    case TaxAmountRole:return item.taxAmountPerUnit * item.quantity;
-    case ModifiersRole: return item.modifiersJson;
-    case ProductIdRole: return item.product.id;
-    default: return {};
+    case NameRole:      {
+        return item.product.internalProductName;
+    }
+    case QuantityRole:  {
+        return item.quantity;
+    }
+    case UnitPriceRole: {
+        return QVariant(static_cast<double>(item.finalUnitPrice.toKSH()));
+    }
+    case TotalPriceRole: {
+        return QVariant::fromValue(lineTotal.toKSH());
+    }
+    case TaxAmountRole: {
+        return QVariant(static_cast<double>(lineTaxAmount.toKSH()));
+    }
+    case ModifiersRole: {
+        return item.modifiersJson;
+    }
+    case ProductIdRole: {
+        return item.product.id;
+    }
+    default: {
+        return {};
+    }
     }
 }
 
 void OrderItemModel::addItem(const Product &p) {
+    // Check if item exists to increment quantity
     auto it = std::find_if(m_stagedItems.begin(), m_stagedItems.end(),
-                           [&p](const StagedItem &item) {
-                               return item.product.id == p.id;
-                           });
+                           [&](const StagedItem &item) { return item.product.id == p.id; });
 
     if (it != m_stagedItems.end()) {
         it->quantity += 1.0;
-        int row = static_cast<int>(std::distance(m_stagedItems.begin(), it));
-        auto modelIndex = index(row, 0);
-        emit dataChanged(modelIndex, modelIndex, {QuantityRole, TotalPriceRole, TaxAmountRole});
     } else {
-        int row = static_cast<int>(m_stagedItems.size());
-        beginInsertRows(QModelIndex(), row, row);
+        beginInsertRows(QModelIndex(), m_stagedItems.size(), m_stagedItems.size());
         m_stagedItems.append({
-            p,
-            1.0,
-            p.defaultSellingPrice,
-            "",
+            p,                      // Trusted Product data
+            1.0,                    // Quantity
+            p.defaultSellingPrice,  // Unit Price (Money)
+            "",                     // Modifiers
             p.taxClassificationCode,
-            p.taxAmount
+            p.taxAmount             // Tax (Money)
         });
         endInsertRows();
         emit countChanged();
@@ -90,36 +104,37 @@ void OrderItemModel::clear() {
     m_stagedItems.clear();
     endResetModel();
 
-    m_cachedTotal = 0.0;
+    m_cachedTotal = Money(0);
     emit countChanged();
     emit totalChanged();
 }
 
-auto OrderItemModel::totalTaxAmount() const -> double {
+auto OrderItemModel::totalTaxAmount() const -> Money {
     return m_cachedTaxTotal;
 }
-auto OrderItemModel::totalAmount() const -> double {
+auto OrderItemModel::totalAmount() const -> Money {
     return m_cachedTotal;
 }
 
 void OrderItemModel::recalculateTotal() {
-    double tempTotal = 0.0;
-    double tempTax = 0.0;
+    Money tempTotal(0);
+    Money tempTax(0);
 
     for (const auto &item : std::as_const(m_stagedItems)) {
-        tempTotal += (item.finalUnitPrice * item.quantity);
+        Money lineTotal = item.finalUnitPrice * item.quantity;
+        tempTotal = tempTotal + lineTotal;
         // Correctly accumulate tax for all items in the list
-        tempTax += (item.taxAmountPerUnit * item.quantity);
+        Money lineTaxTotal = item.taxAmountPerUnit * item.quantity;
+        tempTax = tempTax + lineTaxTotal;
     }
-
-    bool totalChangedFlag = !qFuzzyCompare(m_cachedTotal, tempTotal);
-    bool taxChangedFlag = !qFuzzyCompare(m_cachedTaxTotal, tempTax);
+    bool totalChangedFlag = (m_cachedTotal != tempTotal);
+    bool taxChangedFlag = (m_cachedTaxTotal != tempTax);
 
     if (totalChangedFlag || taxChangedFlag) {
         m_cachedTotal = tempTotal;
         m_cachedTaxTotal = tempTax;
 
-        qDebug() << "Totals Updated - Amount:" << m_cachedTotal << "Tax:" << m_cachedTaxTotal;
+        // qDebug() << "Totals Updated - Amount:" << m_cachedTotal << "Tax:" << m_cachedTaxTotal;
 
         // This signal triggers the SalesViewController to notify QML
         emit totalChanged();
@@ -144,10 +159,12 @@ auto OrderItemModel::submitOrderItem(const QString &orderId) -> bool {
         query.bindValue(":oid", orderId);
         query.bindValue(":pid", item.product.id);
         query.bindValue(":qty", item.quantity);
-        query.bindValue(":price", item.finalUnitPrice);
+        query.bindValue(":price", static_cast<qlonglong>(item.finalUnitPrice.cents));
         query.bindValue(":kcode", item.product.kraItemCode);
         query.bindValue(":tax_code", item.product.taxClassificationCode);
-        query.bindValue(":tax_amt", item.taxAmountPerUnit * item.quantity);
+
+        Money lineTaxTotal = item.taxAmountPerUnit * item.quantity;
+        query.bindValue(":tax_amt", static_cast<qlonglong>(lineTaxTotal.cents));
         // query.bindValue(":mods", item.modifiersJson);
 
         if (!query.exec()) {

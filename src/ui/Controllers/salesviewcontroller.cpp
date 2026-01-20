@@ -10,6 +10,7 @@ SalesViewController::SalesViewController(QObject* parent)
     : QObject(parent)
     , m_orderModel(new OrderModel(this))
     , m_itemModel(new OrderItemModel(this))
+    ,m_productModel(new ProductModel(this))
 {
     // When the model count changes, tell QML the itemCount property changed
     connect(m_itemModel, &OrderItemModel::countChanged,
@@ -18,20 +19,11 @@ SalesViewController::SalesViewController(QObject* parent)
     connect(m_itemModel, &OrderItemModel::totalChanged, this, &SalesViewController::orderChanged);
 }
 
-auto SalesViewController::mapToProduct(const QVariantMap& d) -> Product {
-    Product p;
-    p.id = d.value("id").toString();
-    p.kraItemCode = d.value("kraItemCode").toString();
-    p.internalProductName = d.value("internalProductName").toString();
+auto SalesViewController::addItem(const QString& productId) -> bool {
+    // 1. Fetch fresh, trusted data from the ProductModel/DB
+    Product p = m_productModel->getProductById(productId);
 
-    // Explicitly cast to avoid narrowing conversion warnings
-    p.defaultSellingPrice = static_cast<double>(d.value("price_cents").toLongLong()) / 100.0;
-    p.taxAmount = d.value("tax_amount").toDouble();
-    return p;
-}
-
-auto SalesViewController::addItem(const QVariantMap& productData) -> bool {
-    Product p = mapToProduct(productData);
+    if (p.id.isEmpty()) return false;
     m_itemModel->addItem(p);
     return true;
 }
@@ -84,49 +76,53 @@ auto SalesViewController::makeOrder() -> bool {
     return true;
 }
 
-auto SalesViewController::finalizeSale(const QVariantMap& paymentData) -> bool {
-    if (m_currentOrderId.isEmpty()) return false;
+// auto SalesViewController::finalizeSale(const QVariantMap& paymentData) -> bool {
+//     if (m_currentOrderId.isEmpty()) return false;
 
-    QSqlDatabase db = QSqlDatabase::database();
-    db.transaction();
+//     QSqlDatabase db = QSqlDatabase::database();
+//     db.transaction();
 
-    const double total = m_itemModel->totalAmount();
-    const double net = total / 1.16; // KRA 16% VAT Logic
+//     Money total = m_itemModel->totalAmount();
 
-    QSqlQuery sq;
-    sq.prepare(R"(
-        INSERT INTO sale (
-            id, order_id, sale_transaction_date, net_amount,
-            tax_amount, total_amount, payment_method_id
-        ) VALUES (
-            :id, :oid, :date, :net, :tax, :total, :pmid
-        )
-    )");
+//     qlonglong totalCents = total.cents;
+//     qlonglong net = total.cents;
+//     QSqlQuery sq;
+//     sq.bindValue(":total", totalCents);
+//     sq.bindValue(":net", net);
 
-    sq.bindValue(":id", QUuid::createUuid().toString(QUuid::WithoutBraces));
-    sq.bindValue(":oid", m_currentOrderId);
-    sq.bindValue(":date", QDateTime::currentDateTime().toString(Qt::ISODate));
-    sq.bindValue(":net", net);
-    sq.bindValue(":tax", total - net);
-    sq.bindValue(":total", total);
-    sq.bindValue(":pmid", paymentData.value("payment_method_id").toInt());
+//     sq.prepare(R"(
+//         INSERT INTO sale (
+//             id, order_id, sale_transaction_date, net_amount,
+//             tax_amount, total_amount, payment_method_id
+//         ) VALUES (
+//             :id, :oid, :date, :net, :tax, :total, :pmid
+//         )
+//     )");
 
-    if (!sq.exec()) {
-        qCritical() << "Finalize Sale Error:" << sq.lastError().text();
-        db.rollback();
-        return false;
-    }
+//     sq.bindValue(":id", QUuid::createUuid().toString(QUuid::WithoutBraces));
+//     sq.bindValue(":oid", m_currentOrderId);
+//     sq.bindValue(":date", QDateTime::currentDateTime().toString(Qt::ISODate));
+//     sq.bindValue(":net", net);
+//     sq.bindValue(":tax", total.cents);
+//     sq.bindValue(":total", total.cents);
+//     sq.bindValue(":pmid", paymentData.value("payment_method_id").toInt());
 
-    // Update Order Status to Closed
-    QSqlQuery uq;
-    uq.prepare(R"(UPDATE customer_order SET order_status = 'closed' WHERE id = :id)");
-    uq.bindValue(":id", m_currentOrderId);
+//     if (!sq.exec()) {
+//         qCritical() << "Finalize Sale Error:" << sq.lastError().text();
+//         db.rollback();
+//         return false;
+//     }
 
-    if (uq.exec() && db.commit()) {
-        clearOrder();
-        return true;
-    }
+//     // Update Order Status to Closed
+//     QSqlQuery uq;
+//     uq.prepare(R"(UPDATE customer_order SET order_status = 'closed' WHERE id = :id)");
+//     uq.bindValue(":id", m_currentOrderId);
 
-    db.rollback();
-    return false;
-}
+//     if (uq.exec() && db.commit()) {
+//         clearOrder();
+//         return true;
+//     }
+
+//     db.rollback();
+//     return false;
+// }

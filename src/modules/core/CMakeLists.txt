@@ -1,18 +1,18 @@
-# --- Core Entities Module ---
-add_library(PosCoreEntities
-    # menuitem.h
-    # order.h
-    # orderitem.h
-    table.h
-    money.h
-    usersession.h
-    inventoryitem.h
-    user.h
-    product.h
+# # --- Core Entities Module ---
+# add_library(PosCoreEntities
+#     # menuitem.h
+#     # order.h
+#     # orderitem.h
+#     table.h
+#     money.h
+#     usersession.h
+#     inventoryitem.h
+#     user.h
+#     product.h
 
-)
-target_include_directories(PosCoreEntities PUBLIC .)
-target_link_libraries(PosCoreEntities PUBLIC Qt6::Core)
+# )
+# target_include_directories(PosCoreEntities PUBLIC .)
+# target_link_libraries(PosCoreEntities PUBLIC Qt6::Core)
 
 # --- Database Module ---
 # This remains the single source of truth for database logic
@@ -30,6 +30,7 @@ add_library(PosCoreDatabase
     ordermodel.h ordermodel.cpp
     orderitemmodel.h orderitemmodel.cpp
     types.h
+    money.h
 
 )
 # Use relative paths to the project root
@@ -61,7 +62,6 @@ target_include_directories(PosCoreDatabase PUBLIC .) # Expose current dir for he
 target_link_libraries(PosCoreDatabase
     PUBLIC
         Qt6::Sql
-        # PosCoreEntities
 
     PRIVATE
         Qt6::Core

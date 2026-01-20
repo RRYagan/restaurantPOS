@@ -10,9 +10,9 @@ bool SalesModel::recordSale(const SaleRecord &sale) {
                   "VALUES (?, ?, ?, ?, ?, ?, ?)");
     query.addBindValue(sale.userId);
     query.addBindValue(sale.saleDate);
-    query.addBindValue(sale.grossAmount);
-    query.addBindValue(sale.taxAmount);
-    query.addBindValue(sale.netRevenue);
+    query.addBindValue(static_cast<qint64>(sale.grossAmount.cents));
+    query.addBindValue(static_cast<qint64>(sale.taxAmount.cents));
+    query.addBindValue(static_cast<qint64>(sale.netRevenue.cents));
     query.addBindValue(sale.kraReceiptNumber);
     query.addBindValue(sale.kraSignature);
 

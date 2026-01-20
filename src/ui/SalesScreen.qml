@@ -140,13 +140,13 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: _productModel.productModel
+                    model: _salesModel.productModel
                     cellWidth: 230
                     cellHeight: 230
 
                     delegate: Card {
                         itemName: model.internalProductName
-                        priceCents: model.defaultSellingPrice
+                        price: model.priceFormatted
                         width: grid.cellWidth - 30
                         height: grid.cellHeight - 30
                         onClicked: {
@@ -158,21 +158,7 @@ Rectangle {
                                 // THEN ACTIVATE
                                 modifierLoader.active = true;
                             } else {
-                                let payload = {
-                                    "id": model.id,
-                                    "kraItemCode": model.kraItemCode,
-                                    "internalProductName": model.internalProductName,
-                                    "productCategoryId": model.productCategoryId,
-                                    "productTypeId": model.productTypeId,
-                                    "currencyCode": model.currencyCode,
-                                    "countryCode": model.countryCode,
-                                    // Convert to cents if your C++ code uses toLongLong() / 100.0
-                                    "price_cents": model.defaultSellingPrice * 100,
-                                    "taxClassificationCode": model.taxClassificationCode,
-                                    "tax_amount": model.taxAmount
-                                };
-
-                                _salesModel.addItem(payload);
+                                _salesModel.addItem(model.id);
                             }
                         }
 

@@ -38,7 +38,6 @@ target_link_libraries(RestaurantPOS
         POS_UI
         POS_UIplugin
         PosCoreDatabase
-        PosCoreEntities
         PosPayment
 
 )

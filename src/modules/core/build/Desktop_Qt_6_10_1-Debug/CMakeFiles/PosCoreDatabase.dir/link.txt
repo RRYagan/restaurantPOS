@@ -1,2 +1,0 @@
-/bin/ar qc libPosCoreDatabase.a CMakeFiles/PosCoreDatabase.dir/databasemanager.o CMakeFiles/PosCoreDatabase.dir/universalfilterproxy.o CMakeFiles/PosCoreDatabase.dir/basemodel.o CMakeFiles/PosCoreDatabase.dir/menumodel.o CMakeFiles/PosCoreDatabase.dir/inventorymodel.o CMakeFiles/PosCoreDatabase.dir/usermodel.o CMakeFiles/PosCoreDatabase.dir/databaseseeder.o CMakeFiles/PosCoreDatabase.dir/ordermodel.o CMakeFiles/PosCoreDatabase.dir/categorymodel.o
-/bin/ranlib libPosCoreDatabase.a
