@@ -63,6 +63,11 @@ void OrderItemModel::addItem(const Product &p) {
 
     if (it != m_stagedItems.end()) {
         it->quantity += 1.0;
+        int row = static_cast<int>(std::distance(m_stagedItems.begin(), it));
+        auto idx = index(row, 0);
+        emit dataChanged(idx, idx, {QuantityRole, TotalPriceRole, TaxAmountRole});
+
+
     } else {
         beginInsertRows(QModelIndex(), m_stagedItems.size(), m_stagedItems.size());
         m_stagedItems.append({

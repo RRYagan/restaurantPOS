@@ -249,7 +249,7 @@ Rectangle {
                                     }
                                 }
                                 Text {
-                                    text: model.unitPrice.toFixed(2) + " Ksh."
+                                    text: model.totalPrice + " Ksh."
                                     color: window.theme.textSecondary
                                     font.pixelSize: 12
                                 }
