@@ -23,7 +23,9 @@ void InventoryViewController::setInventoryId(const QString& id) {
 
 void InventoryViewController::refresh() {
     if (m_inventoryModel) {
-        m_inventoryModel->select(); /* This re-runs the SQL SELECT query */
+        m_inventoryModel->refresh();
+
+        qDebug() << "Inventory refreshed. New row count:" << m_inventoryModel->rowCount();
     }
 }
 

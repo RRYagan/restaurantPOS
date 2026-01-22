@@ -67,7 +67,7 @@ Dialog {
                     columnSpacing: 50
 
                     Label { text: "Order ID:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: _salesModel.currentOrderId; color: "white"; font.bold: true; font.pixelSize: 16 }
+                    Label { text: _salesModel.orderModel.currentOrderId; color: "white"; font.bold: true; font.pixelSize: 16 }
 
                     Label { text: "Server:"; color: "#95a5a6"; font.pixelSize: 16 }
                     Label { text: currentUser; color: "white"; font.bold: true; font.pixelSize: 16 }
@@ -110,7 +110,7 @@ Dialog {
                     Label { text: "TOTAL "; color: "white"; font.pixelSize: 26; font.bold: true }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: _salesModel.totalFormatted;
+                        text: _salesModel.totalAmount;
                         color: "#2ecc71";
                         font.pixelSize: 32;
                         font.bold: true

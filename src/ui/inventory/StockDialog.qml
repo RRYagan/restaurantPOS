@@ -60,7 +60,7 @@ Dialog {
                     // Using IDs to match your quantityUnitId schema
                     model: _packagingUnitModel
                     textRole: "packaging_unit_code_name"
-                    valueRole: "packaging_unit_code"
+                    valueRole: "packaging_unit_code_name"
                     Layout.fillWidth: true
                 }
             }
@@ -101,7 +101,7 @@ Dialog {
                     // Using IDs to match your quantityUnitId schema
                     model: _quantityUnitModel
                     textRole: "quantity_unit_code_name"
-                    valueRole: "quantity_unit_code"
+                    valueRole: "quantity_unit_code_name"
                     Layout.fillWidth: true
                 }
             }
@@ -120,7 +120,7 @@ Dialog {
         var pkg_idx = pkgUnitField.indexOfValue(data.packagingUnitId)
         pkgUnitField.currentIndex = pkg_idx !== -1 ? pkg_idx : 0
 
-        qtyField.value = data.quantityAvailable
+        // qtyField.value = data.quantityAvailable
         // Find unit index by ID
         var idx = unitField.indexOfValue(data.quantityUnitId)
         unitField.currentIndex = idx !== -1 ? idx : 0

@@ -135,6 +135,18 @@ Rectangle {
                 }
             }
         }
+        Button {
+            text: "Refresh Stock"
+            icon.source: "qrc:/icons/refresh.svg"
+
+            // Call the function on the controller instance
+            onClicked: invModel.refresh()
+
+            // Optional: Add a subtle rotation animation when clicked
+            RotationAnimation on rotation {
+                from: 0; to: 360; duration: 500; running: false; id: refreshAnim
+            }
+        }
 
         ListView {
             id: invList
@@ -145,6 +157,7 @@ Rectangle {
             clip: true
             spacing: 12
 
+
             delegate: Rectangle {
                 width: invList.width
                 height: 70
@@ -152,6 +165,7 @@ Rectangle {
                 radius: 10
                 border.width: model.id === invModel.inventoryId ? 2 : 0
                 border.color: "#c0392b"
+
 
                 RowLayout {
                     anchors.fill: parent

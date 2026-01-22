@@ -51,6 +51,7 @@ public:
     [[nodiscard]] auto getItemById(const QString& id) const -> InventoryItem;
     [[nodiscard]] auto inventoryAt(int row) const -> InventoryItem;
     [[nodiscard]] auto allItems() -> QList<InventoryItem>;
+    void refresh();
 
 signals:
     auto inventoryIdChanged() -> void;

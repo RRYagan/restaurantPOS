@@ -1,198 +1,128 @@
-#include "salesview.h"
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QDebug>
-#include <QUuid>
-#include <order.h>
-#include <basemodel.h>
+// #include "salesviewcontroller.h"
+// #include <QSqlDatabase>
+// #include <QSqlQuery>
+// #include <QSqlError>
+// #include <QUuid>
+// #include <QDateTime>
+// #include <QDebug>
 
-SalesView::SalesView(QObject *parent) : QObject(parent) {
-    m_internalModel = new BaseModel(this);
-    m_proxy = new UniversalFilterProxy(this);
+// SalesViewController::SalesViewController(QObject* parent)
+//     : QObject(parent)
+//     , m_orderModel(new OrderModel(this))
+//     , m_itemModel(new OrderItemModel(this))
+//     ,m_productModel(new ProductModel(this))
+// {
+//     // When the model count changes, tell QML the itemCount property changed
+//     connect(m_itemModel, &OrderItemModel::countChanged,
+//             this, &SalesViewController::itemCountChanged);
+//     // Connect model signals to controller signals for QML property updates
+//     connect(m_itemModel, &OrderItemModel::totalChanged, this, &SalesViewController::orderChanged);
+// }
 
-    // Link: SalesView provides data -> BaseModel stores it -> Proxy filters it
-    m_internalModel->setDataProvider([this]() { return getSalesData(); });
-    m_proxy->setSourceModel(m_internalModel);
-}
-QVariantList SalesView::getSalesData() {
-    QVariantList list;
-    for (const auto& item : m_items) {
-        QVariantMap map;
-        map["id"] = item.id;
-        map["menuItemId"] = item.menuItemId;
-        map["name"] = item.name;
-        map["quantity"] = item.quantity;
-        map["price"] = QVariant::fromValue(item.price);
-        // --- ADD THIS SECTION TO FIX THE ISSUE ---
-        QVariantList modsList;
-        for (const auto& mod : item.selectModifiers) {
-            QVariantMap modMap;
-            modMap["name"] = mod.name;
-            // Ensure the key matches what you use in QML (price_cents)
-            modMap["price_cents"] = static_cast<qlonglong>(mod.extraPrice.cents);
-            modsList.append(modMap);
-        }
-        map["modifiers"] = modsList; // Map the list to the "modifiers" key used in QML
-        // ------------------------------------------
-        list.append(map);
-    }
-    return list;
-}
+// auto SalesViewController::addItem(const QString& productId) -> bool {
+//     // 1. Fetch fresh, trusted data from the ProductModel/DB
+//     Product p = m_productModel->getProductById(productId);
 
+//     if (p.id.isEmpty()) return false;
+//     m_itemModel->addItem(p);
+//     return true;
+// }
 
-// --- Cart Actions ---
+// auto SalesViewController::removeItem(int index) -> bool {
+//     m_itemModel->removeItem(index);
+//     return true;
+// }
 
-void SalesView::addItemToOrder(int menuItemId) {
-    // 1. Check if the item already exists in the cart
-    for (int i = 0; i < m_items.size(); i++) {
-        if (m_items[i].menuItemId == menuItemId) {
-            m_items[i].quantity += 1;
+// auto SalesViewController::updateQuantity(int index, double qty) -> bool {
+//     m_itemModel->updateQuantity(index, qty);
+//     return true;
+// }
 
-            // Tell the internal model to reload data from the updated m_items
-            m_internalModel->refresh();
-            calculateTotal();
-            return;
-        }
-    }
+// auto SalesViewController::clearOrder() -> void {
+//     m_itemModel->clear();
+//     m_currentOrderId.clear();
+//     emit orderIdChanged();
+// }
 
-    // 2. If not found, fetch item details from the database
-    QSqlQuery query;
-    query.prepare("SELECT name, base_price_cents FROM menu_items WHERE id = ?");
-    query.addBindValue(menuItemId);
+// auto SalesViewController::makeOrder() -> bool {
+//     if (m_itemModel->rowCount(QModelIndex()) == 0) return false;
+//     m_isBusy = true;
+//     emit isBusyChanged();
+//     m_currentOrderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+//     // 2. Add all items from the OrderItemModel
+//     if (!m_itemModel->submitOrderItem(m_currentOrderId)) {
+//         // db.rollback();
+//         return false;
+//     }
+//     /* emit order added successfully */
 
-    if (query.exec() && query.next()) {
-        OrderItem item;
-        item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        item.menuItemId = menuItemId;
-        item.name = query.value("name").toString();
-        item.quantity = 1;
-        item.price.cents = query.value("base_price_cents").toLongLong();
+//     // 1. Create the Parent Order
 
-        // Add to our local list
-        m_items.append(item);
+//     QVariantMap orderData;
+//     orderData.insert("id", m_currentOrderId);
+//     orderData.insert("order_status", "open");
+//     orderData.insert("table_number", "1");
+//     orderData.insert("waiter_id", "admi");
 
-        // 3. Refresh the model so the Proxy and QML see the new item
-        m_internalModel->refresh();
-        calculateTotal();
-    } else {
-        qDebug() << "Failed to find menu item with ID:" << menuItemId;
-    }
-}
-void SalesView::removeItem(int proxyIndex) {
-    QModelIndex pIdx = m_proxy->index(proxyIndex, 0);
-    QModelIndex sIdx = m_proxy->mapToSource(pIdx);
+//     if (!m_orderModel->addOrder(orderData)) {
+//         // db.rollback();
+//         return false;
+//     }
 
-    if (sIdx.isValid() && sIdx.row() < m_items.size()) {
-        m_items.removeAt(sIdx.row());
-        m_internalModel->refresh(); // Mandatory to update UI
-        calculateTotal();
-    }
-}
-void SalesView::updateQuantity(int proxyIndex, int newQuantity) {
-    // 1. Map the Proxy Index from QML to the Source Model Index
-    QModelIndex pIdx = m_proxy->index(proxyIndex, 0);
-    QModelIndex sIdx = m_proxy->mapToSource(pIdx);
+//     emit orderIdChanged();
+//     m_isBusy = false;
+//     emit isBusyChanged();
 
-    // 2. Validate the mapped index
-    if (!sIdx.isValid() || sIdx.row() < 0 || sIdx.row() >= m_items.size() || newQuantity <= 0) {
-        return;
-    }
+//     return true;
+// }
 
-    // 3. Update the data in the underlying list
-    m_items[sIdx.row()].quantity = newQuantity;
+// // auto SalesViewController::finalizeSale(const QVariantMap& paymentData) -> bool {
+// //     if (m_currentOrderId.isEmpty()) return false;
 
-    // 4. Refresh the internal model to push changes to the UI
-    m_internalModel->refresh();
+// //     QSqlDatabase db = QSqlDatabase::database();
+// //     db.transaction();
 
-    // 5. Recalculate the order total
-    calculateTotal();
-}
+// //     Money total = m_itemModel->totalAmount();
 
-void SalesView::clearOrder() {
-    // 1. Clear the underlying data list
-    m_items.clear();
+// //     qlonglong totalCents = total.cents;
+// //     qlonglong net = total.cents;
+// //     QSqlQuery sq;
+// //     sq.bindValue(":total", totalCents);
+// //     sq.bindValue(":net", net);
 
-    // 2. Reset associated state
-    m_currentOrderId = "";
-    m_totalMoney.cents = 0;
+// //     sq.prepare(R"(
+// //         INSERT INTO sale (
+// //             id, order_id, sale_transaction_date, net_amount,
+// //             tax_amount, total_amount, payment_method_id
+// //         ) VALUES (
+// //             :id, :oid, :date, :net, :tax, :total, :pmid
+// //         )
+// //     )");
 
-    // 3. Notify the internal model to refresh (this updates the UI/Proxy)
-    m_internalModel->refresh();
+// //     sq.bindValue(":id", QUuid::createUuid().toString(QUuid::WithoutBraces));
+// //     sq.bindValue(":oid", m_currentOrderId);
+// //     sq.bindValue(":date", QDateTime::currentDateTime().toString(Qt::ISODate));
+// //     sq.bindValue(":net", net);
+// //     sq.bindValue(":tax", total.cents);
+// //     sq.bindValue(":total", total.cents);
+// //     sq.bindValue(":pmid", paymentData.value("payment_method_id").toInt());
 
-    // 4. Notify QML properties that state has changed
-    emit currentOrderIdChanged();
-    emit totalChanged();
-}
+// //     if (!sq.exec()) {
+// //         qCritical() << "Finalize Sale Error:" << sq.lastError().text();
+// //         db.rollback();
+// //         return false;
+// //     }
 
+// //     // Update Order Status to Closed
+// //     QSqlQuery uq;
+// //     uq.prepare(R"(UPDATE customer_order SET order_status = 'closed' WHERE id = :id)");
+// //     uq.bindValue(":id", m_currentOrderId);
 
-// --- Database & Utility ---
+// //     if (uq.exec() && db.commit()) {
+// //         clearOrder();
+// //         return true;
+// //     }
 
-bool SalesView::makeOrder() {
-    if (m_items.isEmpty()) return false;
-
-    m_isBusy = true;
-    emit isBusyChanged();
-
-    Order order;
-    order.orderId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    order.items = m_items;
-    order.tableNumber = 1;
-    order.status = OrderStatus::Open;
-    order.createdAt = QDateTime::currentDateTime();
-
-    bool success = m_model.saveOrder(order);
-
-    m_isBusy = false;
-    emit isBusyChanged();
-    return success;
-}
-
-void SalesView::calculateTotal() {
-    int64_t total = 0;
-    for (const auto& item : m_items) {
-        // Base price * quantity
-        int64_t itemTotal = item.price.cents;
-
-        // Add all selected modifiers
-        for (const auto& mod : item.selectModifiers) {
-            itemTotal += mod.extraPrice.cents;
-        }
-
-        total += (itemTotal * item.quantity);
-    }
-    m_totalMoney.cents = total;
-    emit totalChanged();
-}
-
-QString SalesView::totalFormatted() const {
-    return m_totalMoney.toString();
-}
-
-// salesview.cpp
-
-void SalesView::addWithModifiers(const QVariantMap &itemData, const QVariantList &modifiers) {
-    OrderItem item;
-    // Generate a unique ID for this specific line item in the cart
-    item.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    item.menuItemId = itemData["id"].toInt();
-    item.name = itemData["name"].toString();
-    item.price.cents = itemData["price_cents"].toLongLong();
-    item.quantity = 1;
-
-    // Map selected QML modifiers to the C++ struct
-    for (const QVariant &mVar : modifiers) {
-        QVariantMap mData = mVar.toMap();
-        Modifier mod;
-        mod.id = mData["id"].toInt();
-        mod.name = mData["name"].toString();
-        mod.extraPrice.cents = mData["price_cents"].toLongLong();
-        item.selectModifiers.append(mod);
-    }
-
-    // Add to the local list used by the UI
-    m_items.append(item);
-
-    // Refresh the internal model so the GridView/ListView updates
-    m_internalModel->refresh();
-    calculateTotal();
-}
+// //     db.rollback();
+// //     return false;
+// // }

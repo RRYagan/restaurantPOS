@@ -6,7 +6,7 @@ qt_add_qml_module(POS_UI
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/POS/UI"
 
     SOURCES
-       # controllers/salesview.h controllers/salesview.cpp
+       Controllers/salesview.h Controllers/salesview.cpp
        # controllers/ordersview.h controllers/ordersview.cpp
        # controllers/orderdetailview.h controllers/orderdetailview.cpp
        # controllers/categoryview.h controllers/categoryview.cpp

@@ -1,58 +1,78 @@
-#ifndef SALESVIEW_H
-#define SALESVIEW_H
+// #ifndef SALESVIEWCONTROLLER_H
+// #define SALESVIEWCONTROLLER_H
 
-#include <QAbstractTableModel>
-#include <basemodel.h>
-#include <orderitem.h>
-// #include <ordermodel.h>
-#include <universalfilterproxy.h>
-#include <QtQml/qqmlregistration.h>
-#include "money.h"
+// #include <QObject>
+// #include <QVariantMap>
+// #include <QString>
+// #include "ordermodel.h"
+// #include "orderitemmodel.h"
+// // #include "product.h"
+// #include <QtQml/qqmlregistration.h>
 
-class SalesView : public QObject
-{
-    Q_OBJECT
-    QML_ELEMENT
 
-    Q_PROPERTY(UniversalFilterProxy* proxy READ proxy CONSTANT)
-    Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY totalChanged)
-    Q_PROPERTY(QString currentOrderId READ currentOrderId NOTIFY currentOrderIdChanged)
-    Q_PROPERTY(bool isBusy READ isBusy NOTIFY isBusyChanged)
+// class SalesViewController : public QObject {
+//     Q_OBJECT
+//     QML_ELEMENT
 
-public:
-    explicit SalesView(QObject *parent = nullptr);
+//     Q_PROPERTY(OrderModel* orderModel READ orderModel CONSTANT)
+//     Q_PROPERTY(OrderItemModel* itemModel READ itemModel CONSTANT)
+//     Q_PROPERTY(ProductModel* productModel READ productModel CONSTANT)
+//     Q_PROPERTY(QString currentOrderId READ currentOrderId NOTIFY orderIdChanged)
+//     Q_PROPERTY(double totalAmount READ totalAmount NOTIFY orderChanged)
+//     Q_PROPERTY(QString totalFormatted READ totalFormatted NOTIFY orderChanged)
+//     Q_PROPERTY(bool isBusy READ isBusy NOTIFY isBusyChanged)
+//     Q_PROPERTY(int itemCount READ itemCount NOTIFY itemCountChanged)
+//     Q_PROPERTY(QString totalTaxFormatted READ totalTaxFormatted NOTIFY orderChanged)
 
-    UniversalFilterProxy* proxy() const { return m_proxy; }
+// public:
+//     explicit SalesViewController(QObject* parent = nullptr);
 
-    // Q_INVOKABLE void refresh();
-    Q_INVOKABLE void addItemToOrder(int menuItemId);
-    Q_INVOKABLE bool makeOrder();
-    Q_INVOKABLE void clearOrder(); // To reset for a new customer
-    Q_INVOKABLE void removeItem(int proxyIndex);
-    Q_INVOKABLE void updateQuantity(int proxyIndex, int newQuantity);
-    Q_INVOKABLE void addWithModifiers(const QVariantMap &itemData, const QVariantList &modifiers);
+//     /* Getters for QML properties */
+//     [[nodiscard]] auto orderModel() const -> OrderModel* { return m_orderModel; }
+//     [[nodiscard]] auto itemModel() const -> OrderItemModel* { return m_itemModel; }
+//     [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel; }
 
-    QString totalFormatted() const;
-    QString currentOrderId() const { return m_currentOrderId; }
-    bool isBusy() const { return m_isBusy; }
+//     [[nodiscard]] auto currentOrderId() const -> QString { return m_currentOrderId; }
+//     [[nodiscard]] auto isBusy() const -> bool { return m_isBusy; }
+//     [[nodiscard]] auto totalAmount() const -> double {
+//         /* Safety check: returns 0.0 if the model is null */
+//         return m_itemModel ? m_itemModel->totalAmount().toKSH() : 0.0;
+//     }
+//     [[nodiscard]] auto totalFormatted() const -> QString {
+//         return QString::number(totalAmount(), 'f', 2);
+//     }
+//     [[nodiscard]] auto totalTaxAmount() const -> double {
+//         return m_itemModel ? m_itemModel->totalTaxAmount().toKSH() : 0.0;
+//     }
+//     [[nodiscard]] auto totalTaxFormatted() const -> QString {
+//         return QString::number(totalTaxAmount(), 'f', 2);
+//     }
+//     [[nodiscard]] auto itemCount() const -> int {
+//         return m_itemModel ? m_itemModel->count() : 0;
+//     }
 
-signals:
-    void totalChanged();
-    void currentOrderIdChanged();
-    void isBusyChanged();
+//     /* QML Invokables: Trailing returns, [[nodiscard]] and auto not supported by moc */
+//     Q_INVOKABLE bool addItem(const QString& productId);
+//     Q_INVOKABLE bool removeItem(int index);
+//     Q_INVOKABLE bool updateQuantity(int index, double qty);
+//     Q_INVOKABLE void clearOrder();
+//     /* Transaction Management */
+//     Q_INVOKABLE bool makeOrder();
+//     // Q_INVOKABLE bool finalizeSale(const QVariantMap& paymentData);
 
-private:
-    QVariantList getSalesData(); // Provider for BaseModel
+// signals:
+//     void orderChanged();
+//     void itemCountChanged();
+//     void orderIdChanged();
+//     void isBusyChanged();
 
-    QList<OrderItem> m_items;
-    BaseModel *m_internalModel;
-    UniversalFilterProxy *m_proxy;
-    bool m_isBusy = false;
-    void calculateTotal();
-    QString m_currentOrderId = "";
-    Money m_totalMoney;
-    OrderModel m_model;
+// private:
+//     auto mapToProduct(const QVariantMap& d) -> Product;
+//     bool m_isBusy = false;
+//     OrderModel* m_orderModel = nullptr;
+//     OrderItemModel* m_itemModel = nullptr;
+//     ProductModel* m_productModel = nullptr;
+//     QString m_currentOrderId;
+// };
 
-};
-
-#endif // SALESMODEL_H
+// #endif

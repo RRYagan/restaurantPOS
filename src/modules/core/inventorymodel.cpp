@@ -12,16 +12,18 @@ InventoryModel::InventoryModel(QObject* parent, const QSqlDatabase& db)
     setEditStrategy(OnManualSubmit);
     cacheIndices();
     select();
+
+
 }
 
 auto InventoryModel::cacheIndices() -> void {
     m_idCol       = fieldIndex("id");
     m_nameCol     = fieldIndex("name");
     m_pkgAvailCol = fieldIndex("total_packages_available");
-    m_pkgUnitCol  = fieldIndex("packaging_unit_id");
+    m_pkgUnitCol  = fieldIndex("packaging_unit_idf");
     m_qpPkgCol    = fieldIndex("quantity_per_package");
     m_qtyAvailCol = fieldIndex("total_quantity_available");
-    m_qtyUnitCol  = fieldIndex("quantity_unit_id");
+    m_qtyUnitCol  = fieldIndex("quantity_unit_idf");
     m_createdCol  = fieldIndex("created_at");
     m_updatedCol  = fieldIndex("updated_at");
 }
@@ -64,59 +66,62 @@ auto InventoryModel::cacheIndices() -> void {
 
 auto InventoryModel::createItem(const QVariantMap& data) -> bool {
     QSqlQuery query(database());
-    QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-
     query.prepare(R"(
         INSERT INTO inventory (
-            id, name, total_packages_available, packaging_unit_id,
-            quantity_per_package, quantity_unit_id, total_quantity_available
+            id, name, total_packages_available, packaging_unit_idf,
+            quantity_per_package, total_quantity_available, quantity_unit_idf
         ) VALUES (
-            :id, :name, :pkg, :pUnit, :qp_pkg, :qUnit, :qty
+            :id, :name, :tp, :puid, :qpp, :tq, :quid
         )
     )");
 
+    QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     query.bindValue(":id", newId);
     query.bindValue(":name", data.value("name").toString());
-    query.bindValue(":pkg", data.value("packagesAvailable").toInt());
-    query.bindValue(":pUnit", data.value("packagingUnitId").toString());
-    query.bindValue(":qp_pkg", data.value("quantityPerPackage").toDouble());
-    query.bindValue(":qUnit", data.value("quantityUnitId").toString());
-    query.bindValue(":qty", data.value("quantityAvailable").toDouble());
+    query.bindValue(":tp", data.value("packagesAvailable").toInt());
+    query.bindValue(":puid", data.value("packagingUnitId").toString());
+    query.bindValue(":qpp", data.value("quantityPerPackage").toDouble());
+    query.bindValue(":tq", data.value("quantityAvailable").toDouble());
+    query.bindValue(":quid", data.value("quantityUnitId").toString());
 
     if (!query.exec()) {
-        qCritical() << "==== DATABASE INSERT ERROR ====";
-        qCritical() << "Error Text :" << query.lastError().text();
+        qCritical() << "Create Inventory Error:" << query.lastError().text();
         return false;
     }
 
-    select();
+    select(); // Refresh the model to show the new item
     return true;
 }
 
+/**
+ * UPDATE: Updates existing records based on ID.
+ */
 auto InventoryModel::updateItem(const QVariantMap& data) -> bool {
+    QString id = data.value("id").toString();
+    if (id.isEmpty()) return false;
+
     QSqlQuery query(database());
     query.prepare(R"(
         UPDATE inventory SET
             name = :name,
-            total_packages_available = :pkg,
-            packaging_unit_id = :pUnit,
-            quantity_per_package = :qp_pkg,
-            total_quantity_available = :qty,
-            quantity_unit_id = :qUnit
+            total_packages_available = :tp,
+            packaging_unit_idf = :puid,
+            quantity_per_package = :qpp,
+            total_quantity_available = :tq,
+            quantity_unit_idf = :quid
         WHERE id = :id
     )");
 
-    query.bindValue(":id", data.value("id").toString());
+    query.bindValue(":id", id);
     query.bindValue(":name", data.value("name").toString());
-    query.bindValue(":pkg", data.value("packagesAvailable").toInt());
-    query.bindValue(":pUnit", data.value("packagingUnitId").toString());
-    query.bindValue(":qp_pkg", data.value("quantityPerPackage").toDouble());
-    query.bindValue(":qty", data.value("quantityAvailable").toDouble());
-    query.bindValue(":qUnit", data.value("quantityUnitId").toString());
+    query.bindValue(":tp", data.value("packagesAvailable").toInt());
+    query.bindValue(":puid", data.value("packagingUnitId").toString());
+    query.bindValue(":qpp", data.value("quantityPerPackage").toDouble());
+    query.bindValue(":tq", data.value("quantityAvailable").toDouble());
+    query.bindValue(":quid", data.value("quantityUnitId").toString());
 
     if (!query.exec()) {
-        qCritical() << "==== DATABASE UPDATE ERROR ====";
-        qCritical() << "Error Text :" << query.lastError().text();
+        qCritical() << "Update Inventory Error:" << query.lastError().text();
         return false;
     }
 
@@ -128,11 +133,14 @@ auto InventoryModel::removeItem(const QString& id) -> bool {
     QSqlQuery query(database());
     query.prepare("DELETE FROM inventory WHERE id = :id");
     query.bindValue(":id", id);
-    if (query.exec()) {
-        select();
-        return true;
+
+    if (!query.exec()) {
+        qCritical() << "Delete Inventory Error:" << query.lastError().text();
+        return false;
     }
-    return false;
+
+    select();
+    return true;
 }
 
 [[nodiscard]] auto InventoryModel::inventoryAt(int row) const -> InventoryItem {
@@ -168,15 +176,21 @@ auto InventoryModel::removeItem(const QString& id) -> bool {
 }
 
 [[nodiscard]] auto InventoryModel::getItemById(const QString& id) const -> InventoryItem {
+    // Iterate through current model rows (more efficient than a new query if data is small)
     for (int i = 0; i < rowCount(); ++i) {
-        // Access the ID column directly from the model data
-        QString currentId = index(i, m_idCol).data().toString();
-
-        if (currentId == id) {
+        if (data(index(i, 0), IdRole).toString() == id) {
             return inventoryAt(i);
         }
     }
-
-    // Return an empty/default InventoryItem if not found
     return {};
+}
+
+void InventoryModel::refresh() {
+    beginResetModel();
+
+    // 2. Re-run the SQL query to get fresh data
+    this->select();
+
+    // 3. Notify QML to recreate delegates with new data
+    endResetModel();
 }

@@ -194,7 +194,7 @@ Rectangle {
                     id: orderList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    model: _salesModel.itemModel
+                    model: _salesModel.orderModel
                     clip: true
                     spacing: 8
 
@@ -309,7 +309,7 @@ Rectangle {
                         Text { text: "Sub-total"; color: window.theme.textSecondary; font.pixelSize: 13 }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: _salesModel.itemCount > 0 ? _salesModel.totalFormatted + " Ksh." : "--.--"
+                            text: _salesModel.itemCount > 0 ? _salesModel.totalAmount + " Ksh." : "--.--"
                             color: window.theme.textSecondary;
                             font.pixelSize: 13
                         }
@@ -330,7 +330,7 @@ Rectangle {
                         Text { text: "Total Amount"; color: window.theme.textMain; font.bold: true; font.pixelSize: 18 }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: _salesModel.itemCount > 0 ? _salesModel.totalFormatted + " Ksh." : "--.--"
+                            text: _salesModel.itemCount > 0 ? _salesModel.totalAmount + " Ksh." : "--.--"
                             color: window.theme.success;
                             font.bold: true;
                             font.pixelSize: 20

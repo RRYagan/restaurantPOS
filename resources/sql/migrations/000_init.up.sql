@@ -127,31 +127,31 @@ CREATE TABLE IF NOT EXISTS inventory (
     name TEXT NOT NULL,
     
     -- Packaging Logic (The "Crate" or "Box")
-    packaging_unit_id TEXT NOT NULL,      -- FK to packaging_unit (e.g., 'BC' for Bottlecrate)
+    packaging_unit_idf TEXT NOT NULL,      -- FK to packaging_unit (e.g., 'BC' for Bottlecrate)
     total_packages_available REAL DEFAULT 0, -- e.g., 2.0 crates
     
     -- Quantity Logic (The "Bottle" or "ML")
     quantity_per_package REAL NOT NULL,    -- e.g., 24.0 (bottles per crate)
-    quantity_unit_id TEXT NOT NULL,       -- FK to quantity_unit (e.g., 'U' for Pieces)
+    quantity_unit_idf TEXT NOT NULL,       -- FK to quantity_unit (e.g., 'U' for Pieces)
     
     -- Total units available (Calculated: packages * quantity_per_package)
     total_quantity_available REAL DEFAULT 0, -- e.g., 48.0 bottles
     
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (packaging_unit_id) REFERENCES packaging_unit(packaging_unit_code),
-    FOREIGN KEY (quantity_unit_id) REFERENCES quantity_unit(quantity_unit_code)
+    FOREIGN KEY (packaging_unit_idf) REFERENCES packaging_unit(packaging_unit_code_name),
+    FOREIGN KEY (quantity_unit_idf) REFERENCES quantity_unit(quantity_unit_code_name)
 );
 
 CREATE TABLE IF NOT EXISTS inventory_movement_log (
     id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT,
-    product_id TEXT NOT NULL,
+    user_idf TEXT,
+    product_idf TEXT NOT NULL,
     movement_quantity REAL NOT NULL,
     movement_category_id INTEGER NOT NULL,
     related_transaction_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES tbl_user(id),
-    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (user_idf) REFERENCES tbl_user(id),
+    FOREIGN KEY (product_idf) REFERENCES product(id),
     FOREIGN KEY (movement_category_id) REFERENCES stock_movement_category(id)
 );
 
@@ -179,9 +179,7 @@ CREATE TABLE IF NOT EXISTS order_item (
     -- KRA / Tax Compliance Data (Snapshots)
     kra_item_code TEXT,              -- From product.kra_item_code
     tax_classification_code TEXT,    -- From product.tax_classification_code (A, B, C, E)
-    tax_percent REAL,                -- The rate at that moment (e.g., 16.0)
     tax_amount REAL,                 -- Calculated: (unit_price * qty) * (tax_percent/100)
-    
     service_state TEXT CHECK(service_state IN ('ordered', 'preparing', 'served')) DEFAULT 'ordered',
 
     FOREIGN KEY (order_id) REFERENCES customer_order(id) ON DELETE CASCADE,
