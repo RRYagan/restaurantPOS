@@ -86,7 +86,7 @@ ApplicationWindow {
 
             Image {
                 id: backgroundImage
-                source: "qrc:/qt/qml/POS/UI/assets/images/bg-white.png"
+                source: "qrc:/qt/qml/POS/UI/Views/assets/images/bg-white.png"
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
                 opacity: 0.3 // Adjust opacity to ensure UI text remains readable

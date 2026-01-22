@@ -33,7 +33,7 @@ Button {
 
         // Icon Area - Uniformly sized and centered
         Image {
-            source: control.iconSource || "qrc:/qt/qml/POS/UI/assets/icons/default.png"
+            source: control.iconSource || "qrc:/qt/qml/POS/UI/Views/assets/icons/default.png"
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: 64
             Layout.preferredHeight: 64

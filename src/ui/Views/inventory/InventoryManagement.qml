@@ -135,6 +135,7 @@ Rectangle {
                 }
             }
         }
+
         Button {
             text: "Refresh Stock"
             icon.source: "qrc:/icons/refresh.svg"
@@ -147,7 +148,6 @@ Rectangle {
                 from: 0; to: 360; duration: 500; running: false; id: refreshAnim
             }
         }
-
         ListView {
             id: invList
             Layout.fillWidth: true

@@ -19,49 +19,48 @@ qt_add_qml_module(POS_UI
        Controllers/salesviewcontroller.h Controllers/salesviewcontroller.cpp
 
     QML_FILES
-        OrdersScreen.qml
-        Main.qml
-        SalesScreen.qml
-        Card.qml
-        OrderDetailsScreen.qml
-        PaymentPage.qml
+        Views/Main.qml
 
         # setup pages
-        setup/SetupScreen.qml
-        setup/MenuSetupView.qml
-        setup/SetupDashboard.qml
-        TableSetup.qml
-        ThemeSetup.qml
+        Views/setup/SetupScreen.qml
+        Views/setup/MenuSetupView.qml
+        Views/setup/SetupDashboard.qml
+        Views/TableSetup.qml
+        Views/ThemeSetup.qml
 
         # inventory management
-        inventory/InventoryManagement.qml
-        inventory/InventoryContextMenu.qml
-        inventory/StockDialog.qml
-        inventory/InventoryDetails.qml
+        Views/inventory/InventoryManagement.qml
+        Views/inventory/InventoryContextMenu.qml
+        Views/inventory/StockDialog.qml
+        Views/inventory/InventoryDetails.qml
 
         # sales
-        sales/ModifierDialog.qml
+        Views/sales/ModifierDialog.qml
+        Views/sales/OrdersScreen.qml
+        Views/sales/SalesScreen.qml
+        Views/sales/Card.qml
+        Views/sales/OrderDetailsScreen.qml
+        Views/sales/payment/PaymentPage.qml
+        Views/sales/payment/PaymentDialog.qml
 
+        Views/hr/UserManagement.qml
+        Views/authentication/LoginScreen.qml
 
-        UserManagement.qml
-        LoginScreen.qml
-
-        SideBar.qml
+        Views/SideBar.qml
 
         # dialogs
-        AddItemDialog.qml
-        ConfirmDialog.qml
+        Views/AddItemDialog.qml
+        Views/ConfirmDialog.qml
 
-        # payment
-        payment/PaymentDialog.qml
 
-        TestSales.qml
-        ProductSetupScreen.qml
+
+        Views/TestSales.qml
+        Views/ProductSetupScreen.qml
 
     RESOURCES
-        "assets/icons/default.png"
-        "assets/images/bg.png"
-        "assets/images/bg-white.png"
+        "Views/assets/icons/default.png"
+        "Views/assets/images/bg.png"
+        "Views/assets/images/bg-white.png"
 )
 
 

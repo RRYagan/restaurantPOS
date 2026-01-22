@@ -219,36 +219,6 @@ CREATE TABLE IF NOT EXISTS purchase (
     FOREIGN KEY (user_id) REFERENCES tbl_user(id)
 );
 
--- =============================================================================
--- 5. STOCK BALANCE TRIGGER (DIRECTION-AWARE)
--- =============================================================================
-
-CREATE TRIGGER IF NOT EXISTS trg_deplete_inventory_logic
-AFTER UPDATE ON order_item
-FOR EACH ROW
-WHEN NEW.service_state = 'served' AND OLD.service_state != 'served'
-BEGIN
-    UPDATE inventory
-    SET 
-        -- 1. Subtract the individual units used
-        total_quantity_available = total_quantity_available - (
-            SELECT pc.required_quantity * NEW.quantity
-            FROM product_composition pc
-            WHERE pc.product_id = NEW.product_id
-        ),
-        -- 2. Recalculate how many full/partial packages that represents
-        total_packages_available = (total_quantity_available - (
-            SELECT pc.required_quantity * NEW.quantity
-            FROM product_composition pc
-            WHERE pc.product_id = NEW.product_id
-        )) / quantity_per_package,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = (
-        SELECT pc.inventory_id
-        FROM product_composition pc
-        WHERE pc.product_id = NEW.product_id
-    );
-END;
 
 -- =============================================================================
 -- 1. LOOKUP TABLES
