@@ -7,6 +7,14 @@
 #include <QSqlQuery>
 #include "types.h"
 
+struct KitchenTicket {
+    QString orderId;
+    QString tableNumber;
+    QString timestamp;
+    QString itemsSummary;
+    QString itemIds;
+};
+
 class SalesModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(QString tableNumber READ tableNumber WRITE setTableNumber NOTIFY headerChanged)
@@ -50,10 +58,15 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
+    QList<Order> fetchAllOrders();
+    QList<KitchenTicket> fetchKitchenQueue();
+    bool updateItemStatus(const QString &itemId, const QString &status);
+
 signals:
     void totalsChanged();
     void headerChanged();
     void countChanged();
+    void orderStatusChanged();
 
     void inventorydbModified(); /*inventory changed broadcast */
 

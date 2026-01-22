@@ -42,10 +42,14 @@ public:
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE bool editOrder(const QString& orderId);
 
+    Q_INVOKABLE QVariantList getKitchenQueue();
+    Q_INVOKABLE void updateItemStatus(const QString &orderId, const QString &status);
+    Q_INVOKABLE QVariantList loadOrders();
 signals:
     void orderChanged();
     void itemCountChanged();
     void isBusyChanged();
+    void kitchenDataChanged();
 
 private:
     SalesModel* m_salesModel;

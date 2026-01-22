@@ -35,6 +35,7 @@ qt_add_qml_module(POS_UI
         Views/inventory/InventoryDetails.qml
 
         # sales
+        Views/sales/SalesDashboard.qml
         Views/sales/ModifierDialog.qml
         Views/sales/OrdersScreen.qml
         Views/sales/SalesScreen.qml
@@ -42,6 +43,8 @@ qt_add_qml_module(POS_UI
         Views/sales/OrderDetailsScreen.qml
         Views/sales/payment/PaymentPage.qml
         Views/sales/payment/PaymentDialog.qml
+        Views/sales/KitchenView.qml
+
 
         Views/hr/UserManagement.qml
         Views/authentication/LoginScreen.qml
@@ -62,6 +65,8 @@ qt_add_qml_module(POS_UI
         "Views/assets/images/bg.png"
         "Views/assets/images/bg-white.png"
 )
+
+
 
 
 

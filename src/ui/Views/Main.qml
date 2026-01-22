@@ -103,7 +103,7 @@ ApplicationWindow {
                     Layout.rightMargin: 15
 
                     menuModel: [
-                        { name: "Menu / Ordering", view: salesView, icon: "🍴" },
+                        { name: "Menu / Ordering", view: salesDashboard, icon: "🍴" },
                         // { name: "Order History", view: ordersView, icon: "📋" },
                         {
                             name: "System Setup",
@@ -123,9 +123,9 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    initialItem: salesView
+                    initialItem: salesDashboard
 
-                    Component { id: salesView; SalesScreen {} }
+                    Component { id: salesDashboard; SalesDashboard {} }
                     Component { id: ordersView; OrdersScreen {} }
                     Component { id: orderDetailsView; OrderDetailsScreen {} }
                     Component { id: setupView; SetupScreen {} }
