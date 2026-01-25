@@ -7,16 +7,18 @@ Rectangle {
     id: root
     color: "transparent"
 
-    SalesViewController {
-        id: _salesModel
-        onOrderChanged: {
-                console.log("UI DEBUG: Total Amount updated to:", totalAmount)
-            }
+    // SalesViewController {
+    //     id: _salesModel
+    //     onOrderChanged: {
+    //             console.log("UI DEBUG: Total Amount updated to:", totalAmount)
+    //         }
 
-            onItemCountChanged: {
-                console.log("UI DEBUG: Item count is now:", itemCount)
-            }
-    }
+    //         onItemCountChanged: {
+    //             console.log("UI DEBUG: Item count is now:", itemCount)
+    //         }
+    // }
+    property SalesViewController _salesModel
+
     ProductViewController { id: _productModel}
 
 

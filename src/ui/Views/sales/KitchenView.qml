@@ -6,21 +6,14 @@ import POS.UI 1.0
 Rectangle {
     id: kitchenRoot
     color: "transparent"
-
-    SalesViewController {
-        id: _salesModel
-        onOrderChanged: {
-                console.log("UI DEBUG: Total Amount updated to:", totalAmount)
-            }
-
-            onItemCountChanged: {
-                console.log("UI DEBUG: Item count is now:", itemCount)
-            }
-    }
+    // Shared controller passed from SalesDashboard
+    property SalesViewController _salesModel
 
     ListModel { id: kdsModel }
 
+    // Logic to update the local list from the C++ controller [cite: 14]
     function refresh() {
+        if (!_salesModel) return;
         var data = _salesModel.getKitchenQueue();
         kdsModel.clear();
         for (var i = 0; i < data.length; i++) {
@@ -28,12 +21,43 @@ Rectangle {
         }
     }
 
+    // Listens for the kitchenDataChanged signal from the C++ controller [cite: 14]
     Connections {
-        target: _salesModel
-        function onKitchenDataChanged() { refresh() }
+        target: kitchenRoot._salesModel
+        function onKitchenDataChanged() {
+            console.log("KitchenView: Refreshing data...");
+            refresh();
+        }
     }
 
     Component.onCompleted: refresh()
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 20
+        spacing: 15
+
+        RowLayout {
+            Layout.fillWidth: true
+            Text { text: "Kitchen Queue"; font.pixelSize: 24; font.bold: true; color: "white" }
+            Item { Layout.fillWidth: true }
+
+            Button {
+                text: "↻ Refresh Queue"
+                onClicked: kitchenRoot.refresh()
+                background: Rectangle {
+                    color: parent.pressed ? "#34495e" : "#2c3e50"
+                    radius: 6
+                    border.color: "#2ecc71"
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#2ecc71"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
 
     GridView {
         anchors.fill: parent
@@ -86,4 +110,5 @@ Rectangle {
             }
         }
     }
+}
 }

@@ -103,7 +103,7 @@ ApplicationWindow {
                     Layout.rightMargin: 15
 
                     menuModel: [
-                        { name: "Menu / Ordering", view: salesDashboard, icon: "🍴" },
+                        { name: "SALES", view: salesDashboard, icon: "🍴" },
                         // { name: "Order History", view: ordersView, icon: "📋" },
                         {
                             name: "System Setup",
@@ -111,8 +111,8 @@ ApplicationWindow {
                             view: setupView
 
                         },
-                        { name: "User Management", view: userMgmtView, icon: "👤" },
-                        { name: "Inventory", view: inventoryMgmtView, icon: "📦" }
+                        { name: "HR", view: userMgmtView, icon: "👤" },
+                        { name: "PROCUREMENT", view: inventoryMgmtView, icon: "📦" }
                     ]
                 }
 

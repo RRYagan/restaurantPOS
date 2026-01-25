@@ -2,17 +2,19 @@
 #define SALESVIEWCONTROLLER_H
 
 #include <QObject>
-#include <inventorymodel.h>
+#include <memory> // For std::unique_ptr
+#include <QtQml/qqmlregistration.h>
 #include "salesmodel.h"
 #include "productmodel.h"
 #include "inventoryviewcontroller.h"
-#include <QtQml/qqmlregistration.h>
+
 
 
 class SalesViewController : public QObject {
     Q_OBJECT
     QML_ELEMENT
 
+    // Q_PROPERTY: Still returns raw pointers for QML compatibility
     Q_PROPERTY(SalesModel* orderModel READ orderModel CONSTANT)
     Q_PROPERTY(ProductModel* productModel READ productModel CONSTANT)
 
@@ -24,17 +26,16 @@ class SalesViewController : public QObject {
 public:
     explicit SalesViewController(QObject* parent = nullptr);
 
-    [[nodiscard]] auto orderModel() const -> SalesModel* { return m_salesModel; }
-    [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel; }
+    // Explicitly mark getters as nodiscard and const to express intent (P.3)
+    [[nodiscard]] auto orderModel() const -> SalesModel* { return m_salesModel.get(); }
+    [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel.get(); }
 
     [[nodiscard]] auto isBusy() const -> bool { return m_isBusy; }
-    [[nodiscard]] auto totalAmount() const -> double { return m_salesModel->totalAmount(); }
-    [[nodiscard]] auto totalTaxFormatted() const -> double { return m_salesModel->totalTaxAmount(); }
-    [[nodiscard]] auto itemCount() const -> int {
-        return m_salesModel->count();
-    }
+    [[nodiscard]] auto totalAmount() const -> double;
+    [[nodiscard]] auto totalTaxFormatted() const -> double;
+    [[nodiscard]] auto itemCount() const -> int;
 
-    // --- MAINTAINED Q_INVOKABLES ---
+    // Q_INVOKABLES for QML
     Q_INVOKABLE bool addItem(const QString& productId);
     Q_INVOKABLE bool removeItem(int index);
     Q_INVOKABLE bool updateQuantity(int index, double qty);
@@ -42,9 +43,10 @@ public:
     Q_INVOKABLE bool makeOrder();
     Q_INVOKABLE bool editOrder(const QString& orderId);
 
-    Q_INVOKABLE QVariantList getKitchenQueue();
+    [[nodiscard]] Q_INVOKABLE QVariantList getKitchenQueue() const;
     Q_INVOKABLE void updateItemStatus(const QString &orderId, const QString &status);
-    Q_INVOKABLE QVariantList loadOrders();
+    [[nodiscard]] Q_INVOKABLE QVariantList loadOrders() const;
+
 signals:
     void orderChanged();
     void itemCountChanged();
@@ -52,9 +54,13 @@ signals:
     void kitchenDataChanged();
 
 private:
-    SalesModel* m_salesModel;
-    ProductModel* m_productModel;
-    InventoryViewController* m_inventoryController;
-    bool m_isBusy = false;
+    // R.20: Use unique_ptr to manage ownership and prevent leaks
+    std::unique_ptr<SalesModel> m_salesModel;
+    std::unique_ptr<ProductModel> m_productModel;
+    std::unique_ptr<InventoryViewController> m_inventoryController;
+
+    // C.48: Prefer default member initializers
+    bool m_isBusy{false};
 };
-#endif
+
+#endif // SALESVIEWCONTROLLER_H

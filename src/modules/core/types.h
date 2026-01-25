@@ -58,6 +58,13 @@ struct StagedItem {
     QString taxClassificationCode;
     Money taxAmountPerUnit;
 };
+struct KitchenTicket {
+    QString orderId;
+    QString tableNumber;
+    QString timestamp;
+    QString itemsSummary;
+    QString itemIds;
+};
 
 /*usermodel */
 struct User {

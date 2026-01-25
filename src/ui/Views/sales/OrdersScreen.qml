@@ -8,24 +8,32 @@ Rectangle {
     color: "transparent"
 
     // Instantiate the controller
-    SalesViewController {
-        id: _salesModel
+    // SalesViewController {
+    //     id: _salesModel
 
-        // When the backend signals a change, refresh our local list
-        onKitchenDataChanged: root.refreshOrders()
-    }
+    //     // When the backend signals a change, refresh our local list
+    //     onKitchenDataChanged: root.refreshOrders()
+    // }
+
+    property SalesViewController _salesModel
 
     // Local model to drive the ListView
     ListModel { id: ordersHistoryModel }
-
+    Connections {
+            target: root._salesModel
+            function onKitchenDataChanged() {
+                root.refreshOrders()
+            }
+        }
     // Helper function to fetch data from C++ and populate the UI
     function refreshOrders() {
-        var data = _salesModel.loadOrders();
-        ordersHistoryModel.clear();
-        for (var i = 0; i < data.length; i++) {
-            ordersHistoryModel.append(data[i]);
+            if (!_salesModel) return;
+            var data = _salesModel.loadOrders();
+            ordersHistoryModel.clear();
+            for (var i = 0; i < data.length; i++) {
+                ordersHistoryModel.append(data[i]);
+            }
         }
-    }
 
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 20; spacing: 15
@@ -40,8 +48,26 @@ Rectangle {
             }
             Item { Layout.fillWidth: true }
             Button {
-                text: "↻ Refresh List"
-                onClicked: root.refreshOrders()
+                id: orderRefreshBtn
+                text: "↻ Refresh History"
+                onClicked: {
+                    root.refreshOrders()
+                    refreshAnim.start()
+                }
+
+                // Adding the rotation animation for visual feedback
+                contentItem: Text {
+                    id: refreshText
+                    text: orderRefreshBtn.text
+                    color: "white"
+                    font.bold: true
+                }
+
+                RotationAnimation {
+                    id: refreshAnim
+                    target: refreshText
+                    from: 0; to: 360; duration: 500
+                }
             }
         }
 
@@ -143,24 +169,7 @@ Rectangle {
                     }
 
                     onClicked: {
-                        // 1. Check if the IDs are accessible.
-                        // If they are in main.qml, you might need to use 'rootWindow.contentStack'
-                        // or whatever ID you gave your top-level window.
-                        if (typeof globalOrderDetailModel !== "undefined" && typeof contentStack !== "undefined") {
-
-                            // Load the order into the C++ detail model
-                            globalOrderDetailModel.loadOrder(model.orderId);
-
-                            // Push the view. Ensure 'orderDetailsView' is a defined Component
-                            contentStack.push(orderDetailsView, {
-                                "currentOrderId": model.orderId,
-                                "detailsModel": globalOrderDetailModel // Explicitly pass the model if needed
-                            });
-                        } else {
-                            console.error("Navigation Error: IDs not found in current scope.");
-                            // Fallback: Try to find them via the root object if you have one
-                            // rootApp.contentStack.push(...)
-                        }
+                        contentStack.push("OrderDetailsScreen.qml", { "currentOrderId": model.orderId });
                     }
                 }
             }
@@ -168,5 +177,5 @@ Rectangle {
     }
 
     // Initial load
-    Component.onCompleted: root.refreshOrders()
+    Component.onCompleted: refreshOrders()
 }

@@ -1,15 +1,23 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import POS.UI 1.0
 
 Rectangle {
     id: dashboardRoot
     anchors.fill: parent
     color: "transparent"
+    SalesViewController {
+        id: globalSalesController
+
+        // When any part of the app modifies the DB,
+        // this instance will emit kitchenDataChanged
+    }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
+
 
         // --- TOP NAVIGATION BAR ---
         Rectangle {
@@ -78,22 +86,18 @@ Rectangle {
             Layout.fillHeight: true
             currentIndex: 0 // Default to SalesScreen
 
-            // View 0: Menu/Sales
             SalesScreen {
-                id: salesView
-                // Controller instances are already inside SalesScreen based on your file
+                // Pass the shared controller to the screen
+                _salesModel: globalSalesController
             }
 
-            // View 1: Orders
             OrdersScreen {
-                id: ordersView
-                // You can pass the ordsModel here if initialized globally
+                _salesModel: globalSalesController
             }
 
             KitchenView {
-                    id: kitchenView
-                    // ordsModel: globalOrdersModel // Pass the same model
-                }
-             }
+                _salesModel: globalSalesController
+            }
+        }
     }
 }

@@ -2,63 +2,170 @@
 #include <QUuid>
 #include <QDateTime>
 #include <QSqlError>
-#include <QDebug>
-
+#include <algorithm>
 
 SalesModel::SalesModel(QObject *parent) : QAbstractListModel(parent) {}
 
-[[nodiscrard]]  auto SalesModel::rowCount(const QModelIndex &p) const -> int { return p.isValid() ? 0 : m_items.size(); }
-
-[[nodiscrard]] auto SalesModel::roleNames() const -> QHash<int, QByteArray> {
-    return {
-            {NameRole, "name"},
-            {QuantityRole, "quantity"},
-            {UnitPriceRole, "unitPrice"},
-            {TotalPriceRole, "totalPrice"},
-            {TaxAmountRole, "taxAmount"},
-            {ProductIdRole, "productId"} };
+[[nodiscard]] int SalesModel::rowCount(const QModelIndex &p) const {
+    return p.isValid() ? 0 : static_cast<int>(m_items.size());
 }
 
-[[nodiscrard]] auto SalesModel::data(const QModelIndex &index, int role) const -> QVariant {
+[[nodiscard]] QHash<int, QByteArray> SalesModel::roleNames() const {
+    return {
+        {NameRole, "name"},
+        {QuantityRole, "quantity"},
+        {UnitPriceRole, "unitPrice"},
+        {TotalPriceRole, "totalPrice"},
+        {TaxAmountRole, "taxAmount"},
+        {ProductIdRole, "productId"}
+    };
+}
+
+[[nodiscard]] QVariant SalesModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() >= m_items.size()) return {};
+
     const auto &item = m_items.at(index.row());
     switch (role) {
-    case NameRole: return item.product.internalProductName;
-    case QuantityRole: return item.quantity;
-    case UnitPriceRole: return item.finalUnitPrice.toKSH();
-    case TotalPriceRole: return (item.finalUnitPrice * item.quantity).toKSH();
-    case ProductIdRole: return item.product.id;
+    case NameRole:        return item.product.internalProductName;
+    case QuantityRole:    return item.quantity;
+    case UnitPriceRole:   return item.finalUnitPrice.toKSH();
+    case TotalPriceRole:  return (item.finalUnitPrice * item.quantity).toKSH();
+    case TaxAmountRole:   return (item.taxAmountPerUnit * item.quantity).toKSH();
+    case ProductIdRole:   return item.product.id;
     default: return {};
     }
 }
 
-void SalesModel::addItem(const Product &p) {
-    // Check if item exists to increment quantity
+// salesmodel.cpp
+
+bool SalesModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    // 1. Validation
+    if (!index.isValid() || index.row() >= m_items.size()) {
+        return false;
+    }
+
+    auto &item = m_items[index.row()];
+    bool changed = false;
+
+    // 2. Handle specific roles
+    switch (role) {
+    case QuantityRole: {
+        double newQty = value.toDouble();
+        // Only update if the quantity is valid and actually different
+        if (newQty > 0 && item.quantity != newQty) {
+            item.quantity = newQty;
+            changed = true;
+        }
+        break;
+    }
+    case UnitPriceRole: {
+        // Useful if you allow manual price overrides for an item
+        double newPrice = value.toDouble();
+        if (newPrice >= 0 && item.finalUnitPrice.toKSH() != newPrice) {
+            item.finalUnitPrice = Money::toCents(newPrice);
+            changed = true;
+        }
+        break;
+    }
+    default:
+        return false;
+    }
+
+    // 3. Post-update logic
+    if (changed) {
+        // Recompute the totals for the whole order (tax, gross, etc.)
+        recalculateTotals();
+
+        // Notify the UI that this specific row needs a refresh
+        // We include TotalPriceRole because it depends on Quantity/UnitPrice
+        emit dataChanged(index, index, {role, TotalPriceRole, TaxAmountRole});
+
+        // Notify the SalesViewController that the grand totals changed
+        emit totalsChanged();
+
+        return true;
+    }
+    if (changed) {
+        // This tells the UI to refresh the specific item in the list
+        emit dataChanged(index, index, {role});
+
+        // This is the CRITICAL part:
+        // You must emit the signal that the Controller uses to notify other screens
+        emit orderStatusChanged(); // This triggers kitchenDataChanged in the controller
+        return true;
+    }
+
+    return false;
+}
+
+void SalesModel::addItem(const StagedItem &newItem) {
     auto it = std::find_if(m_items.begin(), m_items.end(),
-                           [&](const StagedItem &item) { return item.product.id == p.id; });
+                           [&](const StagedItem &i) { return i.product.id == newItem.product.id; });
 
     if (it != m_items.end()) {
-        it->quantity += 1.0;
-        int row = static_cast<int>(std::distance(m_items.begin(), it));
+        it->quantity += newItem.quantity;
+        const int row = static_cast<int>(std::distance(m_items.begin(), it));
         auto idx = index(row, 0);
         emit dataChanged(idx, idx, {QuantityRole, TotalPriceRole, TaxAmountRole});
-
-
     } else {
-        beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
-        m_items.append({
-            p,                      // Trusted Product data
-            1.0,                    // Quantity
-            p.defaultSellingPrice,  // Unit Price (Money)
-            "",                     // Modifiers
-            p.taxClassificationCode,
-            p.taxAmount             // Tax (Money)
-        });
+        const int row = static_cast<int>(m_items.size());
+        beginInsertRows(QModelIndex(), row, row);
+        m_items.append(newItem);
         endInsertRows();
         emit countChanged();
     }
     recalculateTotals();
 }
+
+void SalesModel::recalculateTotals() {
+    Money total(0), tax(0);
+    // std::as_const prevents QList "detach" performance penalty
+    for (const auto &item : std::as_const(m_items)) {
+        total = total + (item.finalUnitPrice * item.quantity);
+        tax = tax + (item.taxAmountPerUnit * item.quantity);
+    }
+    m_cachedTotal = total;
+    m_cachedTaxTotal = tax;
+    emit totalsChanged();
+}
+
+/*QList<KitchenTicket> SalesModel::fetchKitchenQueue() const {
+    QList<KitchenTicket> tickets;
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT co.id, co.table_number, co.created_at,
+               GROUP_CONCAT(oi.quantity || 'x ' || p.internal_product_name, '\n') as items
+        FROM customer_order co
+        JOIN order_item oi ON co.id = oi.order_id
+        JOIN product p ON oi.product_id = p.id
+        WHERE co.order_status = 'open'
+          AND oi.service_state IN ('ordered', 'preparing')
+        GROUP BY co.id
+        ORDER BY co.created_at ASC
+    )");
+
+    if (query.exec()) {
+        while (query.next()) {
+            tickets.append({
+                query.value(0).toString(),
+                query.value(1).toString(),
+                query.value(2).toDateTime().toString("hh:mm"),
+                query.value(3).toString(),
+                "" // itemIds placeholder
+            });
+        }
+    }
+    return tickets;
+}*/
+
+void SalesModel::setTableNumber(const QString &t) {
+    if (m_tableNumber != t) {
+        m_tableNumber = t;
+        emit headerChanged();
+    }
+}
+
 
 void SalesModel::removeItem(int index) {
     if (index < 0 || index >= m_items.size()) return;
@@ -166,15 +273,15 @@ auto SalesModel::submitOrder() -> QString {
     return "";
 }
 
-void SalesModel::recalculateTotals() {
-    Money total(0), tax(0);
-    for (const auto &i : std::as_const(m_items)) {
-        total = total + (i.finalUnitPrice * i.quantity);
-        tax = tax + (i.taxAmountPerUnit * i.quantity);
-    }
-    m_cachedTotal = total; m_cachedTaxTotal = tax;
-    emit totalsChanged();
-}
+// void SalesModel::recalculateTotals() {
+//     Money total(0), tax(0);
+//     for (const auto &i : std::as_const(m_items)) {
+//         total = total + (i.finalUnitPrice * i.quantity);
+//         tax = tax + (i.taxAmountPerUnit * i.quantity);
+//     }
+//     m_cachedTotal = total; m_cachedTaxTotal = tax;
+//     emit totalsChanged();
+// }
 
 // salesmodel.cpp
 
@@ -235,7 +342,7 @@ bool SalesModel::reduceInventory(QSqlDatabase &db) {
     return true;
 }
 
-QList<Order> SalesModel::fetchAllOrders() {
+[[nodiscard]] QList<Order> SalesModel::fetchAllOrders() const{
     QList<Order> orders;
     QSqlQuery query;
     query.prepare("SELECT id, table_number, waiter_id, order_status, created_at "
@@ -283,7 +390,7 @@ QList<Order> SalesModel::fetchAllOrders() {
 //     return queue;
 // }
 
-QList<KitchenTicket> SalesModel::fetchKitchenQueue() {
+[[nodiscard]] QList<KitchenTicket> SalesModel::fetchKitchenQueue() const{
     QList<KitchenTicket> tickets;
     QSqlQuery query;
     // Uses your customer_order and order_item schema
