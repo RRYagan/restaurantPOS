@@ -62,7 +62,11 @@ QVariant ProductModel::data(const QModelIndex& index, int role) const {
     switch (role) {
     case IdRole: return dp.product.id;
     case NameRole: return dp.product.internalProductName;
-    case PriceRole: return dp.product.defaultSellingPrice.toKSH();
+    case PriceFormattedRole: {
+        // Converts e.g. 15000 to "150.00"
+        double p = dp.product.defaultSellingPrice.toKSH();
+        return QString::number(p, 'f', 2);
+    }
     case CompositionRole: return dp.composition;
     case CategoryIdRole: return dp.product.productCategoryId.toInt();
     default: return {};
@@ -71,27 +75,94 @@ QVariant ProductModel::data(const QModelIndex& index, int role) const {
 
 // --- CRUD Implementation ---
 
-bool ProductModel::addProduct(const QVariantMap &data) {
-    QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    QSqlQuery q;
-    q.prepare("INSERT INTO product (id, internal_product_name, product_category_id, default_selling_price) VALUES (:id, :n, :c, :p)");
-    q.bindValue(":id", newId);
-    q.bindValue(":n", data["internalProductName"]);
-    q.bindValue(":c", data["categoryId"]);
-    q.bindValue(":p", (qlonglong)(data["price"].toDouble() * 100));
-    if (q.exec()) { loadData(); return true; }
-    return false;
+auto ProductModel::addProduct(const QVariantMap &data) -> bool
+{
+    QSqlQuery query;
+
+    /* money in cents */
+    double ksh_value = data.value("defaultSellingPrice").toDouble();
+    Money price = Money::toCents(ksh_value);
+    double taxRate = data.value("taxRate").toDouble();
+    Money taxAmount = price * (taxRate / 100.0);
+
+    query.prepare(R"(
+        INSERT INTO product (
+            id, kra_item_code, internal_product_name, product_category_id,
+            product_type_id, currency_code, country_code, default_selling_price,
+            tax_classification_code, tax_amount
+        ) VALUES (
+            :p_id, :p_kra, :p_name, :p_cat, :p_type, :p_curr, :p_country,
+            :p_price, :p_taxcode, :p_taxamt
+        )
+    )");
+
+    QString id = data.value("id").toString();
+    if (id.isEmpty()) id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    query.bindValue(":p_id", id);
+    query.bindValue(":p_kra", data.value("kraItemCode"));
+    query.bindValue(":p_name", data.value("internalProductName"));
+    query.bindValue(":p_cat", data.value("productCategoryId"));
+    query.bindValue(":p_type", data.value("productTypeId"));
+    query.bindValue(":p_curr", data.value("currencyCode"));
+    query.bindValue(":p_country", data.value("countryCode"));
+    query.bindValue(":p_price", static_cast<qint64>(price.cents));
+    query.bindValue(":p_taxcode", data.value("taxClassificationCode"));
+    query.bindValue(":p_taxamt", static_cast<qint64>(taxAmount.cents));
+
+    if (!query.exec()) {
+        qCritical() << "DB Insert Error:" << query.lastError().text();
+        return false;
+    }
+
+    // select();
+    return true;
 }
 
-bool ProductModel::updateProduct(const QVariantMap &data) {
-    QSqlQuery q;
-    q.prepare("UPDATE product SET internal_product_name=:n, product_category_id=:c, default_selling_price=:p WHERE id=:id");
-    q.bindValue(":id", data["id"]);
-    q.bindValue(":n", data["internalProductName"]);
-    q.bindValue(":c", data["categoryId"]);
-    q.bindValue(":p", (qlonglong)(data["price"].toDouble() * 100));
-    if (q.exec()) { loadData(); return true; }
-    return false;
+auto ProductModel::updateProduct(const QVariantMap &data) -> bool
+{
+    // QVariantMap p = data.toMap();
+    QSqlQuery query;
+
+
+    /* money in cents */
+    Money price = Money::toCents(data.value("defaultSellingPrice").toDouble());
+    double taxRate = data.value("taxRate").toDouble();
+    Money taxAmount = price * (taxRate / 100.0);
+
+    query.prepare(R"(
+        UPDATE product SET
+            kra_item_code = :kra,
+            internal_product_name = :name,
+            product_category_id = :cat,
+            product_type_id = :type,
+            currency_code = :curr,
+            country_code = :country,
+            default_selling_price = :price,
+            tax_classification_code = :taxId,
+            tax_amount = :taxAmt,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    )");
+
+    query.bindValue(":id", data.value("id"));
+    query.bindValue(":kra", data.value("kraItemCode"));
+    query.bindValue(":name", data.value("internalProductName"));
+    query.bindValue(":cat", data.value("productCategoryId"));
+    query.bindValue(":type", data.value("productTypeId"));
+    query.bindValue(":curr", data.value("currencyCode"));
+    query.bindValue(":country", data.value("countryCode"));
+    query.bindValue(":price", static_cast<qint64>(price.cents));
+    query.bindValue(":taxId", data.value("taxClassificationCode"));
+    query.bindValue(":taxAmt", static_cast<qint64>(taxAmount.cents));
+
+    if (!query.exec()) {
+        qCritical() << "DB Update Error:" << query.lastError().text();
+        return false;
+    }
+
+    // select();
+    return true;
 }
 
 bool ProductModel::removeProduct(const QString& productId) {
