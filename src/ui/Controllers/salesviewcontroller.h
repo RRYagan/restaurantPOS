@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <memory> // For std::unique_ptr
+#include <productfilterproxymodel.h>
 #include <QtQml/qqmlregistration.h>
 #include "salesmodel.h"
 #include "productmodel.h"
@@ -17,6 +18,7 @@ class SalesViewController : public QObject {
     // Q_PROPERTY: Still returns raw pointers for QML compatibility
     Q_PROPERTY(SalesModel* orderModel READ orderModel CONSTANT)
     Q_PROPERTY(ProductModel* productModel READ productModel CONSTANT)
+    Q_PROPERTY(ProductFilterProxyModel* filteredProducts READ filteredProducts CONSTANT)
 
     Q_PROPERTY(bool isBusy READ isBusy NOTIFY isBusyChanged)
     Q_PROPERTY(double totalAmount READ totalAmount NOTIFY orderChanged)
@@ -29,6 +31,7 @@ public:
     // Explicitly mark getters as nodiscard and const to express intent (P.3)
     [[nodiscard]] auto orderModel() const -> SalesModel* { return m_salesModel.get(); }
     [[nodiscard]] auto productModel() const -> ProductModel* { return m_productModel.get(); }
+    ProductFilterProxyModel* filteredProducts() const { return m_filterProxyModel.get(); }
 
     [[nodiscard]] auto isBusy() const -> bool { return m_isBusy; }
     [[nodiscard]] auto totalAmount() const -> double;
@@ -58,6 +61,7 @@ private:
     std::unique_ptr<SalesModel> m_salesModel;
     std::unique_ptr<ProductModel> m_productModel;
     std::unique_ptr<InventoryViewController> m_inventoryController;
+    std::unique_ptr<ProductFilterProxyModel> m_filterProxyModel;
 
     // C.48: Prefer default member initializers
     bool m_isBusy{false};

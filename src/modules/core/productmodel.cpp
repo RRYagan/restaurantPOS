@@ -1,266 +1,156 @@
 #include "productmodel.h"
-#include <QSqlRecord>
-#include <QSqlError>
-#include <QDebug>
-#include <QUuid>
 #include <QSqlQuery>
+#include <QSqlError>
+#include <QUuid>
+#include <QDebug>
 
-ProductModel::ProductModel(QObject* parent, const QSqlDatabase &db)
-    : QSqlTableModel(parent, db)
-{
-    setTable("product");
-    setEditStrategy(OnManualSubmit);
+ProductModel::ProductModel(QObject* parent) : QAbstractListModel(parent) {
+    loadData();
+}
 
-    // Cache indices immediately
-    m_idCol       = fieldIndex("id");
-    m_kraCol      = fieldIndex("kra_item_code");
-    m_nameCol     = fieldIndex("internal_product_name");
-    m_catCol      = fieldIndex("product_category_id");
-    m_typeCol     = fieldIndex("product_type_id");
-    m_priceCol    = fieldIndex("default_selling_price");
-    m_taxCol      = fieldIndex("tax_classification_code");
-    m_currencyCol = fieldIndex("currency_code");
-    m_countryCol  = fieldIndex("country_code");
-    m_taxAmtCol   = fieldIndex("tax_amount");
+void ProductModel::loadData() {
+    beginResetModel();
+    m_products.clear();
+    QSqlQuery query("SELECT id, kra_item_code, internal_product_name, product_category_id, "
+                    "product_type_id, currency_code, country_code, default_selling_price, "
+                    "tax_classification_code, tax_amount FROM product");
 
-    if (!select()) {
-        qCritical() << "Select failed for table 'product':" << lastError().text();
+    while (query.next()) {
+        DeepProduct dp;
+        dp.product.id = query.value(0).toString();
+        dp.product.kraItemCode = query.value(1).toString();
+        dp.product.internalProductName = query.value(2).toString();
+        dp.product.productCategoryId = query.value(3).toString();
+        dp.product.productTypeId = query.value(4).toString();
+        dp.product.currencyCode = query.value(5).toString();
+        dp.product.countryCode = query.value(6).toString();
+        dp.product.defaultSellingPrice = Money(query.value(7).toLongLong());
+        dp.product.taxClassificationCode = query.value(8).toString();
+        dp.product.taxAmount = Money(query.value(9).toLongLong());
+
+        QSqlQuery compQuery;
+        compQuery.prepare("SELECT pc.id, i.name, pc.required_quantity, pc.quantity_unit, pc.inventory_id "
+                          "FROM product_composition pc JOIN inventory i ON pc.inventory_id = i.id "
+                          "WHERE pc.product_id = :pid");
+        compQuery.bindValue(":pid", dp.product.id);
+        if (compQuery.exec()) {
+            while (compQuery.next()) {
+                dp.composition.append(QVariantMap{
+                    {"id", compQuery.value(0)}, {"name", compQuery.value(1)},
+                    {"quantity", compQuery.value(2)}, {"unit", compQuery.value(3)},
+                    {"inventoryId", compQuery.value(4)}
+                });
+            }
+        }
+        m_products.push_back(std::move(dp));
     }
+    endResetModel();
 }
 
-auto ProductModel::roleNames() const -> QHash<int, QByteArray>
-{
-    return {
-        { IdRole, "id" },
-        { KraCodeRole, "kraItemCode" },
-        { NameRole, "internalProductName" },
-        { CategoryRole, "productCategoryId" },
-        { TypeRole, "productTypeId" },
-        { CurrencyRole, "currencyCode" },
-        { CountryOriginRole, "countryCode" },
-        { PriceRole, "defaultSellingPrice" },
-        {PriceFormattedRole, "priceFormatted"},
-        { TaxRole, "taxClassificationCode" },
-        { TaxAmountRole, "taxAmount" }
-    };
+// --- Basic Overrides ---
+int ProductModel::rowCount(const QModelIndex& parent) const { return parent.isValid() ? 0 : m_products.size(); }
+
+QHash<int, QByteArray> ProductModel::roleNames() const {
+    return { {IdRole, "id"}, {KraCodeRole, "kraItemCode"}, {NameRole, "internalProductName"},
+            {PriceRole, "price"}, {PriceFormattedRole, "priceFormatted"}, {CompositionRole, "availableModifiers"},
+            {CategoryIdRole, "categoryId"}, {ProductTypeIdRole, "productTypeId"} };
 }
 
-[[nodiscard]] auto ProductModel::data(const QModelIndex& index, int role) const -> QVariant
-{
-    if (!index.isValid()) return {};
-
-    if (role < Qt::UserRole) return QSqlTableModel::data(index, role);
-
-    const int row = index.row();
-
+QVariant ProductModel::data(const QModelIndex& index, int role) const {
+    if (!index.isValid() || index.row() >= (int)m_products.size()) return {};
+    const auto& dp = m_products[index.row()];
     switch (role) {
-    case IdRole:            {
-        return QSqlTableModel::data(this->index(row, m_idCol));
-    }
-    case KraCodeRole:       {
-        return QSqlTableModel::data(this->index(row, m_kraCol));
-    }
-    case NameRole:          {
-        return QSqlTableModel::data(this->index(row, m_nameCol));
-    }
-    case CategoryRole:      {
-        return QSqlTableModel::data(this->index(row, m_catCol));
-    }
-    case TypeRole:          {
-        return QSqlTableModel::data(this->index(row, m_typeCol));
-
-    }
-    case CurrencyRole:      {
-        return QSqlTableModel::data(this->index(row, m_currencyCol));
-    }
-    case CountryOriginRole: {
-        return QSqlTableModel::data(this->index(row, m_countryCol));
-    }
-    case PriceRole:        {
-        qlonglong cents = QSqlTableModel::data(this->index(row, m_priceCol)).toLongLong();
-        return Money(cents).toKSH();
-    }
-    case PriceFormattedRole :        {
-        qlonglong cents = QSqlTableModel::data(this->index(row, m_priceCol)).toLongLong();
-        return Money(cents).toKSHString();
-    }
-    case TaxRole:           {
-        return QSqlTableModel::data(this->index(row, m_taxCol));
-    }
-    case TaxAmountRole:     {
-        qlonglong cents = QSqlTableModel::data(this->index(row, m_taxAmtCol)).toLongLong();
-        return Money(cents).toKSH();
-    }
-    default:                {
-        return QSqlTableModel::data(index, role);
-
-    }
+    case IdRole: return dp.product.id;
+    case NameRole: return dp.product.internalProductName;
+    case PriceRole: return dp.product.defaultSellingPrice.toKSH();
+    case CompositionRole: return dp.composition;
+    case CategoryIdRole: return dp.product.productCategoryId.toInt();
+    default: return {};
     }
 }
 
-auto ProductModel::setData(const QModelIndex& index, const QVariant& value, int role) -> bool
-{
-    if (!index.isValid()) return false;
+// --- CRUD Implementation ---
 
-    QSqlRecord rec = record(index.row());
-
-    switch (role) {
-    case IdRole:            rec.setValue(m_idCol, value); break;
-    case KraCodeRole:       rec.setValue(m_kraCol, value); break;
-    case NameRole:          rec.setValue(m_nameCol, value); break;
-    case CategoryRole:      rec.setValue(m_catCol, value); break;
-    case TypeRole:          rec.setValue(m_typeCol, value); break;
-    case CurrencyRole:      rec.setValue(m_currencyCol, value); break;
-    case CountryOriginRole: rec.setValue(m_countryCol, value); break;
-    case PriceRole:         rec.setValue(m_priceCol, value); break;
-    case TaxRole:           rec.setValue(m_taxCol, value); break;
-    case TaxAmountRole:     rec.setValue(m_taxAmtCol, value); break;
-    default:                return false;
-    }
-
-    if (setRecord(index.row(), rec)) {
-        emit dataChanged(index, index, {role});
-        return true;
-    }
+bool ProductModel::addProduct(const QVariantMap &data) {
+    QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QSqlQuery q;
+    q.prepare("INSERT INTO product (id, internal_product_name, product_category_id, default_selling_price) VALUES (:id, :n, :c, :p)");
+    q.bindValue(":id", newId);
+    q.bindValue(":n", data["internalProductName"]);
+    q.bindValue(":c", data["categoryId"]);
+    q.bindValue(":p", (qlonglong)(data["price"].toDouble() * 100));
+    if (q.exec()) { loadData(); return true; }
     return false;
 }
 
-auto ProductModel::addProduct(const QVariantMap &data) -> bool
-{
-    QSqlQuery query(database());
-
-    /* money in cents */
-    double ksh_value = data.value("defaultSellingPrice").toDouble();
-    Money price = Money::toCents(ksh_value);
-    double taxRate = data.value("taxRate").toDouble();
-    Money taxAmount = price * (taxRate / 100.0);
-
-    query.prepare(R"(
-        INSERT INTO product (
-            id, kra_item_code, internal_product_name, product_category_id,
-            product_type_id, currency_code, country_code, default_selling_price,
-            tax_classification_code, tax_amount
-        ) VALUES (
-            :p_id, :p_kra, :p_name, :p_cat, :p_type, :p_curr, :p_country,
-            :p_price, :p_taxcode, :p_taxamt
-        )
-    )");
-
-    QString id = data.value("id").toString();
-    if (id.isEmpty()) id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-
-    query.bindValue(":p_id", id);
-    query.bindValue(":p_kra", data.value("kraItemCode"));
-    query.bindValue(":p_name", data.value("internalProductName"));
-    query.bindValue(":p_cat", data.value("productCategoryId"));
-    query.bindValue(":p_type", data.value("productTypeId"));
-    query.bindValue(":p_curr", data.value("currencyCode"));
-    query.bindValue(":p_country", data.value("countryCode"));
-    query.bindValue(":p_price", static_cast<qint64>(price.cents));
-    query.bindValue(":p_taxcode", data.value("taxClassificationCode"));
-    query.bindValue(":p_taxamt", static_cast<qint64>(taxAmount.cents));
-
-    if (!query.exec()) {
-        qCritical() << "DB Insert Error:" << query.lastError().text();
-        return false;
-    }
-
-    select();
-    return true;
+bool ProductModel::updateProduct(const QVariantMap &data) {
+    QSqlQuery q;
+    q.prepare("UPDATE product SET internal_product_name=:n, product_category_id=:c, default_selling_price=:p WHERE id=:id");
+    q.bindValue(":id", data["id"]);
+    q.bindValue(":n", data["internalProductName"]);
+    q.bindValue(":c", data["categoryId"]);
+    q.bindValue(":p", (qlonglong)(data["price"].toDouble() * 100));
+    if (q.exec()) { loadData(); return true; }
+    return false;
 }
 
-auto ProductModel::updateProduct(const QVariantMap &data) -> bool
-{
-    // QVariantMap p = data.toMap();
-    QSqlQuery query(database());
-
-    /* money in cents */
-    Money price = Money::toCents(data.value("defaultSellingPrice").toDouble());
-    double taxRate = data.value("taxRate").toDouble();
-    Money taxAmount = price * (taxRate / 100.0);
-
-    query.prepare(R"(
-        UPDATE product SET
-            kra_item_code = :kra,
-            internal_product_name = :name,
-            product_category_id = :cat,
-            product_type_id = :type,
-            currency_code = :curr,
-            country_code = :country,
-            default_selling_price = :price,
-            tax_classification_code = :taxId,
-            tax_amount = :taxAmt,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = :id
-    )");
-
-    query.bindValue(":id", data.value("id"));
-    query.bindValue(":kra", data.value("kraItemCode"));
-    query.bindValue(":name", data.value("internalProductName"));
-    query.bindValue(":cat", data.value("productCategoryId"));
-    query.bindValue(":type", data.value("productTypeId"));
-    query.bindValue(":curr", data.value("currencyCode"));
-    query.bindValue(":country", data.value("countryCode"));
-    query.bindValue(":price", static_cast<qint64>(price.cents));
-    query.bindValue(":taxId", data.value("taxClassificationCode"));
-    query.bindValue(":taxAmt", static_cast<qint64>(taxAmount.cents));
-
-    if (!query.exec()) {
-        qCritical() << "DB Update Error:" << query.lastError().text();
-        return false;
-    }
-
-    select();
-    return true;
+bool ProductModel::removeProduct(const QString& productId) {
+    QSqlQuery q; q.prepare("DELETE FROM product WHERE id=:id"); q.bindValue(":id", productId);
+    if (q.exec()) { loadData(); return true; }
+    return false;
 }
 
-auto ProductModel::removeProduct(const QString& productId) -> bool
-{
-    for (int i = 0; i < rowCount(); ++i) {
-        if (record(i).value(m_idCol).toString() == productId) {
-            removeRow(i);
-            return submitAll();
+void ProductModel::syncSingleProduct(const QString& productId) {
+    for (size_t i = 0; i < m_products.size(); ++i) {
+        if (m_products[i].product.id == productId) {
+            QVariantList newComp;
+            QSqlQuery q;
+            q.prepare("SELECT pc.id, i.name, pc.required_quantity, pc.quantity_unit, pc.inventory_id "
+                      "FROM product_composition pc JOIN inventory i ON pc.inventory_id = i.id "
+                      "WHERE pc.product_id = :pid");
+            q.bindValue(":pid", productId);
+            if (q.exec()) {
+                while(q.next()) newComp.append(QVariantMap{{"id", q.value(0)}, {"name", q.value(1)}, {"quantity", q.value(2)}, {"unit", q.value(3)}, {"inventoryId", q.value(4)}});
+                m_products[i].composition = newComp;
+                emit dataChanged(index(i), index(i), {CompositionRole});
+            }
+            break;
         }
     }
+}
+
+bool ProductModel::addIngredient(const QString& productId, const QVariantMap& data) {
+    QSqlQuery q;
+    q.prepare("INSERT INTO product_composition (id, product_id, inventory_id, required_quantity, quantity_unit) VALUES (:id, :pid, :iid, :qty, :unit)");
+    q.bindValue(":id", QUuid::createUuid().toString(QUuid::WithoutBraces));
+    q.bindValue(":pid", productId);
+    q.bindValue(":iid", data["inventoryId"]);
+    q.bindValue(":qty", data["quantity"]);
+    q.bindValue(":unit", data["unit"]);
+    if (q.exec()) { syncSingleProduct(productId); return true; }
     return false;
 }
 
-[[nodiscard]] auto ProductModel::productAt(int row) const -> Product
-{
-    if (row < 0 || row >= rowCount()) return {};
-
-    QSqlRecord rec = record(row);
-    Product p;
-
-    p.id                    = rec.value(m_idCol).toString();
-    p.kraItemCode           = rec.value(m_kraCol).toString();
-    p.internalProductName   = rec.value(m_nameCol).toString();
-    p.productCategoryId     = rec.value(m_catCol).toString();
-    p.productTypeId          = rec.value(m_typeCol).toString();
-    p.currencyCode          = rec.value(m_currencyCol).toString();
-    p.countryCode           = rec.value(m_countryCol).toString();
-    p.defaultSellingPrice   = Money(rec.value(m_priceCol).toLongLong());
-    p.taxClassificationCode = rec.value(m_taxCol).toString();
-    p.taxAmount             = Money(rec.value(m_taxAmtCol).toLongLong());
-    return p;
+bool ProductModel::updateIngredient(const QString& productId, const QVariantMap& data) {
+    QSqlQuery q;
+    q.prepare("UPDATE product_composition SET inventory_id=:iid, required_quantity=:qty, quantity_unit=:unit WHERE id=:id");
+    q.bindValue(":id", data["id"]);
+    q.bindValue(":iid", data["inventoryId"]);
+    q.bindValue(":qty", data["quantity"]);
+    q.bindValue(":unit", data["unit"]);
+    if (q.exec()) { syncSingleProduct(productId); return true; }
+    return false;
 }
 
-[[nodiscard]] auto ProductModel::getAllProducts() const -> QList<Product>
-{
-    QList<Product> products;
-    products.reserve(rowCount());
-    for (int i = 0; i < rowCount(); ++i) {
-        products.append(productAt(i));
-    }
-    return products;
+bool ProductModel::removeIngredient(const QString& productId, const QString& compositionId) {
+    QSqlQuery q; q.prepare("DELETE FROM product_composition WHERE id=:id"); q.bindValue(":id", compositionId);
+    if (q.exec()) { syncSingleProduct(productId); return true; }
+    return false;
 }
+
+void ProductModel::refresh() { loadData(); }
+
 Product ProductModel::getProductById(const QString &id) const {
-    for (int i = 0; i < rowCount(); ++i) {
-        // Use the cached column index for ID
-        if (record(i).value(m_idCol).toString() == id) {
-            return productAt(i); // Returns the full Product struct
-        }
-    }
-    qWarning() << "Product not found in model for ID:" << id;
+    for(const auto& dp : m_products) if(dp.product.id == id) return dp.product;
     return {};
 }

@@ -14,9 +14,12 @@ SalesViewController::SalesViewController(QObject* parent)
     : QObject(parent),
     m_salesModel(std::make_unique<SalesModel>(this)),
     m_productModel(std::make_unique<ProductModel>(this)),
-    m_inventoryController(std::make_unique<InventoryViewController>(this))
+    m_inventoryController(std::make_unique<InventoryViewController>(this)),
+    m_filterProxyModel(std::make_unique<ProductFilterProxyModel>(this))
 {
-    // Connect using .get() to access the raw pointer owned by unique_ptr
+    m_filterProxyModel->setSourceModel(m_productModel.get());
+    m_filterProxyModel->setCategoryFilter(-1);
+    /* Connect using .get() to access the raw pointer owned by unique_ptr */
     connect(m_salesModel.get(), &SalesModel::totalsChanged, this, &SalesViewController::orderChanged);
     connect(m_salesModel.get(), &SalesModel::countChanged, this, &SalesViewController::itemCountChanged);
     connect(m_salesModel.get(), &SalesModel::inventorydbModified,

@@ -1,28 +1,16 @@
 #ifndef PRODUCTMODEL_H
 #define PRODUCTMODEL_H
 
-#include <QSqlTableModel>
+#include <QAbstractListModel>
 #include <QSqlDatabase>
 #include <QVariantMap>
-#include <cstdint>
+#include <vector>
 #include "types.h"
 
-// Assuming Product struct is defined here or included
-
-
-class ProductModel : public QSqlTableModel {
+class ProductModel : public QAbstractListModel {
     Q_OBJECT
 
 public:
-    explicit ProductModel(QObject* parent = nullptr, const QSqlDatabase &db = QSqlDatabase());
-
-    // Rule of Five: Ensure consistent object lifecycle
-    ~ProductModel() override = default;
-    ProductModel(const ProductModel&) = delete;
-    auto operator=(const ProductModel&) -> ProductModel& = delete;
-    ProductModel(ProductModel&&) = delete;
-    auto operator=(ProductModel&&) -> ProductModel& = delete;
-
     enum Roles : std::uint16_t {
         IdRole = Qt::UserRole + 1,
         KraCodeRole,
@@ -34,36 +22,41 @@ public:
         PriceRole,
         PriceFormattedRole,
         TaxRole,
-        TaxAmountRole
+        TaxAmountRole,
+        CategoryIdRole,
+        ProductTypeIdRole,
+        CompositionRole // Exposed as 'availableModifiers'
     };
 
-    // --- READ ---
-    [[nodiscard]] auto data(const QModelIndex& index, int role) const -> QVariant override;
-    [[nodiscard]] auto roleNames() const -> QHash<int, QByteArray> override;
+    explicit ProductModel(QObject* parent = nullptr);
 
-    // --- WRITE ---
-    auto setData(const QModelIndex& index, const QVariant& value, int role) -> bool override;
+    // QAbstractListModel interface
+    [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    // --- CRUD METHODS ---
+    // --- PRODUCT CRUD (Matches ProductViewController requirements) ---
     auto addProduct(const QVariantMap &data) -> bool;
-    auto updateProduct(const QVariantMap &data) -> bool;
+    auto updateProduct(const QVariantMap &data) -> bool; // Fixed signature
     auto removeProduct(const QString& productId) -> bool;
 
-    [[nodiscard]] auto productAt(int row) const -> Product;
+    // --- COMPOSITION CRUD (Matches ProductViewController requirements) ---
+    auto addIngredient(const QString& productId, const QVariantMap& data) -> bool;
+    auto updateIngredient(const QString& productId, const QVariantMap& data) -> bool;
+    auto removeIngredient(const QString& productId, const QString& compositionId) -> bool;
+
+    void refresh();
     [[nodiscard]] Product getProductById(const QString &id) const;
-    [[nodiscard]] auto getAllProducts() const -> QList<Product>;
 
 private:
-    int m_idCol = -1;
-    int m_kraCol = -1;
-    int m_nameCol = -1;
-    int m_catCol = -1;
-    int m_typeCol = -1;
-    int m_priceCol = -1;
-    int m_taxCol = -1;
-    int m_currencyCol = -1;
-    int m_countryCol = -1;
-    int m_taxAmtCol = -1;
+    struct DeepProduct {
+        Product product;
+        QVariantList composition;
+    };
+
+    void loadData();
+    void syncSingleProduct(const QString& productId);
+    std::vector<DeepProduct> m_products;
 };
 
-#endif // PRODUCTMODEL_H
+#endif

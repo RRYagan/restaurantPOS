@@ -95,75 +95,127 @@ Rectangle {
                     color: window.theme.textMain
                 }
 
-                // --- Category Bar ---
+                // =============================================================================
+                // CATEGORY BAR CONTAINER
+                // =============================================================================
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 60 // Slightly larger to accommodate button shadows/borders
                     color: "transparent"
 
-                    ListView {
-                        id: categoryBar
+                    RowLayout {
                         anchors.fill: parent
-                        orientation: ListView.Horizontal
+                        anchors.leftMargin: 4
                         spacing: 12
-                        clip: true
-                        model: _productCategoryModel
 
-                        delegate: Button {
-                            id: catButton
-                            text: model.product_category_name
+                        // 1. DEDICATED "ALL" BUTTON
+                        Button {
+                            id: allButton
+                            text: "All Products"
+                            Layout.alignment: Qt.AlignVCenter
+
+                            property bool isSelected: _salesModel.filteredProducts.categoryFilter === 0
+
+                            onClicked: _salesModel.filteredProducts.categoryFilter = 0
+
+                            background: Rectangle {
+                                implicitWidth: 110
+                                implicitHeight: 40
+                                color: allButton.isSelected ? window.theme.accent : window.theme.surface
+                                radius: 20
+                                border.color: allButton.isSelected ? window.theme.accent : window.theme.border
+
+                                // Add a subtle shadow if selected to make it pop
+                                layer.enabled: allButton.isSelected
+                            }
 
                             contentItem: Text {
-                                text: catButton.text
+                                text: allButton.text
+                                font.pixelSize: 14
                                 font.bold: true
-                                color: _productModel.currentCategory === text ? window.theme.textMain : window.theme.textSecondary
+                                color: allButton.isSelected ? window.theme.textMain : window.theme.textSecondary
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
+                        }
 
-                            background: Rectangle {
-                                implicitWidth: 100
-                                implicitHeight: 38
-                                color: _productModel.currentCategory === catButton.text ? window.theme.accent : window.theme.surface
-                                radius: 20
-                                border.color: _productModel.currentCategory === catButton.text ? window.theme.accent : window.theme.border
-                            }
+                        // 2. SCROLLABLE CATEGORY LIST
+                        ListView {
+                            id: categoryBar
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 40 // Match button height
+                            Layout.alignment: Qt.AlignVCenter
 
-                            onClicked: {
-                                _productModel.currentCategory = model.product_category_name
-                                categoryBar.positionViewAtIndex(index, ListView.Center);
+                            orientation: ListView.Horizontal
+                            spacing: 12
+                            clip: true
+                            model: _productCategoryModel
+
+                            delegate: Button {
+                                id: catButton
+                                text: model.product_category_name
+                                property bool isSelected: _salesModel.filteredProducts.categoryFilter === model.id
+
+                                onClicked: {
+                                    _salesModel.filteredProducts.categoryFilter = model.id;
+                                    categoryBar.positionViewAtIndex(index, ListView.Center);
+                                }
+
+                                contentItem: Text {
+                                    text: catButton.text
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                    color: isSelected ? window.theme.textMain : window.theme.textSecondary
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 15
+                                    rightPadding: 15
+                                }
+
+                                background: Rectangle {
+                                    implicitHeight: 40
+                                    color: isSelected ? window.theme.accent : window.theme.surface
+                                    radius: 20
+                                    border.color: isSelected ? window.theme.accent : window.theme.border
+                                }
                             }
                         }
                     }
                 }
 
+                // =============================================================================
+                // 2. PRODUCT GRID (Filtered)
+                // =============================================================================
                 GridView {
                     id: grid
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: _salesModel.productModel
+
+                    // INTEGRATION POINT: Use the proxy model instead of the raw product model
+                    model: _salesModel.filteredProducts
+
                     cellWidth: 230
                     cellHeight: 230
 
                     delegate: Card {
+                        // These roles (internalProductName, etc.) must be defined in your ProductModel
                         itemName: model.internalProductName
                         price: model.priceFormatted
                         width: grid.cellWidth - 30
                         height: grid.cellHeight - 30
+
                         onClicked: {
                             let data = model;
                             if (data.availableModifiers && data.availableModifiers.length > 0) {
-                                // SET DATA FIRST
                                 modifierLoader.currentModifierData = data.availableModifiers;
                                 modifierLoader.currentItemContext = data;
-                                // THEN ACTIVATE
                                 modifierLoader.active = true;
                             } else {
+                                // model.id refers to the Product ID from the SQL 'product' table
                                 _salesModel.addItem(model.id);
                             }
                         }
-
                     }
                 }
             }

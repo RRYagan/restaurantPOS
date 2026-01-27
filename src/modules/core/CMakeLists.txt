@@ -31,6 +31,7 @@ add_library(PosCoreDatabase
     orderitemmodel.h orderitemmodel.cpp
     types.h
     money.h
+    productfilterproxymodel.h
 
 )
 # Use relative paths to the project root

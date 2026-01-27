@@ -31,25 +31,25 @@ auto ProductViewController::saveProduct(const QVariantMap& data) -> bool {
     }
 }
 auto ProductViewController::saveIngredient(const QVariantMap& data) -> bool {
-    ProductComposition c;
-    int localFlag = data.value("localId", -1).toInt();
-
-    QString id = data.value("id").toString();
-
-    if (localFlag == -1 && id.isEmpty()) {
-        return m_compositionModel->addIngredient(data);
+    QString currentPid = this->productId();
+    if (data.value("id").toString().isEmpty()) {
+        return m_productModel->addIngredient(currentPid, data);
     } else {
-        return m_compositionModel->updateIngredient(data);
+        return m_productModel->updateIngredient(currentPid, data);
     }
 }
 
+auto ProductViewController::removeIngredient(const QString& id) -> bool {
+    // 'id' here is the compositionId
+    return m_productModel->removeIngredient(this->productId(), id);
+}
 auto ProductViewController::removeProduct(const QString& productId) -> bool {
     return m_productModel->removeProduct(productId);
 }
 
-auto ProductViewController::removeIngredient(const QString& id) -> bool {
-    return m_compositionModel->removeIngredient(id);
-}
+// auto ProductViewController::removeIngredient(const QString& id) -> bool {
+//     return m_compositionModel->removeIngredient(id);
+// }
 
 auto ProductViewController::setCurrentProduct(const QString& productId) -> void {
     m_compositionModel->setProductId(productId);
