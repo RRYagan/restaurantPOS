@@ -1,56 +1,56 @@
-#include "productviewcontroller.h"
+ #include "productviewcontroller.h"
 #include <QDebug>
+#include <QUuid>
 
 ProductViewController::ProductViewController(QObject* parent)
-    : QObject(parent),
-    m_productModel(new ProductModel(this)) // Uses the deep model
-{
+    : QObject(parent), m_productModel(new ProductModel(this)), m_compositionModel(new ProductCompositionModel(this)){}
+
+auto ProductViewController::productId() const -> QString {
+    return m_compositionModel->productId();
 }
 
-void ProductViewController::setProductId(const QString& id) {
-    if (m_currentProductId != id) {
-        m_currentProductId = id;
+auto ProductViewController::setProductId(const QString& id) -> void {
+    if (m_compositionModel->productId() != id) {
+        m_compositionModel->setProductId(id);
         emit productIdChanged();
     }
 }
 
-bool ProductViewController::saveProduct(const QVariantMap& data) {
-    // If the data contains a valid ID, update; otherwise, add new
-    qDebug() << "Controller received data:" << data; // Add this line
+auto ProductViewController::saveProduct(const QVariantMap& data) -> bool {
+    // Create a mutable copy of the data to modify prices
+    QVariantMap processedData = data;
+
+
+    int localFlag = processedData.value("localId", -1).toInt();
+    QString id = processedData.value("id").toString();
+
+    if (localFlag == -1 && id.isEmpty()) {
+        return m_productModel->addProduct(processedData);
+    } else {
+        return m_productModel->updateProduct(processedData);
+    }
+}
+auto ProductViewController::saveIngredient(const QVariantMap& data) -> bool {
+    ProductComposition c;
+    int localFlag = data.value("localId", -1).toInt();
+
     QString id = data.value("id").toString();
 
-    if (id.isEmpty()) {
-        return m_productModel->addProduct(data);
+    if (localFlag == -1 && id.isEmpty()) {
+        return m_compositionModel->addIngredient(data);
     } else {
-        return m_productModel->updateProduct(data);
+        return m_compositionModel->updateIngredient(data);
     }
 }
 
-bool ProductViewController::saveIngredient(const QVariantMap& data) {
-    if (m_currentProductId.isEmpty()) {
-        qWarning() << "Cannot save ingredient: No current product ID set.";
-        return false;
-    }
-
-    // compositionId is used to determine if we are updating an existing link
-    QString compId = data.value("id").toString();
-
-    if (compId.isEmpty()) {
-        return m_productModel->addIngredient(m_currentProductId, data);
-    } else {
-        return m_productModel->updateIngredient(m_currentProductId, data);
-    }
-}
-
-bool ProductViewController::removeIngredient(const QString& compositionId) {
-    // Passes the request to the deep model to handle SQL and memory sync
-    return m_productModel->removeIngredient(m_currentProductId, compositionId);
-}
-
-bool ProductViewController::removeProduct(const QString& productId) {
+auto ProductViewController::removeProduct(const QString& productId) -> bool {
     return m_productModel->removeProduct(productId);
 }
 
-void ProductViewController::setCurrentProduct(const QString& productId) {
-    setProductId(productId);
+auto ProductViewController::removeIngredient(const QString& id) -> bool {
+    return m_compositionModel->removeIngredient(id);
+}
+
+auto ProductViewController::setCurrentProduct(const QString& productId) -> void {
+    m_compositionModel->setProductId(productId);
 }
