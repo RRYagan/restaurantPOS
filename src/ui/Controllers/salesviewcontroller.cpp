@@ -13,18 +13,31 @@ struct BusyGuard {
 SalesViewController::SalesViewController(QObject* parent)
     : QObject(parent),
     m_salesModel(std::make_unique<SalesModel>(this)),
+    m_orderItemModel(std::make_unique<OrderItemModel>(this)),
     m_productModel(std::make_unique<ProductModel>(this)),
     m_inventoryController(std::make_unique<InventoryViewController>(this)),
-    m_filterProxyModel(std::make_unique<ProductFilterProxyModel>(this))
+    m_genericFilterProxyModel(std::make_unique<GenericFilterProxyModel>(this))
 {
-    m_filterProxyModel->setSourceModel(m_productModel.get());
-    m_filterProxyModel->setCategoryFilter(-1);
+    m_genericFilterProxyModel->setSourceModel(m_productModel.get());
+    m_genericFilterProxyModel->setCategoryRole(ProductModel::CategoryIdRole);
+    m_genericFilterProxyModel->setTypeRole(ProductModel::ProductTypeIdRole);
+
+    // // Configure proxy for Kitchen View needs
+    // m_genericFilterProxyModel->setSourceModel(m_orderItemModel.get());
+
+    // // Map the proxy to the roles used for filtering items
+    // // Assuming OrderItemModel has StatusRole
+    // m_genericFilterProxyModel->setFilterRole(OrderItemModel::StatusRole);
+
+
     /* Connect using .get() to access the raw pointer owned by unique_ptr */
     connect(m_salesModel.get(), &SalesModel::totalsChanged, this, &SalesViewController::orderChanged);
     connect(m_salesModel.get(), &SalesModel::countChanged, this, &SalesViewController::itemCountChanged);
     connect(m_salesModel.get(), &SalesModel::inventorydbModified,
             m_inventoryController.get(), &InventoryViewController::refresh);
     connect(m_salesModel.get(), &SalesModel::orderStatusChanged,
+            this, &SalesViewController::kitchenDataChanged);
+    connect(m_orderItemModel.get(), &OrderItemModel::orderItemStatusChanged,
             this, &SalesViewController::kitchenDataChanged);
 }
 
@@ -86,32 +99,90 @@ QVariantList SalesViewController::loadOrders() const {
     QVariantList list;
     const auto orders = m_salesModel->fetchAllOrders();
 
-    // ES.71: Prefer range-based for loops for better readability and safety
     for (const auto& o : orders) {
+        // 1. Convert the nested C++ items list into a QVariantList
+        QVariantList itemsList;
+        for (const auto& item : o.items) {
+            itemsList.append(QVariantMap{
+                {"itemId", item.itemId},
+                {"name", item.productName},
+                {"quantity", item.quantity},
+                {"status", item.serviceState} // Used for filtering in KitchenView
+            });
+        }
+
+        // 2. Append the full order object, including its nested item model
         list.append(QVariantMap{
             {"orderId", o.id},
+            {"tableNumber", o.tableNumber}, // Useful for raw data access
             {"displayTitle", "Table " + o.tableNumber},
             {"status", o.orderStatus},
-            {"date", o.createdAt.toString("yyyy-MM-dd hh:mm")}
+            {"date", o.createdAt.toString("yyyy-MM-dd hh:mm")},
+            {"itemModel", itemsList} // This becomes the model for your inner ListView
         });
     }
     return list;
 }
 
-QVariantList SalesViewController::getKitchenQueue() const {
-    QVariantList result;
-    const auto queue = m_salesModel->fetchKitchenQueue();
-    for (const auto& t : queue) {
-        result.append(QVariantMap{
-            {"orderId", t.orderId},
-            {"tableNumber", t.tableNumber},
-            {"time", t.timestamp},
-            {"items", t.itemsSummary}
-        });
+// This returns the "Headers" (Orders) only if they contain items matching the filter
+QVariantList SalesViewController::kitchenOrders(const QString& serviceState) const {
+    QVariantList filteredList;
+    const auto allOrders = m_salesModel->fetchAllOrders();
+
+    for (const auto& order : allOrders) {
+        QVariantList itemsList; // This will hold the QML-friendly items
+        bool hasMatchingItems = false;
+
+        for (const auto& item : order.items) {
+            // Check if item matches current KDS tab (e.g., "ordered")
+            if (item.serviceState == serviceState) {
+                hasMatchingItems = true;
+
+                // Convert OrderItem struct to QVariantMap
+                itemsList.append(QVariantMap{
+                    {"itemId", item.itemId},
+                    {"name", item.productName},
+                    {"quantity", item.quantity},
+                    {"status", item.serviceState}
+                });
+            }
+        }
+
+        // Only add the order if it has items for the current state
+        if (hasMatchingItems) {
+            filteredList.append(QVariantMap{
+                {"orderId", order.id},
+                {"tableNumber", order.tableNumber},
+                {"displayTitle", "Table " + order.tableNumber},
+                {"time", order.createdAt.toString("hh:mm")},
+                {"itemModel", itemsList} // Now QML can read this!
+            });
+        }
     }
-    return result;
+    return filteredList;
 }
 
-void SalesViewController::updateItemStatus(const QString& orderId, const QString& status) {
-    m_salesModel->updateItemStatus(orderId, status);
+// Factory function to create a proxy for a specific card's items
+QVariant SalesViewController::createItemProxy(const QVariant& rawItems, const QString& status) {
+    // You would typically wrap rawItems in a simple QAbstractListModel first
+    // then set it as the source for your GenericFilterProxyModel
+    auto* proxy = new GenericFilterProxyModel(this);
+    // ... setup source model ...
+    proxy->setFilterFixedString(status);
+    return QVariant::fromValue(proxy);
+}
+
+void SalesViewController::updateAllStatus(const QString& orderId, const QString& status) {
+    m_salesModel->updateAllStatus(orderId, status);
+}
+
+
+void SalesViewController::updateItemStatus(const QString& itemId, const QString& status) {
+    if (!m_orderItemModel) {
+        qWarning() << "OrderItemModel is null!";
+        return;
+    }
+
+    m_orderItemModel->updateItemStatus(itemId, status);
+
 }

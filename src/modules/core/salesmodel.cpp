@@ -342,85 +342,50 @@ bool SalesModel::reduceInventory(QSqlDatabase &db) {
     return true;
 }
 
-[[nodiscard]] QList<Order> SalesModel::fetchAllOrders() const{
+[[nodiscard]] QList<Order> SalesModel::fetchAllOrders() const {
     QList<Order> orders;
     QSqlQuery query;
+
     query.prepare("SELECT id, table_number, waiter_id, order_status, created_at "
                   "FROM customer_order ORDER BY created_at DESC");
 
     if (query.exec()) {
         while (query.next()) {
-            orders.append({
-                query.value(0).toString(),  // id
-                query.value(1).toString(),  // tableNumber
-                query.value(2).toString(),  // waiterId
-                query.value(3).toString(),  // orderStatus
-                query.value(4).toDateTime() // createdAt
-            });
+            Order order;
+            order.id = query.value(0).toString();
+            order.tableNumber = query.value(1).toString();
+            order.waiterId = query.value(2).toString();
+            order.orderStatus = query.value(3).toString();
+            order.createdAt = query.value(4).toDateTime();
+
+            // Fetch Items for this specific order
+            QSqlQuery itemQuery;
+            itemQuery.prepare("SELECT oi.id, p.internal_product_name, oi.quantity, oi.service_state "
+                              "FROM order_item oi "
+                              "JOIN product p ON oi.product_id = p.id "
+                              "WHERE oi.order_id = :orderId");
+            itemQuery.bindValue(":orderId", order.id);
+
+            if (itemQuery.exec()) {
+                while (itemQuery.next()) {
+                    // This now works because 'items' is defined in the struct
+                    order.items.append({
+                        itemQuery.value(0).toString(),
+                        itemQuery.value(1).toString(),
+                        itemQuery.value(2).toDouble(),
+                        itemQuery.value(3).toString()
+                    });
+                }
+            }
+            orders.append(order);
         }
     }
     return orders;
 }
 
-// QList<QVariantMap> SalesModel::fetchKitchenQueue() {
-//     QList<QVariantMap> queue;
-//     QSqlQuery query;
-//     // Joining with product to get internal_product_name as per your schema
-//     query.prepare(R"(
-//         SELECT co.id, co.table_number, co.created_at,
-//                GROUP_CONCAT(oi.quantity || 'x ' || p.internal_product_name, '\n') as summary
-//         FROM customer_order co
-//         JOIN order_item oi ON co.id = oi.order_id
-//         JOIN product p ON oi.product_id = p.id
-//         WHERE co.order_status = 'open' AND oi.service_state != 'served'
-//         GROUP BY co.id
-//         ORDER BY co.created_at ASC
-//     )");
 
-//     if (query.exec()) {
-//         while (query.next()) {
-//             QVariantMap ticket;
-//             ticket["orderId"] = query.value(0).toString();
-//             ticket["tableNumber"] = query.value(1).toString();
-//             ticket["time"] = query.value(2).toDateTime().toString("hh:mm");
-//             ticket["items"] = query.value(3).toString();
-//             queue.append(ticket);
-//         }
-//     }
-//     return queue;
-// }
 
-[[nodiscard]] QList<KitchenTicket> SalesModel::fetchKitchenQueue() const{
-    QList<KitchenTicket> tickets;
-    QSqlQuery query;
-    // Uses your customer_order and order_item schema
-    query.prepare(R"(
-        SELECT
-            co.id, co.table_number, co.created_at,
-            GROUP_CONCAT(oi.quantity || 'x ' || p.internal_product_name, '\n') as items
-        FROM customer_order co
-        JOIN order_item oi ON co.id = oi.order_id
-        JOIN product p ON oi.product_id = p.id
-        WHERE co.order_status = 'open'
-          AND oi.service_state IN ('ordered', 'preparing')
-        GROUP BY co.id
-        ORDER BY co.created_at ASC
-    )");
-
-    if (query.exec()) {
-        while (query.next()) {
-            tickets.append({
-                query.value(0).toString(),
-                query.value(1).toString(),
-                query.value(2).toDateTime().toString("hh:mm"),
-                query.value(3).toString()
-            });
-        }
-    }
-    return tickets;
-}
-
-bool SalesModel::updateItemStatus(const QString &itemId, const QString &status) {
+bool SalesModel::updateAllStatus(const QString &itemId, const QString &status) {
     QSqlQuery query;
     // General update for all items in an order to a specific service_state (e.g., 'served')
     query.prepare("UPDATE order_item SET service_state = :status WHERE order_id = :id");

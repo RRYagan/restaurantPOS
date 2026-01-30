@@ -7,6 +7,65 @@
 #include <QSqlQuery>
 #include "types.h"
 
+class OrderItemModel : public QAbstractListModel {
+    Q_OBJECT
+public:
+    enum Roles { NameRole = Qt::UserRole + 1, QuantityRole, StatusRole, ItemIdRole };
+
+    explicit OrderItemModel(QObject* parent = nullptr) : QAbstractListModel(parent) {}
+
+    void setItems(const QList<KitchenItem>& items) {
+        beginResetModel();
+        m_items = items;
+        endResetModel();
+    }
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override {
+        return parent.isValid() ? 0 : m_items.size();
+    }
+
+    QVariant data(const QModelIndex& index, int role) const override {
+        if (!index.isValid() || index.row() >= m_items.size()) return {};
+        const auto& item = m_items.at(index.row());
+        switch (role) {
+        case NameRole: return item.name;
+        case QuantityRole: return item.quantity;
+        case StatusRole: return item.status;
+        case ItemIdRole: return item.id;
+        }
+        return {};
+    }
+
+    QHash<int, QByteArray> roleNames() const override {
+        return {
+                {NameRole, "name"},
+                {QuantityRole, "quantity"},
+                {StatusRole, "status"},
+                {ItemIdRole, "itemId"}
+        };
+    }
+
+    bool updateItemStatus(const QString &itemId, const QString &status) {
+        QSqlQuery query;
+        // General update for all items in an order to a specific service_state (e.g., 'served')
+        query.prepare("UPDATE order_item SET service_state = :status WHERE id = :id");
+        query.bindValue(":status", status);
+        query.bindValue(":id", itemId);
+
+        if (query.exec()) {
+            emit orderItemStatusChanged();
+            return true;
+        }
+        return false;
+    }
+
+signals:
+    void orderItemStatusChanged();
+private:
+    QList<KitchenItem> m_items;
+};
+
+
 class SalesModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(QString tableNumber READ tableNumber WRITE setTableNumber NOTIFY headerChanged)
@@ -53,8 +112,8 @@ public:
 
     // Data Queries
     [[nodiscard]] QList<Order> fetchAllOrders() const;
-    [[nodiscard]] QList<KitchenTicket> fetchKitchenQueue() const;
-    bool updateItemStatus(const QString &orderId, const QString &status);
+    // [[nodiscard]] QList<KitchenTicket> fetchKitchenQueue() const;
+    bool updateAllStatus(const QString &orderId, const QString &status);
 
 signals:
     void totalsChanged();

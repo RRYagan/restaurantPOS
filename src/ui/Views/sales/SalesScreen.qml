@@ -114,9 +114,9 @@ Rectangle {
                             text: "All Products"
                             Layout.alignment: Qt.AlignVCenter
 
-                            property bool isSelected: _salesModel.filteredProducts.categoryFilter === 0
+                            property bool isSelected: _salesModel.filteredProducts.categoryFilter === -1
 
-                            onClicked: _salesModel.filteredProducts.categoryFilter = 0
+                            onClicked: _salesModel.filteredProducts.categoryFilter = -1
 
                             background: Rectangle {
                                 implicitWidth: 110

@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS product (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     -- Mandatory Foreign Keys
-    FOREIGN KEY (product_type_id) REFERENCES product_type(id),
+    FOREIGN KEY (product_type_id) REFERENCES product_type(type_code),
     FOREIGN KEY (product_category_id) REFERENCES product_category(id),
     FOREIGN KEY (tax_classification_code) REFERENCES tax_classification(tax_type_code),
     FOREIGN KEY (currency_code) REFERENCES currency(currency_code),
@@ -90,23 +90,23 @@ CREATE TABLE IF NOT EXISTS product (
 );
 
 CREATE TABLE IF NOT EXISTS product_category (
-    id INTEGER PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     product_category_name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP   
 );
 --todo: remove before deploy
-INSERT OR IGNORE INTO product_category (id, product_category_name) VALUES
-    (NULL, 'Appetizers'),
-    (NULL, 'Main Courses'),
-    (NULL, 'Desserts'),
-    (NULL, 'Beverages'),
-    (NULL, 'Alcoholic Drinks'),
-    (NULL, 'Side Dishes'),
-    (NULL, 'Salads'),
-    (NULL, 'Soups'),
-    (NULL, 'Breakfast'),
-    (NULL, 'Specialty Coffee');
+INSERT OR IGNORE INTO product_category (product_category_name) VALUES
+    ('Appetizers'),
+    ('Main Courses'),
+    ('Desserts'),
+    ('Beverages'),
+    ('Alcoholic Drinks'),
+    ('Side Dishes'),
+    ('Salads'),
+    ('Soups'),
+    ('Breakfast'),
+    ('Specialty Coffee');
 
 
 CREATE TABLE IF NOT EXISTS product_composition (
@@ -232,8 +232,7 @@ CREATE TABLE IF NOT EXISTS tax_classification (
 );
 
 CREATE TABLE IF NOT EXISTS product_type (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type_code INTEGER NPT NULL,
+    type_code INTEGER PRIMARY KEY NOT NULL,
     type_code_name TEXT NOT NULL
 );
 
@@ -327,9 +326,10 @@ INSERT OR IGNORE INTO tax_classification VALUES
     (NULL,'E','Exempt',0,'Y');
 
 INSERT OR IGNORE INTO product_type VALUES
-    (NULL,'1','Raw Material'),
-    (NULL,'2','Finished Product'),
-    (NULL,'3','Service');
+    ('1','Raw Material'),
+    ('2','Finished Product'),
+    ('3','Service'),
+    ('4', 'Composable');
 
 INSERT OR IGNORE INTO stock_movement_category VALUES
     (NULL,'01','Import','IMPORT'),

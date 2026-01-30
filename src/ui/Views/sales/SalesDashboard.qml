@@ -96,7 +96,7 @@ Rectangle {
             }
 
             KitchenView {
-                _salesModel: globalSalesController
+                _globalSalesModel: globalSalesController
             }
         }
     }

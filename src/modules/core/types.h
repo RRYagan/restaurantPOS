@@ -42,12 +42,21 @@ struct InventoryItem {
     QDateTime updatedAt;
 };
 
+struct OrderItem {
+    QString itemId;
+    QString productName;
+    double quantity;
+    QString serviceState; // "ordered", "preparing", "served"
+};
 struct Order {
     QString id;
     QString tableNumber;
     QString waiterId;
     QString orderStatus;
     QDateTime createdAt;
+
+    // Add this member to store the sub-query results
+    QList<OrderItem> items;
 };
 /*orderitem */
 struct StagedItem {
@@ -58,14 +67,27 @@ struct StagedItem {
     QString taxClassificationCode;
     Money taxAmountPerUnit;
 };
+// struct KitchenTicket {
+//     QString orderId;
+//     QString tableNumber;
+//     QString timestamp;
+//     QString itemsSummary;
+//     QString itemIds;
+// };
+struct KitchenItem {
+    QString id;         // The unique ID from order_item table
+    QString name;       // Product name
+    double quantity;
+    QString status;     // e.g., 'ordered', 'preparing', 'ready'
+};
+
+/* The Ticket containing multiple items */
 struct KitchenTicket {
     QString orderId;
     QString tableNumber;
     QString timestamp;
-    QString itemsSummary;
-    QString itemIds;
+    QList<KitchenItem> items; // Changed from itemsSummary string
 };
-
 /*usermodel */
 struct User {
     int id;

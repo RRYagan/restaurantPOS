@@ -263,7 +263,7 @@ Item {
                             Layout.fillWidth: true
                             model: _productTypeModel
                             textRole: "type_code_name"
-                            valueRole: "id"
+                            valueRole: "type_code"
                             currentIndex: currentProduct ? findIndexByValue(model, currentProduct.productTypeId, "type_code_name") : 0
                         }
                         Label { text: "Product Category:"; font.bold: true }

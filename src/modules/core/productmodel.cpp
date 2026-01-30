@@ -1,3 +1,4 @@
+
 #include "productmodel.h"
 #include <QSqlRecord>
 #include <QSqlError>
