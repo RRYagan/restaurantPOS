@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import POS.UI 1.0
 
 Dialog {
@@ -9,196 +10,153 @@ Dialog {
     anchors.centerIn: Overlay.overlay
 
     // Theme and Size
-    width: parent.width * 0.95
-    height: parent.height * 0.95
+    width: parent.width
+    height: parent.height
+    // --- THEME PROPERTIES ---
+    // property bool isDarkMode: true
+    // property color themeBg: isDarkMode ? "#1a0505" : "#ffffff"
+    // property color themeFg: isDarkMode ? "#ffffff" : "#1a0505"
+    // property color themeBorder: isDarkMode ? "#3d1a1a" : "#e0e0e0"
+    // property color themeInputBg: isDarkMode ? "#2d1a1a" : "#f5f5f5"
+
+
 
     background: Rectangle {
-        color: "#1a0505"
-        border.color: "#3d1a1a"
+        color: "#ffffff"
+        border.color: "#e0e0e0"
         border.width: 2
         radius: 12
     }
-
     // property MenuViewController _salesModel
     property PaymentController paymentCtrl
     property var currentUser: "Admin"
-    // Place these at the top of PaymentDialog.qml
-
-
 
     StackView {
         id: paymentStack
         anchors.fill: parent
         clip: true
-        initialItem: successView
+        initialItem: mainPaymentView
 
         // Fixed Transitions: Ensure items don't fight for anchors
         replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 } }
         replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 200 } }
     }
 
-    // --- SHARED COMPONENT: Order Details Summary (3/4 Width) ---
     Component {
-        id: orderDetailsPanel
+        id: mainPaymentView
         Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "#250a0a"
-            radius: 8
-            border.color: "#3d1a1a"
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 30
-                spacing: 20
-
-                Label {
-                    text: "ORDER SUMMARY"
-                    color: "#e74c3c"
-                    font.bold: true
-                    font.pixelSize: 22
-                }
-
-                Rectangle { height: 1; color: "#3d1a1a"; Layout.fillWidth: true }
-
-                GridLayout {
-                    columns: 2
-                    rowSpacing: 15
-                    columnSpacing: 50
-
-                    Label { text: "Order ID:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: _salesModel.orderModel.currentOrderId; color: "white"; font.bold: true; font.pixelSize: 16 }
-
-                    Label { text: "Server:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: currentUser; color: "white"; font.bold: true; font.pixelSize: 16 }
-
-                    Label { text: "Items Count:"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Label { text: _salesModel ? _salesModel.itemCount : "0"; color: "white"; font.pixelSize: 16 }
-                }
-
-                Item { Layout.fillHeight: true } // Spacer
-
-                Rectangle { height: 1; color: "#3d1a1a"; Layout.fillWidth: true }
-
-                // Sub-Total Row
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label { text: "Sub-Total"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Item { Layout.fillWidth: true }
-                    Label {
-                        text: "KES " + _salesModel.totalAmount
-                        color: "white"; font.pixelSize: 16
-                    }
-                }
-
-                // Tax Row
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label { text: "VAT"; color: "#95a5a6"; font.pixelSize: 16 }
-                    Item { Layout.fillWidth: true }
-                    Label {
-                        text: "KES " + _salesModel.totalTaxFormatted
-                        color: "white"; font.pixelSize: 16
-                    }
-                }
-
-                Rectangle { height: 1; color: "#3d1a1a"; Layout.fillWidth: true; Layout.topMargin: 5; Layout.bottomMargin: 5 }
-
-                // Final Total Row
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label { text: "TOTAL "; color: "white"; font.pixelSize: 26; font.bold: true }
-                    Item { Layout.fillWidth: true }
-                    Label {
-                        text: _salesModel.totalAmount;
-                        color: "#2ecc71";
-                        font.pixelSize: 32;
-                        font.bold: true
-                    }
-                }
-            }
-        }
-    }
-
-    // --- VIEW 1: Success Phase ---
-    Component {
-        id: successView
-        RowLayout {
             width: paymentStack.width
             height: paymentStack.height
-            spacing: 20
+            color: "#f4f4f4" // Lighter, neutral background for the whole view
 
-            // Left 3/4: Details
-            Loader {
-                Layout.fillHeight: true
-                Layout.preferredWidth: parent.width * 0.75
-                sourceComponent: orderDetailsPanel
-            }
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 30
 
-            // Right 1/4: Actions
-            ColumnLayout {
-                Layout.fillHeight: true
-                Layout.preferredWidth: parent.width * 0.25
-                spacing: 15
-
-                Label { text: "Action Required"; color: "#95a5a6"; Layout.alignment: Qt.AlignHCenter }
-
-                Button {
-                    text: "PAY NOW"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    highlighted: true
-                    onClicked: paymentStack.replace(methodView)
+                // Left Side: The Receipt
+                OrderDetailsPanel {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: parent.width * 0.65
+                    // Pass the data model from root to the component
+                    // _salesModel: root._salesModel
                 }
 
-                Button {
-                    text: "PAY LATER"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    onClicked: { _salesModel.clearOrder(); root.close(); }
-                }
+                // Right Side: Action Buttons
+                ColumnLayout {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: parent.width * 0.35
+                    spacing: 20
 
-                Item { Layout.fillHeight: true }
-                RowLayout {
-                    Layout.fillWidth: true
-                    // Button {
-                    //     text: "← BACK"
-                    //     flat: true
-                    //     onClicked: paymentStack.replace(successView)
-                    // }
+                    Label {
+                        text: "Payment Pending"
+                        color: "#2c3e50"
+                        font.pixelSize: 22
+                        font.bold: true
+                        Layout.alignment: Qt.AlignHCenter
+                    }
 
+                    // Bright "Success" Green Button
                     Button {
-                        text: "CANCEL"
-                        flat: true
-                        Layout.alignment: Qt.AlignRight| Qt.AlignBottom
+                        id: payNowBtn
+                        text: "PAY NOW"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 80
+                        font.bold: true
+                        onClicked: paymentStack.replace(paymentMethodView)
 
-                        onClicked: {
-                            onClicked: {
-                                    if (paymentStack.depth > 1) {
-                                        paymentStack.pop(); // Go back to STK Push or Order Summary
-                                    } else {
-                                        root.close(); // Close the entire payment dialog [cite: 32]
-                                    }
-                                }
+                        background: Rectangle {
+                            color: payNowBtn.down ? "#219150" : "#2ecc71"
+                            radius: 12
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true
+                                shadowColor: "#40000000"
+                                shadowBlur: 8
+                            }
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+
+                    // Bright "Warning" Amber Button
+                    Button {
+                        id: payLaterBtn
+                        text: "PAY LATER"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 80
+                        onClicked: { _salesModel.clearOrder(); root.close(); }
+
+                        background: Rectangle {
+                            color: payLaterBtn.down ? "#d35400" : "#e67e22"
+                            radius: 12
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // High Visibility Cancel
+                    Button {
+                        text: "CANCEL ORDER"
+                        flat: true
+                        Layout.alignment: Qt.AlignHCenter
+                        onClicked: root.close()
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#e74c3c"
+                            font.bold: true
+                            font.pixelSize: 16
                         }
                     }
                 }
             }
         }
     }
-
     // --- VIEW 2: Method Selection ---
     Component {
-        id: methodView
+        id: paymentMethodView
         RowLayout {
             width: paymentStack.width
             height: paymentStack.height
             spacing: 20
 
-            Loader {
+            OrderDetailsPanel {
                 Layout.fillHeight: true
                 Layout.preferredWidth: parent.width * 0.75
-                sourceComponent: orderDetailsPanel
+                // Pass the data model here too
+                // _salesModel: _salesModel
             }
 
             ColumnLayout {
@@ -243,7 +201,7 @@ Dialog {
                         text: "← BACK"
                         flat: true
                         Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                        onClicked: paymentStack.replace(successView)
+                        onClicked: paymentStack.replace(mainPaymentView)
                     }
 
                     Button {
@@ -253,12 +211,12 @@ Dialog {
 
                         onClicked: {
                             onClicked: {
-                                    if (paymentStack.depth > 1) {
-                                        paymentStack.pop(); // Go back to STK Push or Order Summary
-                                    } else {
-                                        root.close(); // Close the entire payment dialog [cite: 32]
-                                    }
+                                if (paymentStack.depth > 1) {
+                                    paymentStack.pop(); // Go back to STK Push or Order Summary
+                                } else {
+                                    root.close(); // Close the entire payment dialog [cite: 32]
                                 }
+                            }
                         }
                     }
                 }
@@ -270,201 +228,30 @@ Dialog {
 
     Component {
         id: mpesaPaymentView
-        RowLayout {
-            width: paymentStack.width
-            height: paymentStack.height
-            spacing: 20
+        MpesaMain {
+            Layout.fillHeight: true
+            Layout.preferredWidth: parent.width * 0.75
 
-            // Left 3/4: Dynamic Stackable Content
-            StackView {
-                id: mpesaInternalStack
-                Layout.fillHeight: true
-                Layout.preferredWidth: parent.width * 0.75
-
-                // Set the initial view to show order details
-                initialItem: mpesaSTKPushView
-
-                replaceEnter: Transition { PropertyAnimation { property: "opacity"; from: 0; to: 1; duration: 200 } }
-                replaceExit: Transition { PropertyAnimation { property: "opacity"; from: 1; to: 0; duration: 200 } }
-            }
-
-            // Right 1/4: Actions
-            ColumnLayout {
-                Layout.fillHeight: true
-                Layout.preferredWidth: parent.width * 0.25
-                spacing: 15
-
-                Label {
-                    text: "Action Required"
-                    color: "#95a5a6"
-                    Layout.alignment: Qt.AlignHCenter
-                }
-
-                Button {
-                    text: "STK PUSH"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    highlighted: true
-                    // Switches the internal stack to the STK input view
-                    onClicked: mpesaInternalStack.replace(mpesaSTKPushView)
-                }
-
-                Button {
-                    text: "QR CODE"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    // You can add a mpesaQRCodeView component here later mpesaQRView
-                    // onClicked: console.log("Show QR Code Component")
-                    onClicked: mpesaInternalStack.replace(mpesaQRView)
-
-                }
-
-                Item { Layout.fillHeight: true }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Button {
-                        text: "← BACK"
-                        flat: true
-                        Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                        onClicked: paymentStack.replace(successView)
-                    }
-
-                    Button {
-                        text: " CANCEL"
-                        flat: true
-                        Layout.alignment: Qt.AlignRight | Qt.AlignBottom
-
-                        onClicked: {
-                            onClicked: {
-                                    if (paymentStack.depth > 1) {
-                                        paymentStack.pop(); // Go back to STK Push or Order Summary
-                                    } else {
-                                        root.close(); // Close the entire payment dialog [cite: 32]
-                                    }
-                                }
-                        }
-                    }
-                }
-
-            }
         }
     }
     // --- VIEW 2: M-PESA PHONE INPUT ---
 
     Component {
         id: mpesaSTKPushView
-        Rectangle {
-            Layout.fillWidth: true
+        MpesaSTKPush {
             Layout.fillHeight: true
-            color: "#250a0a"
-            radius: 8
-            border.color: "#3d1a1a"
-            ColumnLayout {
-                spacing: 15
-                anchors.fill: parent
-                anchors.margins: 20
-                // spacing: 20
+            Layout.preferredWidth: parent.width * 0.75
 
-
-                Item { Layout.fillHeight: true } // Spacer
-
-                Text {
-                    text: "Enter M-Pesa Number"
-                    color: "white"
-                    font.pixelSize: 18
-                    Layout.alignment: Qt.AlignHCenter
-                }
-
-                TextField {
-                    id: phoneField
-                    placeholderText: "2547XXXXXXXX"
-                    color: "white"
-                    focus: true
-                    horizontalAlignment: TextInput.AlignHCenter
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: parent.width * 0.6
-                    background: Rectangle {
-                        implicitHeight: 50
-                        color: "#2d1a1a"
-                        border.color: "#95a5a6"
-                        radius: 4
-                    }
-                }
-
-                Button {
-                    text: "SEND STK PUSH"
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: parent.width * 0.6
-                    onClicked: {
-                        // paymentCtrl.setAmount(totalVal);
-                        paymentCtrl.startMpesaPayment(phoneField.text);
-
-                        // Push processingView to the nested stack instead of the global one
-                        mpesaInternalStack.push(processingView);
-                    }
-                }
-
-                Item { Layout.fillHeight: true } // Spacer
-            }
         }
     }
 
     // MPESA QR
     Component {
         id: mpesaQRView
-        Rectangle {
-            Layout.fillWidth: true
+        MpesaQR {
             Layout.fillHeight: true
-            color: "#250a0a"
-            radius: 8
-            border.color: "#3d1a1a"
-            ColumnLayout {
-                spacing: 15
-                anchors.fill: parent
-                anchors.margins: 20
-                // spacing: 20
+            Layout.preferredWidth: parent.width * 0.75
 
-
-                Item { Layout.fillHeight: true } // Spacer
-
-                // Text {
-                //     text: "Enter M-Pesa Number"
-                //     color: "white"
-                //     font.pixelSize: 18
-                //     Layout.alignment: Qt.AlignHCenter
-                // }
-
-                TextField {
-                    id: qrField
-                    placeholderText: "QR Code"
-                    color: "white"
-                    focus: true
-                    horizontalAlignment: TextInput.AlignHCenter
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: parent.width
-                    background: Rectangle {
-                        implicitHeight: 200
-                        color: "#2d1a1a"
-                        border.color: "#95a5a6"
-                        radius: 4
-                    }
-                }
-
-                Button {
-                    text: "PROCESS"
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredHeight: 50
-                    Layout.preferredWidth: parent.width * 0.6
-                    onClicked: {
-                        // Push processingView to the nested stack instead of the global one
-                        paymentStack.replace(processingView)
-                    }
-                }
-
-                Item { Layout.fillHeight: true } // Spacer
-            }
         }
     }
 
@@ -472,32 +259,59 @@ Dialog {
     Component {
         id: processingView
 
-        // Use a top-level ColumnLayout with a unique ID
         ColumnLayout {
-            id: cashViewContainer
+            id: processingViewContainer
             width: paymentStack.width
             height: paymentStack.height
             spacing: 20
 
-            // Define properties here so they are accessible by ID anywhere in this component
+            // Properties for Cash Handling
             property double amountReceived: parseFloat(amtInput.text) || 0.0
             property double changeDue: amountReceived - root.totalVal
 
+            // Map C++ Enums: 0:Initiated, 1:Verifying, 2:AwaitingAction, 3:Success, 4:Failed
+            property bool isMpesa: paymentCtrl.methodName === "MPESA"
+
             Item { Layout.fillHeight: true }
 
-            Label {
-                text: paymentCtrl.currentMessage
-                color: "#95a5a6"
-                font.pixelSize: 18
+            // --- SECTION 1: DYNAMIC STATUS ICON ---
+            // Shows a spinner during network calls, or Success/Error icons
+            ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
+                spacing: 10
+
+                BusyIndicator {
+                    running: paymentCtrl.currentState === 0 || paymentCtrl.currentState === 1
+                    visible: running
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    text: paymentCtrl.currentState === 3 ? "✅" : "❌"
+                    font.pixelSize: 48
+                    visible: paymentCtrl.currentState === 3 || paymentCtrl.currentState === 4
+                    Layout.alignment: Qt.AlignHCenter
+                }
             }
 
-            // Cash Entry Section
+            // --- SECTION 2: STATUS MESSAGE ---
+            Label {
+                text: paymentCtrl.currentMessage
+                color: paymentCtrl.currentState === 4 ? "#e74c3c" : "#95a5a6"
+                font.pixelSize: 18
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredWidth: parent.width * 0.8
+                wrapMode: Text.WordWrap
+            }
+
+            // --- SECTION 3: CASH ENTRY (Only visible if Cash & Awaiting Action) ---
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 400
                 spacing: 15
-                visible: paymentCtrl.currentState === 2
+                visible: !isMpesa && paymentCtrl.currentState === 2
 
                 Label {
                     text: "ENTER CASH RECEIVED:"
@@ -515,7 +329,6 @@ Dialog {
                     horizontalAlignment: Text.AlignHCenter
                     inputMethodHints: Qt.ImhFormattedNumbersOnly
                     focus: true
-
                     background: Rectangle {
                         color: "#2d0a0a"
                         border.color: amtInput.activeFocus ? "#2ecc71" : "#3d1a1a"
@@ -524,66 +337,77 @@ Dialog {
                     }
                 }
 
-                // Change Display - Using 'cashViewContainer' ID instead of parent.parent
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 80
-                    // Reference by ID
-                    color: cashViewContainer.changeDue >= 0 ? "#1e3d2a" : "#3d1e1e"
+                    color: processingViewContainer.changeDue >= 0 ? "#1e3d2a" : "#3d1e1e"
                     radius: 8
-                    visible: cashViewContainer.amountReceived > 0
-
+                    visible: processingViewContainer.amountReceived > 0
                     ColumnLayout {
                         anchors.centerIn: parent
                         Label {
-                            text: cashViewContainer.changeDue >= 0 ? "CHANGE TO GIVE:" : "INSUFFICIENT AMOUNT"
+                            text: processingViewContainer.changeDue >= 0 ? "CHANGE TO GIVE:" : "INSUFFICIENT AMOUNT"
                             font.pixelSize: 12
                             color: "#95a5a6"
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Label {
-                            // Reference by ID
-                            text: "KES " + Math.abs(cashViewContainer.changeDue).toLocaleString(Qt.locale("en_US"), "f", 2)
+                            text: "KES " + Math.abs(processingViewContainer.changeDue).toLocaleString(Qt.locale("en_US"), "f", 2)
                             font.pixelSize: 24
                             font.bold: true
-                            color: cashViewContainer.changeDue >= 0 ? "#2ecc71" : "#e74c3c"
+                            color: processingViewContainer.changeDue >= 0 ? "#2ecc71" : "#e74c3c"
                             Layout.alignment: Qt.AlignHCenter
                         }
                     }
                 }
             }
 
+            // --- SECTION 4: ACTION BUTTONS ---
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 400
                 spacing: 15
 
+                // Confirm Button (Only for Cash)
                 Button {
                     id: confirmBtn
                     text: "CONFIRM & PRINT RECEIPT"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 70
-                    highlighted: true
-
-                    visible: paymentCtrl.currentState === 2
-                    // Reference by ID
-                    enabled: cashViewContainer.changeDue >= 0
-
+                    visible: !isMpesa && paymentCtrl.currentState === 2
+                    enabled: processingViewContainer.changeDue >= 0
                     onClicked: paymentCtrl.confirmAction()
-
                     background: Rectangle {
                         color: confirmBtn.enabled ? "#27ae60" : "#34495e"
                         radius: 8
                     }
                 }
 
+                // Return Button (Visible on Success or Failure)
+                Button {
+                    text: paymentCtrl.currentState === 3 ? "COMPLETE ORDER" : "TRY AGAIN"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 60
+                    visible: paymentCtrl.currentState === 3 || paymentCtrl.currentState === 4
+                    onClicked: {
+                        if (paymentCtrl.currentState === 3) {
+                            globalSalesController.makeOrder(); // Finalize DB
+                            dashboardRoot.close(); // Or clear UI
+                        } else {
+                            paymentStack.replace(paymentMethodView);
+                        }
+                    }
+                }
+
+                // Cancel Button (Always visible unless Success)
                 Button {
                     text: "CANCEL TRANSACTION"
                     flat: true
                     Layout.alignment: Qt.AlignHCenter
+                    visible: paymentCtrl.currentState !== 3
                     onClicked: {
                         paymentCtrl.cancelPayment();
-                        paymentStack.replace(methodView);
+                        paymentStack.replace(paymentMethodView);
                     }
                     contentItem: Text {
                         text: parent.text

@@ -76,6 +76,21 @@ Rectangle {
                 NavButton { text: "KITCHEN VIEW"; targetIndex: 2 }
 
                 Item { Layout.fillWidth: true } // Spacer to push buttons to the left
+                Button {
+                        text: "⚙️ SETTINGS"
+                        Layout.preferredWidth: 120
+                        Layout.fillHeight: true
+                        flat: true
+                        onClicked: settingsPopup.open()
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#95a5a6"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
             }
         }
 
@@ -97,6 +112,58 @@ Rectangle {
 
             KitchenView {
                 _globalSalesModel: globalSalesController
+            }
+
+            // Settings Popup
+            Popup {
+                id: settingsPopup
+                anchors.centerIn: parent
+                width: 300
+                height: 200
+                modal: true
+                focus: true
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+                background: Rectangle {
+                    color: "#2c3e50"
+                    radius: 8
+                    border.color: "#34495e"
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+
+                    Text {
+                        text: "DATABASE SETTINGS"
+                        color: "white"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Qt.rgba(1, 1, 1, 0.1)
+                    }
+
+                    Button {
+                        text: "Clear All Payments"
+                        Layout.fillWidth: true
+                        palette.buttonText: "white"
+                        background: Rectangle {
+                            color: parent.down ? "#c0392b" : "#e74c3c"
+                            radius: 4
+                        }
+                        onClicked: {
+                            // Assuming you expose clearAllPayments to QML via a controller
+                            if (globalSalesController.clearPaymentHistory()) {
+                                settingsPopup.close()
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -7,33 +7,29 @@ Rectangle {
     id: root
     color: "transparent"
 
-    // Instantiate the controller
-    // SalesViewController {
-    //     id: _salesModel
-
-    //     // When the backend signals a change, refresh our local list
-    //     onKitchenDataChanged: root.refreshOrders()
-    // }
-
+    // Controller passed from SalesDashboard
     property SalesViewController _salesModel
 
     // Local model to drive the ListView
     ListModel { id: ordersHistoryModel }
+
+    // Reactive sync: Mimics Kitchen View logic
     Connections {
-            target: root._salesModel
-            function onKitchenDataChanged() {
-                root.refreshOrders()
-            }
+        target: root._salesModel
+        function onKitchenDataChanged() {
+            root.refreshOrders()
         }
+    }
+
     // Helper function to fetch data from C++ and populate the UI
     function refreshOrders() {
-            if (!_salesModel) return;
-            var data = _salesModel.loadOrders();
-            ordersHistoryModel.clear();
-            for (var i = 0; i < data.length; i++) {
-                ordersHistoryModel.append(data[i]);
-            }
+        if (!root._salesModel) return;
+        var data = root._salesModel.loadOrders();
+        ordersHistoryModel.clear();
+        for (var i = 0; i < data.length; i++) {
+            ordersHistoryModel.append(data[i]);
         }
+    }
 
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 20; spacing: 15
@@ -55,7 +51,6 @@ Rectangle {
                     refreshAnim.start()
                 }
 
-                // Adding the rotation animation for visual feedback
                 contentItem: Text {
                     id: refreshText
                     text: orderRefreshBtn.text
@@ -84,11 +79,6 @@ Rectangle {
                 color: "white"
                 verticalAlignment: TextInput.AlignVCenter
                 leftPadding: 15
-
-                // Local filtering logic if not using a C++ Proxy
-                onTextChanged: {
-                    // You can call a backend search or filter the local ListModel here
-                }
 
                 background: Rectangle {
                     color: Qt.rgba(1, 1, 1, 0.1)
@@ -140,7 +130,6 @@ Rectangle {
                     contentItem: RowLayout {
                         anchors.fill: parent; anchors.margins: 15
 
-                        // Reference & Table
                         Text {
                             text: model.displayTitle
                             color: "white"; font.bold: true; Layout.fillWidth: true
@@ -161,7 +150,6 @@ Rectangle {
                             }
                         }
 
-                        // Timestamp
                         Text {
                             text: model.date; color: "#bdc3c7";
                             Layout.preferredWidth: 150; horizontalAlignment: Text.AlignRight
@@ -169,13 +157,17 @@ Rectangle {
                     }
 
                     onClicked: {
-                        contentStack.push("OrderDetailsScreen.qml", { "currentOrderId": model.orderId });
+                        // FIX: Remove Reference to globalOrderDetailModel to avoid Error
+                        // Pass the _salesModel so the detail page can fetch the item list itself
+                        contentStack.push("OrderDetailsScreen.qml", {
+                            "currentOrderId": model.orderId,
+                            "_salesModel": root._salesModel
+                        });
                     }
                 }
             }
         }
     }
 
-    // Initial load
-    Component.onCompleted: refreshOrders()
+    Component.onCompleted: root.refreshOrders()
 }

@@ -427,6 +427,10 @@ Rectangle {
                                 paymentLoader.active = true
                                 paymentLoader.item.open()
                             }
+                            else {
+                                paymentLoader.active = false
+                                paymentLoader.item.close()
+                            }
                         }
                     }
 

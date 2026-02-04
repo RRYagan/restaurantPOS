@@ -6,14 +6,34 @@ import POS.UI 1.0
 Rectangle {
     id: root
     property string currentOrderId: ""
+    property SalesViewController _salesModel
+
+    // Mimic Kitchen View logic: Fetch raw data into this property
+    property var orderData: null
+
     color: "transparent"
-    // Ensure this property exists so the push() can fill it
-    property var detailsModel: globalOrderDetailModel
+
+    // Helper to find the specific order from the list
+    function refresh() {
+        if (!_salesModel || currentOrderId === "") return;
+        let allOrders = _salesModel.loadOrders();
+        for (let i = 0; i < allOrders.length; i++) {
+            if (allOrders[i].orderId === currentOrderId) {
+                root.orderData = allOrders[i];
+                break;
+            }
+        }
+    }
+
+    Connections {
+        target: _salesModel
+        function onKitchenDataChanged() { refresh(); }
+    }
 
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 25; spacing: 20
 
-        // --- NAVIGATION HEADER ---
+        // --- NAVIGATION HEADER (Original Design) ---
         RowLayout {
             spacing: 15
             Button {
@@ -29,7 +49,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
         }
 
-        // --- ITEMS LIST ---
+        // --- ITEMS LIST (Original Design) ---
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
             color: Qt.rgba(0, 0, 0, 0.4); radius: 12; border.color: Qt.rgba(255, 255, 255, 0.1); clip: true
@@ -37,54 +57,54 @@ Rectangle {
             ListView {
                 id: detailsList
                 anchors.fill: parent; anchors.margins: 1
-                model: detailsModel // OrderDetailView instance
+                // Use the inner itemModel from our orderData
+                model: root.orderData ? root.orderData.itemModel : []
                 spacing: 0
 
                 delegate: ItemDelegate {
                     width: detailsList.width; height: 70
+
                     background: Rectangle {
-                        color: hovered ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1,1,1,0.05) }
+                        color: hovered ? Qt.rgba(255, 255, 255, 0.05) : "transparent"
+                        Rectangle {
+                            anchors.bottom: parent.bottom; width: parent.width; height: 1
+                            color: Qt.rgba(255, 255, 255, 0.05)
+                        }
                     }
 
                     contentItem: RowLayout {
                         anchors.fill: parent; anchors.margins: 15
-                        spacing: 15
-
                         ColumnLayout {
-                            Layout.fillWidth: true; spacing: 2
-                            Text { text: model.name; color: "white"; font.pixelSize: 16; font.bold: true }
+                            Layout.fillWidth: true
                             Text {
-                                text: model.service_state.toUpperCase()
-                                color: model.service_state === "served" ? "#2ecc71" : "#f1c40f"
-                                font.pixelSize: 10; font.bold: true
+                                text: modelData.name // Use modelData for JS arrays
+                                color: "white"; font.bold: true; font.pixelSize: 16
+                            }
+                            Text {
+                                text: (modelData.status || "ordered").toUpperCase()
+                                color: modelData.status === "served" ? "#2ecc71" : "#f1c40f"
+                                font.pixelSize: 11; font.bold: true
                             }
                         }
 
-                        Text { text: model.quantity + "x"; color: "white"; Layout.preferredWidth: 40 }
-                        Text { text: model.price.formatted; color: "#2ecc71"; font.bold: true; Layout.preferredWidth: 80 }
-
-                        // --- CHANGE STATUS BUTTON ---
+                        // --- DYNAMIC STATUS BUTTON ---
                         Button {
                             id: statusBtn
-                            Layout.preferredHeight: 36; Layout.preferredWidth: 110
-                            visible: model.service_state !== "served"
-
-                            background: Rectangle {
-                                color: "transparent"; border.color: "#3498db"; border.width: 1; radius: 6
-                                opacity: statusBtn.pressed ? 0.5 : 1.0
-                            }
+                            Layout.preferredWidth: 110
+                            Layout.preferredHeight: 40
+                            visible: modelData.status !== "served"
 
                             contentItem: Text {
-                                text: model.service_state === "ordered" ? "PREPARE" : "SERVE"
+                                text: modelData.status === "ordered" ? "PREPARE" : "SERVE"
                                 color: "#3498db"; font.bold: true; font.pixelSize: 11
-                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
 
                             onClicked: {
-                                let nextStatus = (model.service_state === "ordered") ? "preparing" : "served";
-                                _salesModel.updateItemStatus(model.id, nextStatus);
-                                detailsModel.loadOrder(root.currentOrderId); // Refresh local list
+                                let nextStatus = (modelData.status === "ordered") ? "preparing" : "served";
+                                _salesModel.updateItemStatus(modelData.itemId, nextStatus);
+                                // Refresh is handled by the Connections block
                             }
                         }
                     }
@@ -92,7 +112,7 @@ Rectangle {
             }
         }
 
-        // --- ACTION BUTTONS ---
+        // --- ACTION BUTTONS (Original Design) ---
         RowLayout {
             Layout.fillWidth: true; spacing: 15
             Button { text: "Print Kitchen"; Layout.fillWidth: true; Layout.preferredHeight: 50 }
@@ -105,9 +125,5 @@ Rectangle {
         }
     }
 
-    Component.onCompleted: {
-        if (currentOrderId !== "" && detailsModel) {
-            detailsModel.loadOrder(currentOrderId);
-        }
-    }
+    Component.onCompleted: refresh()
 }
