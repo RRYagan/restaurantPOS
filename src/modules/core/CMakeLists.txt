@@ -37,6 +37,7 @@ add_library(PosCoreDatabase
 # Use relative paths to the project root
 set(SQL_MIGRATIONS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../../resources/sql/migrations/000_init.up.sql"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../resources/sql/migrations/001_mpesa_setup.up.sql"
 )
 
 file(GLOB_RECURSE SQL_MIGRATIONS

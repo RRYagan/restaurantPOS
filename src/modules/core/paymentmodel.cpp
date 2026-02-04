@@ -1,42 +1,43 @@
+#include "money.h"
 #include "paymentmodel.h"
 #include <QUuid>
+#include <QSettings>
 
 PaymentModel::PaymentModel(QObject *parent) : QObject(parent) {}
 
-bool PaymentModel::insertPayment(const QString &orderId,
-                                 const QString &type,
-                                 int amountCents,
-                                 const QString &userTag,
-                                 const QString &externalRef)
-{
-    QSqlDatabase db = DatabaseManager::instance().database();
-    if (!db.isOpen()) {
-        qCritical() << "PaymentModel: Database not open";
-        return false;
-    }
+bool PaymentModel::insertPayment(const QString& orderId, const QString& type, Money amountCents, const QString& userTag, const QString& externalRef) {
+    QSqlQuery query;
 
-    QSqlQuery query(db);
-    // Matches your schema in databasemanager.cpp
-    query.prepare("INSERT INTO payments ("
-                  "id, order_id, payment_type, amount_cents, status, user_tag, external_reference"
-                  ") VALUES (?, ?, ?, ?, ?, ?, ?)");
+    query.prepare("INSERT INTO payments (id, order_id, payment_type, amount_cents, status, user_tag, external_reference) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
 
     QString internalId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    query.addBindValue(internalId);
-    query.addBindValue(orderId);
-    query.addBindValue(type);
-    query.addBindValue(amountCents);
-    query.addBindValue("Initiated"); // Default starting status
-    query.addBindValue(userTag);
-    query.addBindValue(externalRef);
+    query.addBindValue(internalId);                                // 1. id
+    query.addBindValue(orderId);                                   // 2. order_id
+    query.addBindValue(type);                                      // 3. payment_type
+    query.addBindValue(static_cast<qlonglong>(amountCents.cents)); // 4. amount_cents
+    query.addBindValue("Initiated");                               // 5. status
+    query.addBindValue(userTag);                                   // 6. user_tag
+    query.addBindValue(externalRef);                               // 7. external_reference
 
     if (!query.exec()) {
-        qCritical() << "PaymentModel Error:" << query.lastError().text();
+        qCritical() << "--- Database Error ---";
+        qCritical() << "Error Text   :" << query.lastError().text();
+        qCritical() << "Executed SQL :" << query.executedQuery();
+
+        // Qt 6 returns a QVariantList (aka QList<QVariant>)
+        QVariantList list = query.boundValues();
+        qCritical() << "Bound Count  :" << list.count();
+
+        for (int i = 0; i < list.count(); ++i) {
+            qCritical() << QString("  Index %1: %2").arg(i).arg(list.at(i).toString());
+        }
+        qCritical() << "----------------------";
+
         emit paymentLogged(orderId, false);
         return false;
     }
-
     qDebug() << "[DB] Payment recorded for Order:" << orderId << "Type:" << type;
     emit paymentLogged(orderId, true);
     return true;
@@ -54,9 +55,19 @@ bool PaymentModel::updatePaymentStatus(const QString &externalRef, const QString
     return query.exec();
 }
 
-// paymentmodel.cpp
-#include <QSettings>
+bool PaymentModel::updateTransactionId(const QString &orderId, const QString &transactionId)
+{
+    QSqlQuery query;
+    query.prepare("UPDATE payments SET transaction_id = ? WHERE order_id = ?");
+    query.addBindValue(transactionId);
+    query.addBindValue(orderId);
 
+    if (!query.exec()) {
+        qCritical() << "Failed to update Transaction ID:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}
 void PaymentModel::cacheToken(const QString &token, int expiresInSeconds) {
     QSettings settings;
     // Buffer 60 seconds to be safe
@@ -68,18 +79,42 @@ void PaymentModel::cacheToken(const QString &token, int expiresInSeconds) {
     qDebug() << "[Cache] Token saved to file. Expires:" << expiry.toString();
 }
 
+// In paymentmodel.cpp
 QString PaymentModel::getValidToken() {
-    QSettings settings;
-    QString token = settings.value("mpesa/token").toString();
-    QString expiryStr = settings.value("mpesa/expiry").toString();
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT access_token FROM oauth_tokens "
+                  "WHERE provider = 'mpesa' AND expiry_time > DATETIME('now')");
 
-    if (token.isEmpty() || expiryStr.isEmpty()) return QString();
+    if (query.exec() && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
 
-    QDateTime expiry = QDateTime::fromString(expiryStr, Qt::ISODate);
-    if (QDateTime::currentDateTime() < expiry) {
-        qDebug() << "[Cache] Valid token found in file.";
-        return token;
+void PaymentModel::saveMpesaToken(const QString &token, int expiresIn) {
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("INSERT OR REPLACE INTO oauth_tokens (provider, access_token, expiry_time) "
+                  "VALUES ('mpesa', ?, DATETIME('now', ? || ' seconds'))");
+    query.addBindValue(token);
+    query.addBindValue(expiresIn);
+    query.exec();
+}
+
+// In paymentmodel.cpp
+bool PaymentModel::clearAllPayments() {
+    QSqlDatabase db = DatabaseManager::instance().database();
+        QSqlQuery query(db);
+
+        // Use a transaction for safety as seen in your DatabaseManager
+        if (!db.transaction()) return false;
+
+    if (!query.exec("DELETE FROM payments")) {
+        qCritical() << "Failed to clear payments:" << query.lastError().text();
+            db.rollback();
     }
 
-    return QString(); // Expired or missing
+    // Reset sqlite sequence for IDs if necessary
+    query.exec("DELETE FROM sqlite_sequence WHERE name='payments'");
+
+    return db.commit();
 }

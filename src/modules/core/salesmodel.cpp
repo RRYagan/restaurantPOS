@@ -273,17 +273,7 @@ auto SalesModel::submitOrder() -> QString {
     return "";
 }
 
-// void SalesModel::recalculateTotals() {
-//     Money total(0), tax(0);
-//     for (const auto &i : std::as_const(m_items)) {
-//         total = total + (i.finalUnitPrice * i.quantity);
-//         tax = tax + (i.taxAmountPerUnit * i.quantity);
-//     }
-//     m_cachedTotal = total; m_cachedTaxTotal = tax;
-//     emit totalsChanged();
-// }
 
-// salesmodel.cpp
 
 bool SalesModel::reduceInventory(QSqlDatabase &db) {
     QSqlQuery checkComp(db);

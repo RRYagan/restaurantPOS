@@ -9,6 +9,7 @@
 #include <QSettings>
 #include <QDateTime>
 #include "databasemanager.h"
+#include "money.h"
 
 class PaymentModel : public QObject {
     Q_OBJECT
@@ -26,7 +27,7 @@ public:
     void cacheToken(const QString &token, int expiresInSeconds);
 
     QString getValidToken();
-
+    void saveMpesaToken(const QString &token, int expiresIn);
 
     /**
      * @brief Inserts a new payment record into the database
@@ -38,7 +39,7 @@ public:
      */
     bool insertPayment(const QString &orderId,
                        const QString &type,
-                       int amountCents,
+                       Money amountCents,
                        const QString &userTag,
                        const QString &externalRef = "");
 
@@ -46,6 +47,8 @@ public:
      * @brief Update the status of an existing payment
      */
     bool updatePaymentStatus(const QString &externalRef, const QString &newStatus);
+    bool updateTransactionId(const QString &orderId, const QString &transactionId);
+    bool clearAllPayments();
 
 signals:
     void paymentLogged(QString orderId, bool success);
