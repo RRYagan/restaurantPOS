@@ -5,14 +5,14 @@ CashPayment::CashPayment(QObject *parent) : Payment(parent)
 {
 }
 
-void CashPayment::process(double amount, const QVariantMap &data)
+void CashPayment::process(Money amount, const QVariantMap &data)
 {
     Q_UNUSED(data);
     m_amount = amount;
 
     // 1. Move to AwaitingAction so UI knows we are waiting for human input
     setState(State::AwaitingAction);
-    emit messageUpdated(QString("Please collect KES %1 from the customer.").arg(amount));
+    emit messageUpdated(QString("Please collect KES %1 from the customer.").arg(amount.toKSH()));
 }
 
 void CashPayment::cancel()

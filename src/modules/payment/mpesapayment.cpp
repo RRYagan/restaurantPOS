@@ -3,21 +3,59 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QSqlQuery>
+#include <QFile>
 #include "databasemanager.h"
 #include <paymentmodel.h>
 
 MpesaPayment::MpesaPayment(const MpesaConfig &config, QObject *parent)
-    : Payment(parent), m_config(config), m_retryCount(0)
+    : Payment(parent),
+        m_config(config),
+        m_pollTimer(new QTimer(this)),
+        m_netManager(new QNetworkAccessManager(this)),
+        m_retryCount(0)
 {
-    m_netManager = new QNetworkAccessManager(this);
-    m_pollTimer = new QTimer(this);
-    m_pollTimer->setInterval(5000); // Poll every 5 seconds
+
+
+    m_pollTimer->setInterval(5000); /* Poll every 5 seconds */
 
     // The polling timer triggers verifyStatus() automatically
     connect(m_pollTimer, &QTimer::timeout, this, &MpesaPayment::verifyStatus);
 }
 
-void MpesaPayment::process(double amount, const QVariantMap &data) {
+MpesaConfig MpesaPayment::loadConfig(const QString &filePath) {
+    MpesaConfig config;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Could not open config file:" << filePath << "Using defaults.";
+        return config;
+    }
+
+    QByteArray data = file.readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    // Navigate to the "mpesa" object in your JSON
+    QJsonObject root = doc.object();
+    QJsonObject mpesa = root.value("mpesa").toObject();
+
+    if (!mpesa.isEmpty()) {
+        config.isSandbox = mpesa.value("isSandbox").toBool();
+        config.shortCode = mpesa.value("shortCode").toString();
+        config.passKey = mpesa.value("passKey").toString();
+        config.consumerKey = mpesa.value("consumerKey").toString();
+        config.consumerSecret = mpesa.value("consumerSecret").toString();
+        config.isTill = mpesa.value("isTill").toBool();
+        config.callbackUrl = mpesa.value("callbackUrl").toString();
+
+        qDebug() << "[M-Pesa] Config loaded successfully. Sandbox:" << config.isSandbox;
+    } else {
+        qCritical() << "[M-Pesa] JSON structure invalid. 'mpesa' key not found.";
+    }
+
+    return config;
+}
+
+void MpesaPayment::process(Money amount, const QVariantMap &data) {
     m_amount = amount;
     m_phone = data.value("phone").toString();
 
@@ -88,13 +126,15 @@ void MpesaPayment::onTokenReceived() {
 void MpesaPayment::sendStkPush()
 {
     // 1. Data Prep: Convert amount to cents for DB storage
-    int cents = static_cast<int>(m_amount * 100);
+    // int cents = static_cast<int>(m_amount * 100);
+    qDebug() << "stk push amount" << m_amount.toKSH();
+    m_lastTimestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
 
     // 2. Log initiation via Singleton
     PaymentModel::instance().insertPayment(
         "ORD-TEMP-123", // Replace with actual salesModel.currentOrderId
         "MPESA_STK",
-        cents,
+        m_amount,
         "Admin",        // Replace with currentUser property
         m_checkoutRequestId
         );
@@ -102,38 +142,48 @@ void MpesaPayment::sendStkPush()
     // 3. Network Request to Safaricom
     qDebug() << "[M-Pesa] Sending STK Push to:" << m_phone;
 
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
-    QString password = generatePassword(timestamp);
+    // QString timestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
+    m_lastPassword= generatePassword(m_lastTimestamp);
 
-    QJsonObject body;
-    body["BusinessShortCode"] = 174379;
-    qDebug() <<"Business Short code" << m_config.shortCode;
-    body["Password"] = password;
-    body["Timestamp"] = timestamp;
-    body["TransactionType"] = m_config.isTill ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline";
-    body["Amount"] = 1;
-    body["PartyA"] = "254728417478";
-    body["PartyB"] = 174379;
-    body["PhoneNumber"] = "254728417478";
-    body["CallBackURL"] = "https://example.com/callback"; // Required but unused in desktop polling
-    body["AccountReference"] = "OrderREF";
-    body["TransactionDesc"] = "Payment";
+    StkPushRequest request;
+    request.BusinessShortCode = m_config.shortCode.toInt();
+    request.Password          = m_lastPassword;
+    request.Timestamp         = m_lastTimestamp;
+    request.TransactionType   = m_config.isTill ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline";
+    // request.Amount            = static_cast<int>(m_amount.toKSH());
+    request.Amount            = 1; // Testing with 1 KSH
+    request.PartyA            = m_phone;
+    request.PartyB            = m_config.shortCode.toInt();
+    request.PhoneNumber       = m_phone;
+    request.CallBackURL       = "https://example.com/callback";
+    request.AccountReference  = m_currentOrderId.isEmpty() ? "Order" : m_currentOrderId;
+    request.TransactionDesc   = "POS Payment";
 
+    // QUrl url;
+    // if (m_config.isSandbox) {
+    //     url = QUrl("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest");
+    // } else {
+    //     url = QUrl("https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest");
+    // }
     QUrl url("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest");
     QNetworkRequest req(url);
 
-    // ESSENTIAL: Set these headers to bypass the basic WAF filters
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setRawHeader("Authorization", ("Bearer " + m_accessToken).toUtf8());
     req.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) QtPOS/1.0");
     req.setRawHeader("Accept", "application/json");
+    req.setTransferTimeout(30000);
+
+
 
     // DEBUG: Ensure the JSON is clean and compact
-    QByteArray jsonData = QJsonDocument(body).toJson(QJsonDocument::Compact);
-    qDebug() << "[M-Pesa] Sending Payload:" << jsonData;
+    // QByteArray jsonData = QJsonDocument(body).toJson(QJsonDocument::Compact);
+    // qDebug() << "[M-Pesa] Sending Payload:" << jsonData;
 
-    QNetworkReply *reply = m_netManager->post(req, jsonData);
+    // QNetworkReply *reply = m_netManager->post(req, jsonData);
+    QNetworkReply *reply = m_netManager->post(req, request.toJson());
     connect(reply, &QNetworkReply::finished, this, &MpesaPayment::onStkPushFinished);
+    emit messageUpdated("Requesting M-Pesa PIN prompt...");
 }
 
 void MpesaPayment::onStkPushFinished()
@@ -187,13 +237,14 @@ void MpesaPayment::onStkPushFinished()
 
     reply->deleteLater();
 }
+
 void MpesaPayment::verifyStatus()
 {
-    // Polling Logic
-    if (m_checkoutRequestId.isEmpty()) return;
+    emit messageUpdated("Verifying payment...");
+    // Polling Logic: Ensure we have both the request ID and the original timestamp
+    if (m_checkoutRequestId.isEmpty() || m_lastTimestamp.isEmpty()) return;
 
-    // Check timeout (e.g. stop after 60 seconds)
-    if (m_retryCount++ > 12) {
+    if (m_retryCount++ > 60) { // 60 seconds timeout
         m_pollTimer->stop();
         setState(State::Failed);
         emit errorOccurred("Transaction Timed Out (No PIN entered).");
@@ -202,23 +253,27 @@ void MpesaPayment::verifyStatus()
 
     setState(State::Verifying);
 
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
-    // QString password = generatePassword(timestamp);
-    QString rawPassword = m_config.shortCode + m_config.passKey + timestamp;
-    QByteArray password = rawPassword.toUtf8().toBase64();
+    // Safaricom requirement: The password for the query must be generated using
+    // the SAME timestamp used in the processrequest call.
+    QString password = generatePassword(m_lastTimestamp);
 
     QJsonObject body;
-    body["BusinessShortCode"] = m_config.shortCode;
-    body["Password"] = QString(password);
-    body["Timestamp"] = timestamp;
+    body["BusinessShortCode"] = m_config.shortCode.toInt();
+    body["Password"] = password;
+    body["Timestamp"] = m_lastTimestamp; // Use original timestamp
     body["CheckoutRequestID"] = m_checkoutRequestId;
 
-    QNetworkRequest req(QUrl("https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"));
+    // QString baseUrl = m_config.isSandbox ? "https://sandbox.safaricom.co.ke" : "https://api.safaricom.co.ke";
+    // Using the M-Pesa Express Query endpoint
+    QUrl url("https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query");
+
+    QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setRawHeader("Authorization", "Bearer " + m_accessToken.toUtf8());
 
     QNetworkReply *reply = m_netManager->post(req, QJsonDocument(body).toJson());
     connect(reply, &QNetworkReply::finished, this, &MpesaPayment::onQueryFinished);
+
 }
 
 void MpesaPayment::onQueryFinished()
@@ -226,34 +281,73 @@ void MpesaPayment::onQueryFinished()
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if (!reply) return;
 
-    QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
+    QByteArray data = reply->readAll();
+    QJsonObject res = QJsonDocument::fromJson(data).object();
 
+    qDebug() << "[M-Pesa] Query Result:" << data;
+
+    // 1. Handle definitive ResultCode from M-Pesa Express Query
     if (res.contains("ResultCode")) {
-        QString resultCode = res.value("ResultCode").toString();
+        // Convert to string regardless of if it's stored as int or string in JSON
+        QString resultCode = res.value("ResultCode").toVariant().toString();
+        QString resultDesc = res.value("ResultDesc").toString();
 
         if (resultCode == "0") {
-            // Success!
+            // SUCCESS
             m_pollTimer->stop();
-            setState(State::Success);
+            setState(State::Success); // State 3 in QML
+            m_currentMessage = "Payment Successful!";
+            emit messageUpdated(m_currentMessage);
             emit completed(m_checkoutRequestId);
-            emit messageUpdated("Payment Successful!");
+            PaymentModel::instance().updatePaymentStatus(m_checkoutRequestId, "Success");
         }
         else if (resultCode == "1032") {
-            // User Cancelled
+            m_currentMessage = "Transaction cancelled by user.";
             m_pollTimer->stop();
-            setState(State::Cancelled);
-            emit errorOccurred("User Cancelled the transaction.");
+            setState(State::Failed); // State 4 in QML
+            emit messageUpdated(m_currentMessage);
+            PaymentModel::instance().updatePaymentStatus(m_checkoutRequestId, "Cancelled");
         }
-        else if (resultCode != "1037" && resultCode != "1") {
-            // Any other definitive error (Not a timeout or generic error)
+        else if (resultCode == "1") {
+            // INSUFFICIENT FUNDS
+            m_currentMessage = "Error: Insufficient funds in M-Pesa account.";
             m_pollTimer->stop();
             setState(State::Failed);
-            emit errorOccurred(res.value("ResultDesc").toString());
+            emit messageUpdated(m_currentMessage);
+            PaymentModel::instance().updatePaymentStatus(m_checkoutRequestId, "Insufficient Funds");
+        }
+        else if (resultCode == "1037") {
+            // TIMEOUT on Safaricom's end - stay in Verifying state and let poll continue
+            emit messageUpdated("Still waiting for PIN entry...");
+        }
+        else {
+            // OTHER ERRORS (System error, etc.)
+            m_pollTimer->stop();
+            setState(State::Failed);
+            emit messageUpdated("M-Pesa Error: " + resultDesc);
+            PaymentModel::instance().updatePaymentStatus(m_checkoutRequestId, "Failed: " + resultCode);
         }
     }
-    else if (res.contains("errorCode")) {
-        // If API returns errorCode 503.001.something, it often means "still processing"
-        // We do nothing here, just let the timer tick again.
+    // 2. Handle API Errors (e.g., 500 or 404 from the gateway)
+    // Inside MpesaPayment::onQueryFinished
+    if (res.contains("errorCode")) {
+        QString errorCode = res.value("errorCode").toString();
+
+        if (errorCode == "404.001.03") { // Invalid Access Token
+            qWarning() << "[M-Pesa] Access Token rejected during Query. Clearing cache...";
+
+            // 1. Wipe the cached token so the next attempt MUST fetch a new one
+            QSqlQuery query(DatabaseManager::instance().database());
+            query.exec("DELETE FROM oauth_tokens WHERE provider = 'mpesa'");
+
+            // 2. Update the UI
+            m_currentMessage = "Connection lost. Re-authenticating...";
+            emit messageUpdated(m_currentMessage);
+
+            // 3. Optional: Immediately try to fetch a new token
+            fetchToken();
+            return;
+        }
     }
 
     reply->deleteLater();
@@ -269,6 +363,6 @@ void MpesaPayment::cancel()
 QString MpesaPayment::generatePassword(const QString &timestamp)
 {
     qDebug() << "generate password shortcode" << m_config.shortCode;
-    QString raw = "174379" + m_config.passKey + timestamp;
+    QString raw = m_config.shortCode + m_config.passKey + timestamp;
     return QString(raw.toUtf8().toBase64());
 }

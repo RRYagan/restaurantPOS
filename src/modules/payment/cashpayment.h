@@ -8,12 +8,12 @@ class CashPayment : public Payment {
 public:
     explicit CashPayment(QObject *parent = nullptr);
 
-    void process(double amount, const QVariantMap &data) override;
+    void process(Money amount, const QVariantMap &data) override;
     void cancel() override;
     void verifyStatus() override;
 
 private:
-    double m_amount = 0.0;
+    Money m_amount{0};
 };
 
 #endif // CASHPAYMENT_H

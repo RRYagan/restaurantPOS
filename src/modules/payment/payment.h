@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
+#include <money.h>
 
 class Payment : public QObject {
     Q_OBJECT
@@ -28,7 +29,7 @@ public:
 
     // Start the payment flow.
     // data: Dynamic params (e.g. {"phone": "2547..."})
-    virtual void process(double amount, const QVariantMap &data = {}) = 0;
+    virtual void process(Money amount, const QVariantMap &data = {}) = 0;
 
     // Stop/Cancel the flow
     virtual void cancel() = 0;
