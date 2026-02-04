@@ -59,10 +59,10 @@ void PaymentController::startMpesaPayment(const QString &phone) {
     cleanUpActivePayment();
 
     PaymentModel model;
-    int amountCents = static_cast<int>(m_amount * 100);
+    // int amountCents = static_cast<int>(m_amount * 100);
 
     // We log it as 'Initiated' with the current user tag
-    model.insertPayment("ORD-TEMP-123", "MPESA_STK", amountCents, "Admin", "");
+    model.insertPayment("ORD-TEMP-123", "MPESA_STK", m_amount, "Admin", "");
 
     m_activePayment = new MpesaPayment(m_mpesaConfig, this);
     connectSignals();

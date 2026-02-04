@@ -13,6 +13,7 @@ struct BusyGuard {
 SalesViewController::SalesViewController(QObject* parent)
     : QObject(parent),
     m_salesModel(std::make_unique<SalesModel>(this)),
+    m_paymentModel(std::make_unique<PaymentModel>(this)),
     m_orderItemModel(std::make_unique<OrderItemModel>(this)),
     m_productModel(std::make_unique<ProductModel>(this)),
     m_inventoryController(std::make_unique<InventoryViewController>(this)),
@@ -174,6 +175,7 @@ QVariant SalesViewController::createItemProxy(const QVariant& rawItems, const QS
 
 void SalesViewController::updateAllStatus(const QString& orderId, const QString& status) {
     m_salesModel->updateAllStatus(orderId, status);
+    emit kitchenDataChanged();
 }
 
 
@@ -184,5 +186,8 @@ void SalesViewController::updateItemStatus(const QString& itemId, const QString&
     }
 
     m_orderItemModel->updateItemStatus(itemId, status);
+    emit kitchenDataChanged();
 
 }
+
+

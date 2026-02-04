@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <memory> // For std::unique_ptr
+#include <paymentmodel.h>
 // #include <orderitemmodel.h>
 #include <genericfilterproxymodel.h>
 #include <QtQml/qqmlregistration.h>
@@ -58,6 +59,11 @@ public:
     [[nodiscard]] Q_INVOKABLE QVariantList loadOrders() const;
     Q_INVOKABLE QVariant createItemProxy(const QVariant& rawItems, const QString& status);
 
+    Q_INVOKABLE bool clearPaymentHistory() {
+        // Call the model function
+        return m_paymentModel->clearAllPayments();
+    }
+
 signals:
     void orderChanged();
     void itemCountChanged();
@@ -67,6 +73,7 @@ signals:
 private:
     // R.20: Use unique_ptr to manage ownership and prevent leaks
     std::unique_ptr<SalesModel> m_salesModel;
+    std::unique_ptr<PaymentModel> m_paymentModel;
     std::unique_ptr<OrderItemModel> m_orderItemModel;
     std::unique_ptr<ProductModel> m_productModel;
     std::unique_ptr<InventoryViewController> m_inventoryController;

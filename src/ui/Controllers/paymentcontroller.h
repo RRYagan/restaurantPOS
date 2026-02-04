@@ -33,8 +33,8 @@ public:
     QString currentMessage() const;
     void loadConfig();
 
-    double amount() const { return m_amount; }
-    void setAmount(double a) { if(m_amount != a) { m_amount = a; emit amountChanged(); }}
+    double amount() const { return m_amount.toKSH(); }
+    void setAmount(double a) { if(m_amount.toKSH() != a) { m_amount = Money::toCents(a); emit amountChanged(); }}
 
 signals:
     void stateChanged();
@@ -48,7 +48,7 @@ private:
 
     Payment* m_activePayment = nullptr;
     QString m_message;
-    double m_amount = 0.0;
+    Money m_amount{0};
 
     // M-Pesa config (In a real app, load this from a secure config/DB)
     MpesaConfig m_mpesaConfig;
