@@ -207,6 +207,18 @@ CREATE TABLE IF NOT EXISTS sale (
     
 );
 
+CREATE TABLE IF NOT EXISTS payments (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    payment_type TEXT NOT NULL, -- e.g., 'MPESA_STK', 'CASH'
+    amount_cents INTEGER NOT NULL,
+    status TEXT DEFAULT 'Initiated', -- 'Initiated', 'Success', 'Cancelled', 'Failed'
+    user_tag TEXT, -- The waiter/admin who initiated it
+    external_reference TEXT, -- Store CheckoutRequestID here
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS purchase (
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT,

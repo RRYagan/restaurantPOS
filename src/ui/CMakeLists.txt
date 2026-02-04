@@ -44,6 +44,12 @@ qt_add_qml_module(POS_UI
         Views/sales/payment/PaymentPage.qml
         Views/sales/payment/PaymentDialog.qml
         Views/sales/KitchenView.qml
+        Views/sales/payment/OrderDetailsPanel.qml
+        # mpesa
+        Views/sales/payment/mpesa/MpesaMain.qml
+        Views/sales/payment/mpesa/MpesaSTKPush.qml
+        Views/sales/payment/mpesa/MpesaQR.qml
+        Views/sales/payment/mpesa/MpesaProcessingView.qml
 
 
         Views/hr/UserManagement.qml
@@ -65,6 +71,9 @@ qt_add_qml_module(POS_UI
         "Views/assets/images/bg.png"
         "Views/assets/images/bg-white.png"
 )
+
+
+
 
 
 
