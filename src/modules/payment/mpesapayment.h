@@ -71,37 +71,91 @@ struct StkPushResponse {
     }
 };
 
+struct MpesaResponse {
+    QString merchantRequestId;
+    QString checkoutRequestId;
+    QString resultCode;
+    QString resultDesc;
+    QString mpesaReceipt;
+
+    // This is the member function the compiler says is missing
+    void reset() {
+        merchantRequestId = "";
+        checkoutRequestId = "";
+        resultCode = "";
+        resultDesc = "";
+        mpesaReceipt = "";
+    }
+
+    QVariantMap toMap() const {
+        return QVariantMap {
+            {"merchantId", merchantRequestId},
+            {"checkoutId", checkoutRequestId},
+            {"resultCode", resultCode},
+            {"description", resultDesc},
+            {"receipt", mpesaReceipt}
+        };
+    }
+};
+
+
 class MpesaPayment : public Payment {
     Q_OBJECT
+
+    Q_PROPERTY(QVariantMap lastResponse READ lastResponse NOTIFY responseChanged)
     Q_PROPERTY(QString currentMessage READ currentMessage NOTIFY messageUpdated)
     Q_PROPERTY(int currentState READ currentState NOTIFY stateChanged)
 public:
     // Pass the config in the constructor
     explicit MpesaPayment(const MpesaConfig &config, QObject *parent = nullptr);
 
+    QVariantMap lastResponse() const { return m_lastResponse.toMap(); }
     QString currentMessage() const { return m_currentMessage; }
     int currentState() const { return static_cast<int>(m_state); }
 
     void process(Money amount, const QVariantMap &data) override;
     void cancel() override;
     void verifyStatus() override;
+    void preparePayment()
+    {
+        m_retryCount = 0;
+        m_checkoutRequestId = "";
+        m_lastTimestamp = "";
+        m_lastResponse.reset(); // Clear the struct data
+
+        // Set state to 0 (Idle) so the BusyIndicator doesn't spin immediately
+        setState(State::Initiated);
+
+        m_currentMessage = "Ready to send STK Push...";
+        emit messageUpdated(m_currentMessage);
+        emit responseChanged();
+    }
 
 private slots:
     void onTokenReceived();
     // void onStkPushFinished(QNetworkReply *reply);
     void onStkPushFinished();
     void onQueryFinished();
-    static MpesaConfig loadConfig(const QString &filePath = "config.json");
 
 signals:
     void messageUpdated(const QString &message);
     void stateChanged();
+    void responseChanged();
+    void stkPushInitiated(QString checkoutRequestId, QString merchantRequestId);
+    void paymentStatusUpdated(QString checkoutRequestId, QString status, QString receipt = "");
+    void paymentCompleted(const QString &checkoutId, const QString &receipt);
+    void paymentFailed(QString checkoutId, QString reason);
+    void paymentCancelled(QString checkoutId);
 private:
     void fetchToken();
     void sendStkPush();
     QString generatePassword(const QString &timestamp);
+    void handleTokenTimeout();
+    void updateStatus(State state, const QString &msg);
 
     MpesaConfig m_config;
+    MpesaResponse m_lastResponse;
+
     QNetworkAccessManager *m_netManager;
     QTimer *m_pollTimer;
     QString m_currentOrderId;

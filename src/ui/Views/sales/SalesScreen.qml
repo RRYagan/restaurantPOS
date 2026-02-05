@@ -6,32 +6,8 @@ import POS.UI 1.0
 Rectangle {
     id: root
     color: "transparent"
-
-    // SalesViewController {
-    //     id: _salesModel
-    //     onOrderChanged: {
-    //             console.log("UI DEBUG: Total Amount updated to:", totalAmount)
-    //         }
-
-    //         onItemCountChanged: {
-    //             console.log("UI DEBUG: Item count is now:", itemCount)
-    //         }
-    // }
     property SalesViewController _salesModel
-
     ProductViewController { id: _productModel}
-
-
-    PaymentController {
-        id: payCtrl
-        onPaymentFinished: (success, ref) => {
-                               if (success) {
-                                   paymentLoader.item.close()
-                                   _salesModel.clearOrder()
-                                   paymentLoader.sourceComponent = null
-                               }
-                           }
-    }
 
     Loader {
         id: paymentLoader
@@ -39,8 +15,7 @@ Rectangle {
         active: false
         sourceComponent: Component {
             PaymentDialog {
-                // _salesModel: root._salesModel
-                paymentCtrl: payCtrl
+                salesModel: _salesModel
                 onClosed: paymentLoader.active = false
             }
         }

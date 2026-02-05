@@ -7,7 +7,7 @@
 #include <paymentmodel.h>
 
 
-PaymentController::PaymentController(QObject *parent) : QObject(parent) {
+PaymentController::PaymentController(QObject *parent) : QObject(parent), m_paymentModel(std::make_unique<PaymentModel>(this)) {
     loadConfig();
 }
 
@@ -44,6 +44,7 @@ void PaymentController::loadConfig() {
         qWarning() << "[Config] Could not find config.json in searched paths!";
     }
 }
+
 PaymentController::~PaymentController() {
     cleanUpActivePayment();
 }

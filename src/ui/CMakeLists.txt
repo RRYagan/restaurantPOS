@@ -1,24 +1,24 @@
 qt_add_qml_module(POS_UI
-    STATIC
-    URI POS.UI
-    VERSION 1.0
-    RESOURCE_PREFIX /qt/qml
-    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/POS/UI"
+        STATIC
+        URI POS.UI
+        VERSION 1.0
+        RESOURCE_PREFIX /qt/qml
+        OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/POS/UI"
 
-    SOURCES
-       Controllers/salesview.h Controllers/salesview.cpp
-       # controllers/ordersview.h controllers/ordersview.cpp
-       # controllers/orderdetailview.h controllers/orderdetailview.cpp
-       # controllers/categoryview.h controllers/categoryview.cpp
-       # controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
-       Controllers/inventoryviewcontroller.h Controllers/inventoryviewcontroller.cpp
-       # controllers/userview.h controllers/userview.cpp
-       Controllers/paymentcontroller.h Controllers/paymentcontroller.cpp
-       Controllers/productviewcontroller.h Controllers/productviewcontroller.cpp
-       # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
-       Controllers/salesviewcontroller.h Controllers/salesviewcontroller.cpp
+        SOURCES
+        Controllers/salesview.h Controllers/salesview.cpp
+        # controllers/ordersview.h controllers/ordersview.cpp
+        # controllers/orderdetailview.h controllers/orderdetailview.cpp
+        # controllers/categoryview.h controllers/categoryview.cpp
+        # controllers/menuviewcontroller.h controllers/menuviewcontroller.cpp
+        Controllers/inventoryviewcontroller.h Controllers/inventoryviewcontroller.cpp
+        # controllers/userview.h controllers/userview.cpp
+        # Controllers/paymentcontroller.h Controllers/paymentcontroller.cpp
+        Controllers/productviewcontroller.h Controllers/productviewcontroller.cpp
+        # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
+        Controllers/salesviewcontroller.h Controllers/salesviewcontroller.cpp
 
-    QML_FILES
+        QML_FILES
         Views/Main.qml
 
         # setup pages
@@ -45,11 +45,15 @@ qt_add_qml_module(POS_UI
         Views/sales/payment/PaymentDialog.qml
         Views/sales/KitchenView.qml
         Views/sales/payment/OrderDetailsPanel.qml
+        Views/sales/payment/MainPaymentView.qml
+        Views/sales/payment/PaymentMethodView.qml
+        Views/sales/payment/ProcessingView.qml
+        Views/sales/payment/CashPaymentView.qml
         # mpesa
         Views/sales/payment/mpesa/MpesaMain.qml
         Views/sales/payment/mpesa/MpesaSTKPush.qml
         Views/sales/payment/mpesa/MpesaQR.qml
-        Views/sales/payment/mpesa/MpesaProcessingView.qml
+
 
 
         Views/hr/UserManagement.qml
@@ -66,26 +70,17 @@ qt_add_qml_module(POS_UI
         Views/TestSales.qml
         Views/ProductSetupScreen.qml
 
-    RESOURCES
+        RESOURCES
         "Views/assets/icons/default.png"
         "Views/assets/images/bg.png"
         "Views/assets/images/bg-white.png"
 )
 
-
-
-
-
-
-
-
-
-
 # target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/payment")
 target_include_directories(POS_UI PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Controllers")
 
 target_link_libraries(POS_UI
-    PRIVATE
+        PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql

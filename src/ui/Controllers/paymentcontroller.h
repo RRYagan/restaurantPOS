@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QVariantMap>
+#include <paymentmodel.h>
 #include "../../src/modules/payment/payment.h"
 #include "../../src/modules/payment/cashpayment.h"
 #include "../../src/modules/payment/mpesapayment.h"
@@ -24,6 +25,15 @@ public:
 
     // --- QML Invokable Methods ---
     Q_INVOKABLE void startCashPayment();
+    Q_INVOKABLE void preparePayment() {
+        if (m_activePayment != nullptr) {
+            m_activePayment->preparePayment();
+        } else {
+            // Optional: Default behavior if no module is loaded yet
+            m_message = "Select a payment method";
+            emit messageUpdated();
+        }
+    }
     Q_INVOKABLE void startMpesaPayment(const QString &phone);
     Q_INVOKABLE void confirmAction(); // Used for Cash "Confirm Received"
     Q_INVOKABLE void cancelPayment();
@@ -43,6 +53,8 @@ signals:
     void paymentFinished(bool success, QString receiptId);
 
 private:
+    std::unique_ptr<PaymentModel> m_paymentModel;
+
     void cleanUpActivePayment();
     void connectSignals();
 

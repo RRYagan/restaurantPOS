@@ -11,6 +11,7 @@ public:
     void process(Money amount, const QVariantMap &data) override;
     void cancel() override;
     void verifyStatus() override;
+    void preparePayment() override;
 
 private:
     Money m_amount{0};

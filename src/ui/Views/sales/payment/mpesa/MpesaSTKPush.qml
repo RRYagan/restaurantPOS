@@ -2,9 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
-
-// --- VIEW 2: M-PESA PHONE INPUT ---
-
+import POS.UI 1.0
 
 Rectangle {
     Layout.fillWidth: true
@@ -12,9 +10,7 @@ Rectangle {
     color: "#fffdf0"
     border.color: "#e0e0e0"
     radius: 8
-    MpesaProcessingView {
-        id: mpesaProcessingView
-    }
+
 
     ColumnLayout {
         spacing: 15
@@ -54,13 +50,12 @@ Rectangle {
             Layout.preferredHeight: 50
             Layout.preferredWidth: parent.width * 0.6
             onClicked: {
-                // paymentCtrl.setAmount(totalVal);
-                // paymentCtrl.startMpesaPayment(phoneField.text);
-                paymentCtrl.startMpesaPayment("254728417478");
-
-
+                // salesModel.preparePayment();
+                // salesModel.setAmount(totalVal);
+                // salesModel.startMpesaPayment(phoneField.text);
+                salesModel.startMpesaPayment("254727027979");
                 // Push processingView to the nested stack instead of the global one
-                paymentStack.push(mpesaProcessingView);
+                paymentStack.push(processingView);
             }
         }
 

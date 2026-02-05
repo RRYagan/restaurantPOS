@@ -24,11 +24,8 @@ public:
 
     explicit Payment(QObject *parent = nullptr);
     virtual ~Payment();
+    virtual void preparePayment() = 0;
 
-    // --- Core Abstract Interface ---
-
-    // Start the payment flow.
-    // data: Dynamic params (e.g. {"phone": "2547..."})
     virtual void process(Money amount, const QVariantMap &data = {}) = 0;
 
     // Stop/Cancel the flow
@@ -40,6 +37,7 @@ public:
     // --- Getters ---
     State state() const;
     QString lastError() const;
+    QString stateToString(int stateValue) const;
 
 signals:
     void stateChanged(Payment::State newState);

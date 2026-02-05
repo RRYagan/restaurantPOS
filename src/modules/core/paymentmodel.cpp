@@ -5,41 +5,49 @@
 
 PaymentModel::PaymentModel(QObject *parent) : QObject(parent) {}
 
-bool PaymentModel::insertPayment(const QString& orderId, const QString& type, Money amountCents, const QString& userTag, const QString& externalRef) {
+bool PaymentModel::insertPayment(const PaymentData &data) {
     QSqlQuery query;
 
-    query.prepare("INSERT INTO payments (id, order_id, payment_type, amount_cents, status, user_tag, external_reference) "
-                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
+    // R"sql(...)sql" allows you to write clean SQL exactly as it looks in a DB editor
+    query.prepare(R"sql(
+        INSERT INTO payments (
+            id,
+            order_id,
+            payment_type,
+            amount_cents,
+            status,
+            user_tag,
+            external_reference
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    )sql");
 
     QString internalId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     query.addBindValue(internalId);                                // 1. id
-    query.addBindValue(orderId);                                   // 2. order_id
-    query.addBindValue(type);                                      // 3. payment_type
-    query.addBindValue(static_cast<qlonglong>(amountCents.cents)); // 4. amount_cents
-    query.addBindValue("Initiated");                               // 5. status
-    query.addBindValue(userTag);                                   // 6. user_tag
-    query.addBindValue(externalRef);                               // 7. external_reference
+    query.addBindValue(data.orderId);                              // 2. order_id
+    query.addBindValue(data.type);                                 // 3. payment_type
+    query.addBindValue(static_cast<qlonglong>(data.amount.cents));  // 4. amount_cents
+    query.addBindValue(data.status);                               // 5. status
+    query.addBindValue(data.userTag);                              // 6. user_tag
+    query.addBindValue(data.externalRef);                          // 7. external_reference
 
     if (!query.exec()) {
         qCritical() << "--- Database Error ---";
         qCritical() << "Error Text   :" << query.lastError().text();
-        qCritical() << "Executed SQL :" << query.executedQuery();
+        qCritical() << "Executed SQL  :" << query.executedQuery();
 
-        // Qt 6 returns a QVariantList (aka QList<QVariant>)
         QVariantList list = query.boundValues();
-        qCritical() << "Bound Count  :" << list.count();
-
         for (int i = 0; i < list.count(); ++i) {
             qCritical() << QString("  Index %1: %2").arg(i).arg(list.at(i).toString());
         }
-        qCritical() << "----------------------";
 
-        emit paymentLogged(orderId, false);
+        emit paymentLogged(data.orderId, false);
         return false;
     }
-    qDebug() << "[DB] Payment recorded for Order:" << orderId << "Type:" << type;
-    emit paymentLogged(orderId, true);
+
+    qDebug() << "[DB] Payment recorded for Order:" << data.orderId << "Type:" << data.type;
+    emit paymentLogged(data.orderId, true);
     return true;
 }
 

@@ -3,6 +3,13 @@
 #include "productmodel.h"
 #include "inventoryviewcontroller.h"
 
+#include <QCoreApplication>
+#include <QFile>
+#include <QStandardPaths>
+#include <cashpayment.h>
+#include <mpesapayment.h>
+#include "payment.h"
+
 // A simple RAII guard to ensure the 'isBusy' flag is reset on function exit
 struct BusyGuard {
     bool& target;
@@ -22,6 +29,7 @@ SalesViewController::SalesViewController(QObject* parent)
     m_genericFilterProxyModel->setSourceModel(m_productModel.get());
     m_genericFilterProxyModel->setCategoryRole(ProductModel::CategoryIdRole);
     m_genericFilterProxyModel->setTypeRole(ProductModel::ProductTypeIdRole);
+    loadConfig();
 
     // // Configure proxy for Kitchen View needs
     // m_genericFilterProxyModel->setSourceModel(m_orderItemModel.get());
@@ -190,4 +198,237 @@ void SalesViewController::updateItemStatus(const QString& itemId, const QString&
 
 }
 
+// payment
+void SalesViewController::loadConfig() {
+    // 1. Try multiple paths: App Dir, AppData, and Working Dir
+    QStringList potentialPaths;
+    potentialPaths << QCoreApplication::applicationDirPath() + "/config.json";
+    potentialPaths << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.json";
+    potentialPaths << "config.json";
 
+    QString finalPath;
+    for (const QString &p : potentialPaths) {
+        if (QFile::exists(p)) {
+            finalPath = p;
+            break;
+        }
+    }
+
+    QFile file(finalPath);
+    if (!finalPath.isEmpty() && file.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonObject mpesa = doc.object().value("mpesa").toObject();
+
+        // 2. Assign values and verify
+        m_mpesaConfig.shortCode = mpesa.value("shortCode").toString();
+        m_mpesaConfig.passKey = mpesa.value("passKey").toString();
+        m_mpesaConfig.consumerKey = mpesa.value("consumerKey").toString();
+        m_mpesaConfig.consumerSecret = mpesa.value("consumerSecret").toString();
+        m_mpesaConfig.isTill = mpesa.value("isTill").toBool();
+
+        qDebug() << "[Config] Loaded from:" << finalPath;
+        qDebug() << "[Config] ShortCode found:" << m_mpesaConfig.shortCode;
+    } else {
+        qWarning() << "[Config] Could not find config.json in searched paths!";
+    }
+}
+
+void SalesViewController::startCashPayment() {
+    cleanUpActivePayment();
+
+    m_activePayment = new CashPayment(this);
+
+    // --- Step 1: Record the Cash Payment in the DB immediately ---
+    PaymentData data;
+    data.orderId = m_salesModel->currentOrderId();
+    data.type = "CASH";
+    data.amount = m_amount;
+    data.userTag = "Admin";
+    data.externalRef = "CASH-" + data.orderId; // Generate a local reference
+    data.status = "Completed";                // Cash is completed instantly
+
+    m_paymentModel->insertPayment(data);
+
+    // --- Step 2: Handle Success & Cleanup ---
+    connect(m_activePayment, &Payment::completed, this, [this](const QString &ref) {
+        qDebug() << "[SalesView] Cash payment logic finished.";
+
+        this->finalizeTransaction(ref);
+
+        if (m_salesModel) {
+            m_salesModel->clear();
+        }
+
+        this->resetControllerState();
+        m_activePayment->deleteLater();
+        m_activePayment = nullptr;
+
+        emit paymentFinished(true, ref);
+    });
+
+    connectSignals();
+    emit methodNameChanged();
+
+    m_activePayment->process(m_amount, {});
+}
+void SalesViewController::startMpesaPayment(const QString &phone) {
+    cleanUpActivePayment();
+
+    // 1. Initialize the payment object
+    m_activePayment = new MpesaPayment(m_mpesaConfig, this);
+
+    // 2. Connect the NEW signals we discussed (see below)
+    connectSignals();
+
+    emit methodNameChanged();
+
+    // 3. Prepare data and start process
+    QVariantMap data;
+    data["phone"] = phone;
+    data["order_id"] = m_salesModel->currentOrderId();
+
+    m_activePayment->process(m_amount, data);
+}
+
+void SalesViewController::confirmAction() {
+    if (m_activePayment) {
+        m_activePayment->verifyStatus();
+    }
+}
+
+void SalesViewController::cancelPayment() {
+    if (m_activePayment) {
+        m_activePayment->cancel();
+    }
+}
+
+void SalesViewController::cleanUpActivePayment() {
+    if (m_activePayment) {
+        m_activePayment->deleteLater();
+        m_activePayment = nullptr;
+    }
+}
+
+void SalesViewController::connectSignals() {
+    if (!m_activePayment) return;
+
+    // 1. Cast the pointer so we can access Mpesa-specific signals
+    auto mpesa = qobject_cast<MpesaPayment*>(m_activePayment);
+
+    if (mpesa) {
+        // --- STEP 1: Capture the initial STK response ---
+        // We use 'mpesa' pointer here because 'stkPushInitiated' belongs to MpesaPayment
+        connect(mpesa, &MpesaPayment::stkPushInitiated,
+                this, [this](const QString &checkoutId, const QString &merchantId) {
+
+                    // Package the data into the struct
+                    PaymentData data;
+                    data.orderId = m_salesModel->currentOrderId();
+                    data.type = "MPESA_STK";
+                    data.amount = m_amount; // Assuming m_amount is a Money object
+                    data.userTag = "Admin";
+                    data.externalRef = checkoutId;
+                    data.status = "Awaiting PIN";
+
+                    // Pass the single struct object
+                    m_paymentModel->insertPayment(data);
+                });
+
+        // --- STEP 2: Capture Polling Results ---
+        connect(mpesa, &MpesaPayment::paymentStatusUpdated,
+                this, [this](const QString &checkoutId, const QString &status, const QString &receipt) {
+
+                    // 1. Update the Database record
+                    m_paymentModel->updatePaymentStatus(checkoutId, status);
+
+                    if (status == "Completed") {
+                        qDebug() << "[SalesView] Payment Complete. Running cleanup.";
+
+                        // 2. Finalize logic (Print receipt, log final sale)
+                        this->finalizeTransaction(receipt);
+
+                        // 3. Clear the Sales Model (The Cart/Order)
+                        if (m_salesModel) {
+                            m_salesModel->clear();
+                        }
+                        this->resetControllerState();
+                        // 4. Cleanup the Payment Object memory
+                        // We use deleteLater because we are currently inside a signal call from this object
+                        m_activePayment->deleteLater();
+                        m_activePayment = nullptr;
+
+                        // 5. Notify the UI
+                        m_message = "Transaction Successful: " + receipt;
+                        emit messageUpdated();
+                        emit paymentFinished(true, receipt);
+                    }
+                });
+    }
+
+    // 2. Base Class Connections (Common to all payment types)
+    // These use the original m_activePayment (Payment*) pointer
+    connect(m_activePayment, &Payment::stateChanged, this, &SalesViewController::stateChanged);
+
+    connect(m_activePayment, &Payment::messageUpdated, this, [this](const QString &msg) {
+        m_message = msg;
+        emit messageUpdated();
+    });
+
+    connect(m_activePayment, &Payment::completed, this, [this](const QString &ref) {
+        emit paymentFinished(true, ref);
+    });
+
+    connect(m_activePayment, &Payment::errorOccurred, this, [this](const QString &err) {
+        m_message = "Error: " + err;
+        emit messageUpdated();
+    });
+}
+
+Payment::State SalesViewController::currentState() const {
+    return m_activePayment ? m_activePayment->state() : Payment::State::Idle;
+}
+
+QString SalesViewController::currentMessage() const {
+    return m_message;
+}
+
+QString SalesViewController::currentStateName() const {
+    if (!m_activePayment) return QStringLiteral("Idle");
+
+    // Use the enum directly
+    Payment::State currentState = m_activePayment->state();
+    return m_activePayment->stateToString(static_cast<int>(currentState));
+}
+
+void SalesViewController::finalizeTransaction(const QString &receiptNumber) {
+    qDebug() << "Finalizing sale with receipt:" << receiptNumber;
+
+    // 1. Emit success to QML
+    emit paymentFinished(true, receiptNumber);
+
+    // 2. Here you would usually call your sales model to clear the cart
+    // m_salesModel->clearCart();
+
+    // 3. Perhaps trigger a receipt print
+    // ReceiptPrinter::instance().print(m_currentOrderId);
+}
+
+
+// todo: refactor
+void SalesViewController::resetControllerState() {
+    // 1. Reset the Money object
+    m_amount = Money(0); // This creates a new Money struct with 0 cents
+
+    // OR if you don't have a constructor that takes 0:
+    // m_amount.cents = 0;
+
+    // 2. Clear the UI message
+    m_message = "";
+
+    // 3. Notify the UI (QML) that the amount/total has changed
+    // Assuming you have a signal like amountChanged()
+    emit amountChanged();
+    emit messageUpdated();
+
+    qDebug() << "[SalesView] Controller state and m_amount cleared.";
+}

@@ -34,3 +34,8 @@ void CashPayment::verifyStatus()
         emit completed(receipt);
     }
 }
+
+void CashPayment::preparePayment() {
+    setState(State::Initiated);
+    emit messageUpdated("Ready for cash payment...");
+}

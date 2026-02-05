@@ -114,6 +114,7 @@ public:
     [[nodiscard]] QList<Order> fetchAllOrders() const;
     // [[nodiscard]] QList<KitchenTicket> fetchKitchenQueue() const;
     bool updateAllStatus(const QString &orderId, const QString &status);
+    void clearOrder();
 
 signals:
     void totalsChanged();

@@ -11,6 +11,15 @@
 #include "databasemanager.h"
 #include "money.h"
 
+struct PaymentData {
+    QString orderId;
+    QString type;
+    Money amount;
+    QString userTag;
+    QString externalRef;
+    QString status = "Initiated"; // Default value
+};
+
 class PaymentModel : public QObject {
     Q_OBJECT
 public:
@@ -37,11 +46,7 @@ public:
      * @param userTag The person who initiated the payment
      * @param externalRef M-Pesa CheckoutRequestID or Receipt
      */
-    bool insertPayment(const QString &orderId,
-                       const QString &type,
-                       Money amountCents,
-                       const QString &userTag,
-                       const QString &externalRef = "");
+    bool insertPayment(const PaymentData &data);
 
     /**
      * @brief Update the status of an existing payment

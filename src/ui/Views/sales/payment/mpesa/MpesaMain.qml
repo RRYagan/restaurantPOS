@@ -1,27 +1,37 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Effects
+import POS.UI 1.0
 
 RowLayout {
-    width: paymentStack.width
-    height: paymentStack.height
+    id: root
+    anchors.fill: parent // Ensure the RowLayout has a size!
     spacing: 20
 
-    // Left 3/4: Dynamic Stackable Content
+    // --- 1. THE VIEW BLUEPRINTS ---
+    Component {
+        id: mpesaSTKPushView
+        MpesaSTKPush { anchors.fill: parent }
+    }
+
+    Component {
+        id: mpesaQRView
+        MpesaQR { anchors.fill: parent }
+    }
+
+    // --- 2. LEFT 3/4: THE DYNAMIC AREA ---
     StackView {
         id: mpesaInternalStack
         Layout.fillHeight: true
         Layout.preferredWidth: parent.width * 0.75
 
-        // Set the initial view to show order details
-        initialItem: mpesaSTKPushView
+        initialItem: mpesaSTKPushView // Starts with STK Push
 
-        replaceEnter: Transition { PropertyAnimation { property: "opacity"; from: 0; to: 1; duration: 200 } }
-        replaceExit: Transition { PropertyAnimation { property: "opacity"; from: 1; to: 0; duration: 200 } }
+        replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200 } }
+        replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 200 } }
     }
 
-    // Right 1/4: Actions
+    // --- 3. RIGHT 1/4: THE BUTTONS ---
     ColumnLayout {
         Layout.fillHeight: true
         Layout.preferredWidth: parent.width * 0.25
@@ -38,7 +48,6 @@ RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 70
             highlighted: true
-            // Switches the internal stack to the STK input view
             onClicked: mpesaInternalStack.replace(mpesaSTKPushView)
         }
 
@@ -46,44 +55,22 @@ RowLayout {
             text: "QR CODE"
             Layout.fillWidth: true
             Layout.preferredHeight: 70
-            // You can add a mpesaQRCodeView component here later mpesaQRView
-            // onClicked: console.log("Show QR Code Component")
             onClicked: mpesaInternalStack.replace(mpesaQRView)
-
         }
 
-        Item { Layout.fillHeight: true }
+        Item { Layout.fillHeight: true } // Spacer
 
+        // Bottom Navigation Buttons
         RowLayout {
             Layout.fillWidth: true
             Button {
                 text: "← BACK"
-                flat: true
-                Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                onClicked: paymentStack.replace(mainPaymentView)
+                onClicked: paymentStack.pop()
             }
-
             Button {
-                text: " CANCEL"
-                flat: true
-                Layout.alignment: Qt.AlignRight | Qt.AlignBottom
-
-                onClicked: {
-                    onClicked: {
-                        if (paymentStack.depth > 1) {
-                            paymentStack.pop(); // Go back to STK Push or Order Summary
-                        } else {
-                            root.close(); // Close the entire payment dialog [cite: 32]
-                        }
-                    }
-                }
+                text: "CANCEL"
+                onClicked: root.close() // Ensure root or parent has a close() method
             }
         }
-
     }
 }
-
-
-
-
-

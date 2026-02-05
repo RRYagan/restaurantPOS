@@ -183,15 +183,6 @@ void SalesModel::updateQuantity(int index, double qty) {
     recalculateTotals();
 }
 
-void SalesModel::clear() {
-    beginResetModel();
-    m_items.clear();
-    m_currentOrderId.clear();
-    endResetModel();
-    recalculateTotals();
-    emit countChanged();
-    emit headerChanged();
-}
 
 auto SalesModel::loadOrder(const QString &orderId) -> bool {
     QSqlQuery q;
@@ -387,4 +378,25 @@ bool SalesModel::updateAllStatus(const QString &itemId, const QString &status) {
         return true;
     }
     return false;
+}
+
+void SalesModel::clearOrder() {
+    beginResetModel();
+    m_items.clear();
+    endResetModel();
+    m_currentOrderId = "";
+    m_cachedTotal = Money{0};
+    m_cachedTaxTotal = Money{0};
+    emit totalsChanged();
+    qDebug() << "[SalesModel] Order cleared and reset successfully.";
+}
+
+void SalesModel::clear() {
+    beginResetModel();
+    m_items.clear();
+    m_currentOrderId.clear();
+    endResetModel();
+    recalculateTotals();
+    emit countChanged();
+    emit headerChanged();
 }
