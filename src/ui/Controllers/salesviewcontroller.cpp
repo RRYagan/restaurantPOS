@@ -249,45 +249,30 @@ void SalesViewController::startCashPayment() {
 
     m_paymentModel->insertPayment(data);
 
-    // --- Step 2: Handle Success & Cleanup ---
-    connect(m_activePayment, &Payment::completed, this, [this](const QString &ref) {
-        qDebug() << "[SalesView] Cash payment logic finished.";
-
-        this->finalizeTransaction(ref);
-
-        if (m_salesModel) {
-            m_salesModel->clear();
-        }
-
-        this->resetControllerState();
-        m_activePayment->deleteLater();
-        m_activePayment = nullptr;
-
-        emit paymentFinished(true, ref);
-    });
 
     connectSignals();
-    emit methodNameChanged();
+    // emit methodNameChanged();
 
     m_activePayment->process(m_amount, {});
 }
-void SalesViewController::startMpesaPayment(const QString &phone) {
-    cleanUpActivePayment();
 
-    // 1. Initialize the payment object
+void SalesViewController::startMpesaPayment(const QString &phone) {
+    // 1. Clear old data and force state back to Idle
+    cleanUpActivePayment();
+    emit stateChanged(); // Tells QML: "We are now Idle/Reset"
+
+    // 2. Create the new payment
     m_activePayment = new MpesaPayment(m_mpesaConfig, this);
 
-    // 2. Connect the NEW signals we discussed (see below)
+    // 3. Connect signals so we hear when it moves to Initiated/Success
     connectSignals();
 
-    emit methodNameChanged();
+    // 4. Set local message to "Starting..."
+    m_message = "Initializing M-Pesa...";
+    emit messageUpdated();
 
-    // 3. Prepare data and start process
-    QVariantMap data;
-    data["phone"] = phone;
-    data["order_id"] = m_salesModel->currentOrderId();
-
-    m_activePayment->process(m_amount, data);
+    // 5. Actually start the process
+    m_activePayment->process(m_amount, {{"phone", phone}});
 }
 
 void SalesViewController::confirmAction() {
@@ -338,26 +323,22 @@ void SalesViewController::connectSignals() {
         connect(mpesa, &MpesaPayment::paymentStatusUpdated,
                 this, [this](const QString &checkoutId, const QString &status, const QString &receipt) {
 
-                    // 1. Update the Database record
                     m_paymentModel->updatePaymentStatus(checkoutId, status);
 
                     if (status == "Completed") {
                         qDebug() << "[SalesView] Payment Complete. Running cleanup.";
 
-                        // 2. Finalize logic (Print receipt, log final sale)
                         this->finalizeTransaction(receipt);
 
-                        // 3. Clear the Sales Model (The Cart/Order)
                         if (m_salesModel) {
                             m_salesModel->clear();
                         }
-                        this->resetControllerState();
-                        // 4. Cleanup the Payment Object memory
-                        // We use deleteLater because we are currently inside a signal call from this object
-                        m_activePayment->deleteLater();
-                        m_activePayment = nullptr;
 
-                        // 5. Notify the UI
+                        // --- THE FIX IS HERE ---
+                        // Calling this function handles the deleteLater() AND the nullptr assignment.
+                        // Do NOT touch m_activePayment again after this line.
+                        this->resetControllerState();
+
                         m_message = "Transaction Successful: " + receipt;
                         emit messageUpdated();
                         emit paymentFinished(true, receipt);
@@ -365,9 +346,20 @@ void SalesViewController::connectSignals() {
                 });
     }
 
-    // 2. Base Class Connections (Common to all payment types)
-    // These use the original m_activePayment (Payment*) pointer
-    connect(m_activePayment, &Payment::stateChanged, this, &SalesViewController::stateChanged);
+
+    connect(m_activePayment, &Payment::stateChanged, this, [this]() {
+        emit stateChanged(); // Keep UI in sync
+
+        PaymentStatus::State s = m_activePayment->state();
+
+        if (s == PaymentStatus::Failed || s == PaymentStatus::Cancelled) {
+            qDebug() << "[Production] Transaction stopped with status:" << s;
+
+            // We use a small delay (e.g., 3-5 seconds) so the user
+            // can actually read the error message on the screen.
+            QTimer::singleShot(5000, this, &SalesViewController::resetControllerState);
+        }
+    });
 
     connect(m_activePayment, &Payment::messageUpdated, this, [this](const QString &msg) {
         m_message = msg;
@@ -375,31 +367,50 @@ void SalesViewController::connectSignals() {
     });
 
     connect(m_activePayment, &Payment::completed, this, [this](const QString &ref) {
-        emit paymentFinished(true, ref);
+        // 1. Finalize the DB/UI logic
+        this->finalizeTransaction(ref);
+
+        // 2. Do NOT manually delete here.
+        // Let the next payment start cycle handle the cleanup
+        // or use a single shot timer if you must.
+        // QTimer::singleShot(0, this, [this]() {
+        //     this->cleanUpActivePayment();
+        // });
     });
 
     connect(m_activePayment, &Payment::errorOccurred, this, [this](const QString &err) {
         m_message = "Error: " + err;
         emit messageUpdated();
+        emit stateChanged();
     });
 }
 
-Payment::State SalesViewController::currentState() const {
-    return m_activePayment ? m_activePayment->state() : Payment::State::Idle;
-}
 
+PaymentStatus::State SalesViewController::currentState() const {
+    // If no payment object exists, we are Idle
+    if (!m_activePayment) return PaymentStatus::State::Idle;
+
+    // Pull the real-time state from the Mpesa/Cash object
+    return m_activePayment->state();
+}
 QString SalesViewController::currentMessage() const {
     return m_message;
 }
 
 QString SalesViewController::currentStateName() const {
-    if (!m_activePayment) return QStringLiteral("Idle");
+    if (!m_activePayment) return "Idle";
 
-    // Use the enum directly
-    Payment::State currentState = m_activePayment->state();
-    return m_activePayment->stateToString(static_cast<int>(currentState));
+    switch (m_activePayment->state()) {
+    case PaymentStatus::State::Idle:           return "Idle";
+    case PaymentStatus::State::Initiated:      return "Initiated";
+    case PaymentStatus::State::AwaitingAction: return "AwaitingAction";
+    case PaymentStatus::State::Verifying:      return "Verifying";
+    case PaymentStatus::State::Success:        return "Success";
+    case PaymentStatus::State::Failed:         return "Failed";
+    case PaymentStatus::State::Cancelled:      return "Cancelled";
+    default:                             return "Unknown";
+    }
 }
-
 void SalesViewController::finalizeTransaction(const QString &receiptNumber) {
     qDebug() << "Finalizing sale with receipt:" << receiptNumber;
 
@@ -416,19 +427,27 @@ void SalesViewController::finalizeTransaction(const QString &receiptNumber) {
 
 // todo: refactor
 void SalesViewController::resetControllerState() {
-    // 1. Reset the Money object
-    m_amount = Money(0); // This creates a new Money struct with 0 cents
+    if (!m_activePayment) return;
 
-    // OR if you don't have a constructor that takes 0:
-    // m_amount.cents = 0;
+    // 1. Isolate the payment object
+    m_activePayment->disconnect(this);
+    auto oldPayment = m_activePayment;
+    m_activePayment = nullptr;
+    oldPayment->deleteLater();
 
-    // 2. Clear the UI message
+    // 2. Clear Order Data
+    m_amount = Money(0);
     m_message = "";
 
-    // 3. Notify the UI (QML) that the amount/total has changed
-    // Assuming you have a signal like amountChanged()
+    if (m_salesModel) {
+        m_salesModel->clear();
+    }
+
+    // 4. Update UI Bindings
     emit amountChanged();
     emit messageUpdated();
+    emit stateChanged();
+    // emit orderIdChanged(); // Notify QML that the order reference is gone
 
-    qDebug() << "[SalesView] Controller state and m_amount cleared.";
+    qDebug() << "[Production] Order and Payment state cleared completely.";
 }

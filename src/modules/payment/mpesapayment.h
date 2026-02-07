@@ -116,6 +116,7 @@ public:
     void process(Money amount, const QVariantMap &data) override;
     void cancel() override;
     void verifyStatus() override;
+    void queryTransactionStatus();
     void preparePayment()
     {
         m_retryCount = 0;
@@ -124,7 +125,7 @@ public:
         m_lastResponse.reset(); // Clear the struct data
 
         // Set state to 0 (Idle) so the BusyIndicator doesn't spin immediately
-        setState(State::Initiated);
+        setState(PaymentStatus::Initiated);
 
         m_currentMessage = "Ready to send STK Push...";
         emit messageUpdated(m_currentMessage);
@@ -151,7 +152,8 @@ private:
     void sendStkPush();
     QString generatePassword(const QString &timestamp);
     void handleTokenTimeout();
-    void updateStatus(State state, const QString &msg);
+    void updateStatus(PaymentStatus::State state, const QString &msg);
+    void onPollTimerTimeout();
 
     MpesaConfig m_config;
     MpesaResponse m_lastResponse;
@@ -167,6 +169,10 @@ private:
     QString m_lastTimestamp;
     QString m_lastPassword;
     QString m_currentMessage;
+
+    bool m_isRetrying = false; // Add this line
+    // int m_retryCount = 0;
+    const int MAX_POLL_RETRIES = 25;
 };
 
 #endif // MPESAPAYMENT_H

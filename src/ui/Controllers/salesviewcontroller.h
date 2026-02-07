@@ -12,7 +12,7 @@
 #include "salesmodel.h"
 #include "productmodel.h"
 #include "inventoryviewcontroller.h"
-
+#include "payment_enums.h"
 
 
 class SalesViewController : public QObject {
@@ -32,7 +32,8 @@ class SalesViewController : public QObject {
     Q_PROPERTY(int itemCount READ itemCount NOTIFY itemCountChanged)
 
     // Properties for QML payment
-    Q_PROPERTY(Payment::State currentState READ currentState NOTIFY stateChanged)
+    Q_PROPERTY(PaymentStatus::State currentState READ currentState NOTIFY stateChanged)
+    Q_PROPERTY(QString currentStateName READ currentStateName NOTIFY stateChanged)
     Q_PROPERTY(QString currentMessage READ currentMessage NOTIFY messageUpdated)
     Q_PROPERTY(double amount READ amount WRITE setAmount NOTIFY amountChanged)
     Q_PROPERTY(QString methodName READ methodName NOTIFY methodNameChanged)
@@ -80,7 +81,7 @@ public:
     Q_INVOKABLE QString currentStateName() const;
 
     // Getters
-    Payment::State currentState() const;
+    PaymentStatus::State currentState() const;
     QString currentMessage() const;
     void loadConfig();
 

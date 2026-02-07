@@ -4,6 +4,7 @@ add_library(PosPayment
     payment.h       payment.cpp
     cashpayment.h   cashpayment.cpp
     mpesapayment.h  mpesapayment.cpp
+    payment_enums.h
 )
 target_include_directories(PosPayment PUBLIC .) # Expose current dir for headers
 target_link_libraries(PosPayment

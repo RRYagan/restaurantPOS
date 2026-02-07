@@ -2,7 +2,7 @@
 #include <QMetaEnum>
 
 Payment::Payment(QObject *parent)
-    : QObject(parent), m_state(State::Idle)
+    : QObject(parent), m_state(PaymentStatus::State::Idle)
 {
 }
 
@@ -10,7 +10,7 @@ Payment::~Payment()
 {
 }
 
-Payment::State Payment::state() const
+PaymentStatus::State Payment::state() const
 {
     return m_state;
 }
@@ -20,7 +20,7 @@ QString Payment::lastError() const
     return m_lastError;
 }
 
-void Payment::setState(State s)
+void Payment::setState(PaymentStatus::State s)
 {
     if (m_state != s) {
         m_state = s;

@@ -11,6 +11,7 @@
 // Include your manager
 #include "databasemanager.h"
 #include "lookupmodel.h"
+#include "payment_enums.h"
 
 // This macro is required for static linking of QML modules
 Q_IMPORT_QML_PLUGIN(POS_UIPlugin)
@@ -43,7 +44,13 @@ int main(int argc, char *argv[])
         qCritical() << "Could not open or initialize the database. Exiting...";
         return -1;
     }
-
+    qmlRegisterUncreatableMetaObject(
+        PaymentStatus::staticMetaObject,
+        "com.plasteq.pos.payment",
+        1, 0,
+        "PaymentStatus", // This is the name used in QML
+        "Accessing enums only"
+        );
     QQmlApplicationEngine engine;
 
     // 1. List of your lookup tables from the SQL schema

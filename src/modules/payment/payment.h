@@ -5,22 +5,23 @@
 #include <QString>
 #include <QVariantMap>
 #include <money.h>
+#include "payment_enums.h"
 
 class Payment : public QObject {
     Q_OBJECT
 
 public:
     // Universal State Machine
-    enum class State {
-        Idle,
-        Initiated,        // Request sent to provider
-        AwaitingAction,   // User needs to act (Enter PIN, Give Cash)
-        Verifying,        // Polling status or checking verification
-        Success,          // Payment confirmed
-        Failed,           // Payment rejected/error
-        Cancelled         // User or Teller cancelled
-    };
-    Q_ENUM(State)
+    // enum class State {
+    //     Idle,
+    //     Initiated,        // Request sent to provider
+    //     AwaitingAction,   // User needs to act (Enter PIN, Give Cash)
+    //     Verifying,        // Polling status or checking verification
+    //     Success,          // Payment confirmed
+    //     Failed,           // Payment rejected/error
+    //     Cancelled         // User or Teller cancelled
+    // };
+    // Q_ENUM(State)
 
     explicit Payment(QObject *parent = nullptr);
     virtual ~Payment();
@@ -35,20 +36,20 @@ public:
     virtual void verifyStatus() = 0;
 
     // --- Getters ---
-    State state() const;
+    PaymentStatus::State state() const;
     QString lastError() const;
     QString stateToString(int stateValue) const;
 
 signals:
-    void stateChanged(Payment::State newState);
+    void stateChanged(PaymentStatus::State newState);
     void messageUpdated(const QString &msg);
     void completed(const QString &receiptId);
     void errorOccurred(const QString &error);
 
 protected:
-    void setState(State s);
+    void setState(PaymentStatus::State s);
 
-    State m_state;
+    PaymentStatus::State m_state;
     QString m_lastError;
 };
 

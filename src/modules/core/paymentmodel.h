@@ -37,6 +37,7 @@ public:
 
     QString getValidToken();
     void saveMpesaToken(const QString &token, int expiresIn);
+    void clearToken(const QString &provider);
 
     /**
      * @brief Inserts a new payment record into the database

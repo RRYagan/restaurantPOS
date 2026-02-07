@@ -87,16 +87,21 @@ void PaymentModel::cacheToken(const QString &token, int expiresInSeconds) {
     qDebug() << "[Cache] Token saved to file. Expires:" << expiry.toString();
 }
 
-// In paymentmodel.cpp
 QString PaymentModel::getValidToken() {
-    QSqlQuery query(DatabaseManager::instance().database());
+    QSqlQuery query;
+    // We select the token only if the expiry_time is greater than 'now'
     query.prepare("SELECT access_token FROM oauth_tokens "
-                  "WHERE provider = 'mpesa' AND expiry_time > DATETIME('now')");
+                  "WHERE provider = 'mpesa' "
+                  "AND expiry_time > :now");
+
+    query.bindValue(":now", QDateTime::currentDateTime().toString(Qt::ISODate));
 
     if (query.exec() && query.next()) {
         return query.value(0).toString();
     }
-    return "";
+
+    // Returns empty string if expired, not found, or query failed
+    return QString();
 }
 
 void PaymentModel::saveMpesaToken(const QString &token, int expiresIn) {
@@ -125,4 +130,17 @@ bool PaymentModel::clearAllPayments() {
     query.exec("DELETE FROM sqlite_sequence WHERE name='payments'");
 
     return db.commit();
+}
+
+
+void PaymentModel::clearToken(const QString &provider) {
+    QSqlQuery query;
+    query.prepare("DELETE FROM oauth_tokens WHERE provider = :provider");
+    query.bindValue(":provider", provider);
+
+    if (!query.exec()) {
+        qWarning() << "[DB] Failed to clear token:" << query.lastError().text();
+    } else {
+        qDebug() << "[DB] Token cache cleared for:" << provider;
+    }
 }

@@ -130,35 +130,6 @@ void SalesModel::recalculateTotals() {
     emit totalsChanged();
 }
 
-/*QList<KitchenTicket> SalesModel::fetchKitchenQueue() const {
-    QList<KitchenTicket> tickets;
-    QSqlQuery query;
-    query.prepare(R"(
-        SELECT co.id, co.table_number, co.created_at,
-               GROUP_CONCAT(oi.quantity || 'x ' || p.internal_product_name, '\n') as items
-        FROM customer_order co
-        JOIN order_item oi ON co.id = oi.order_id
-        JOIN product p ON oi.product_id = p.id
-        WHERE co.order_status = 'open'
-          AND oi.service_state IN ('ordered', 'preparing')
-        GROUP BY co.id
-        ORDER BY co.created_at ASC
-    )");
-
-    if (query.exec()) {
-        while (query.next()) {
-            tickets.append({
-                query.value(0).toString(),
-                query.value(1).toString(),
-                query.value(2).toDateTime().toString("hh:mm"),
-                query.value(3).toString(),
-                "" // itemIds placeholder
-            });
-        }
-    }
-    return tickets;
-}*/
-
 void SalesModel::setTableNumber(const QString &t) {
     if (m_tableNumber != t) {
         m_tableNumber = t;
@@ -380,16 +351,16 @@ bool SalesModel::updateAllStatus(const QString &itemId, const QString &status) {
     return false;
 }
 
-void SalesModel::clearOrder() {
-    beginResetModel();
-    m_items.clear();
-    endResetModel();
-    m_currentOrderId = "";
-    m_cachedTotal = Money{0};
-    m_cachedTaxTotal = Money{0};
-    emit totalsChanged();
-    qDebug() << "[SalesModel] Order cleared and reset successfully.";
-}
+// void SalesModel::clearOrder() {
+//     beginResetModel();
+//     m_items.clear();
+//     endResetModel();
+//     m_currentOrderId = "";
+//     m_cachedTotal = Money{0};
+//     m_cachedTaxTotal = Money{0};
+//     emit totalsChanged();
+//     qDebug() << "[SalesModel] Order cleared and reset successfully.";
+// }
 
 void SalesModel::clear() {
     beginResetModel();
@@ -399,4 +370,5 @@ void SalesModel::clear() {
     recalculateTotals();
     emit countChanged();
     emit headerChanged();
+    qDebug() << "[SalesModel] Order cleared and reset successfully.";
 }

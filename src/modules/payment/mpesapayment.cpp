@@ -8,19 +8,25 @@
 #include "databasemanager.h"
 #include <paymentmodel.h>
 
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QVariant>
+const int MAX_POLL_RETRIES = 12;
+
 MpesaPayment::MpesaPayment(const MpesaConfig &config, QObject *parent)
     : Payment(parent),
         m_config(config),
         m_pollTimer(new QTimer(this)),
         m_netManager(new QNetworkAccessManager(this)),
         m_retryCount(0)
+
 {
+    m_isRetrying = false;
 
-
-    m_pollTimer->setInterval(10000); /* Poll every 5 seconds */
+    m_pollTimer->setInterval(2000); /* Poll every 5 seconds */
 
     // The polling timer triggers verifyStatus() automatically
-    connect(m_pollTimer, &QTimer::timeout, this, &MpesaPayment::verifyStatus);
+connect(m_pollTimer, &QTimer::timeout, this, &MpesaPayment::onPollTimerTimeout);
 }
 
 
@@ -28,7 +34,7 @@ void MpesaPayment::process(Money amount, const QVariantMap &data) {
     m_amount = amount;
     m_phone = data.value("phone").toString();
 
-    setState(State::Initiated);
+    setState(PaymentStatus::Initiated);
 
     // If phone is provided, we do the full flow.
     // If not, we just fetch/check the token to ensure API is up.
@@ -46,9 +52,13 @@ void MpesaPayment::fetchToken()
     QString cached = PaymentModel::instance().getValidToken();
 
     if (!cached.isEmpty()) {
-        qDebug() << "[M-Pesa] Persistent token found. No network call needed.";
         m_accessToken = cached;
-        if (!m_phone.isEmpty()) sendStkPush();
+        // Check if we actually have a phone number to process
+        if (!m_phone.isEmpty()) {
+            sendStkPush();
+        } else {
+            qDebug() << "[M-Pesa] Token cached and ready for next transaction.";
+        }
         return;
     }
 
@@ -68,6 +78,7 @@ void MpesaPayment::fetchToken()
     connect(reply, &QNetworkReply::finished, this, &MpesaPayment::onTokenReceived);
 }
 
+
 void MpesaPayment::onTokenReceived() {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if (!reply || reply->error() != QNetworkReply::NoError) {
@@ -78,37 +89,44 @@ void MpesaPayment::onTokenReceived() {
 
     QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
     m_accessToken = res.value("access_token").toString();
-    int expiresIn = res.value("expires_in").toString().toInt();
 
-    // Calculate expiry (subtract 60s buffer for safety)
+    // M-Pesa often returns expires_in as a string "3599"
+    int expiresIn = res.value("expires_in").toString().toInt();
     QDateTime expiry = QDateTime::currentDateTime().addSecs(expiresIn - 60);
 
-    qDebug() << "[M-Pesa] New Token Generated. Valid until:" << expiry.toString();
+    // --- Database Persistence ---
+    QSqlQuery query;
+    query.prepare("INSERT OR REPLACE INTO oauth_tokens (provider, access_token, expiry_time) "
+                  "VALUES (:provider, :token, :expiry)");
 
-    // In a real app, you'd pass this back to the controller to cache it
-    // For now, proceed with the payment flow
+    query.bindValue(":provider", "mpesa");
+    query.bindValue(":token", m_accessToken);
+    // Convert to ISO format string for SQLite DATETIME compatibility
+    query.bindValue(":expiry", expiry.toString(Qt::ISODate));
+
+    if (!query.exec()) {
+        qCritical() << "[M-Pesa] DB Save Error:" << query.lastError().text();
+    } else {
+        qDebug() << "[M-Pesa] Token cached in database. Expiry:" << expiry.toString();
+    }
+    // ----------------------------
+
     if (!m_phone.isEmpty()) {
         sendStkPush();
     }
+
+    reply->deleteLater();
 }
 
 void MpesaPayment::sendStkPush()
 {
-    // 1. Data Prep: Convert amount to cents for DB storage
-    // int cents = static_cast<int>(m_amount * 100);
+    if (m_config.shortCode.isEmpty() || m_accessToken.isEmpty()) {
+        updateStatus(PaymentStatus::Failed, "Configuration error (Shortcode/Token missing)");
+        return;
+    }
     qDebug() << "stk push amount" << m_amount.toKSH();
     m_lastTimestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
 
-    // 2. Log initiation via Singleton
-    // PaymentModel::instance().insertPayment(
-    //     "ORD-TEMP-123", // Replace with actual salesModel.currentOrderId
-    //     "MPESA_STK",
-    //     m_amount,
-    //     "Admin",        // Replace with currentUser property
-    //     m_checkoutRequestId
-    //     );
-
-    // 3. Network Request to Safaricom
     qDebug() << "[M-Pesa] Sending STK Push to:" << m_phone;
 
     // QString timestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmss");
@@ -159,19 +177,41 @@ void MpesaPayment::onStkPushFinished() {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     if (!reply) return;
 
-    QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QByteArray rawData = reply->readAll();
+    QJsonObject res = QJsonDocument::fromJson(rawData).object();
+
+    qDebug() << "[M-Pesa] STK Response Recv - HTTP:" << statusCode;
+
+    // --- 401 Unauthorized Retry Logic ---
+    if (statusCode == 401 && !m_isRetrying) {
+        qWarning() << "[M-Pesa] Token expired at runtime. Refreshing...";
+        m_isRetrying = true;
+        PaymentModel::instance().clearToken("mpesa");
+        this->fetchToken();
+        reply->deleteLater();
+        return;
+    }
+
     m_lastResponse.resultCode = res.value("ResponseCode").toString();
     m_checkoutRequestId = res.value("CheckoutRequestID").toString();
 
     if (reply->error() == QNetworkReply::NoError && m_lastResponse.resultCode == "0") {
-        // NOTIFY CONTROLLER TO CREATE DB RECORD
-        emit stkPushInitiated(m_checkoutRequestId, res.value("MerchantRequestID").toString());
+        qDebug() << "[M-Pesa] STK Push Accepted. CheckoutID:" << m_checkoutRequestId;
+        m_isRetrying = false; // Reset on success
 
-        updateStatus(State::AwaitingAction, "Please enter PIN on your phone.");
-        m_retryCount = 0;
-        m_pollTimer->start();
+        emit stkPushInitiated(m_checkoutRequestId, res.value("MerchantRequestID").toString());
+        updateStatus(PaymentStatus::AwaitingAction, "Please enter PIN on your phone.");
+
+        QTimer::singleShot(5000, this, [this]() {
+            if (m_state == PaymentStatus::AwaitingAction) { // Only start if not cancelled
+                m_pollTimer->start(3000); // Poll every 3 seconds
+                qDebug() << "[M-Pesa] Initial grace period over. Polling started.";
+            }
+        });
     } else {
-        updateStatus(State::Failed, res.value("ResponseDescription").toString());
+        qCritical() << "[M-Pesa] STK Push Error:" << res.value("ResponseDescription").toString();
+        updateStatus(PaymentStatus::Failed, res.value("ResponseDescription").toString());
     }
     reply->deleteLater();
 }
@@ -183,31 +223,48 @@ void MpesaPayment::onQueryFinished() {
     QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
     QString resultCode = res.value("ResultCode").toString();
 
+    qDebug() << "[M-Pesa] Polling Status for ID:" << m_checkoutRequestId << "ResultCode:" << resultCode;
+    // Safaricom ResultCodes:
+    // "0" -> Success
+    // "1032" -> User Cancelled
+    // "1037" -> Timeout (Safaricom side)
+    // "500xx" -> Request in progress / Pending
     if (resultCode == "0") {
         m_pollTimer->stop();
         QString receipt = res.value("MpesaReceiptNumber").toString();
-        // NOTIFY SUCCESS
+        qDebug() << "[M-Pesa] Payment Confirmed! Receipt:" << receipt;
+
         emit paymentCompleted(m_checkoutRequestId, receipt);
         emit paymentStatusUpdated(m_checkoutRequestId, "Completed", receipt);
-        updateStatus(State::Success, "Payment Successful!");
+        updateStatus(PaymentStatus::Success, "Payment Successful!");
+
     } else if (resultCode == "1032") {
         m_pollTimer->stop();
-        // NOTIFY CANCEL
+        qWarning() << "[M-Pesa] User cancelled the USSD prompt.";
+
         emit paymentCancelled(m_checkoutRequestId);
-        // emit paymentStatusUpdated(m_checkoutRequestId, "Cancelled", receipt);
-        updateStatus(State::Cancelled, "Transaction Cancelled.");
+        emit paymentStatusUpdated(m_checkoutRequestId, "Cancelled", "");
+        updateStatus(PaymentStatus::Cancelled, "Transaction Cancelled .");
+
     } else if (!resultCode.isEmpty()) {
         m_pollTimer->stop();
-        // NOTIFY FAILURE
-        emit paymentFailed(m_checkoutRequestId, res.value("ResultDesc").toString());
-        // emit paymentStatusUpdated(m_checkoutRequestId, "Failed", receipt);
-        updateStatus(State::Failed, "Transaction Failed.");
+        QString desc = res.value("ResultDesc").toString();
+        qCritical() << "[M-Pesa] Payment Failed. Code:" << resultCode << "Desc:" << desc;
+
+        emit paymentFailed(m_checkoutRequestId, desc);
+        emit paymentStatusUpdated(m_checkoutRequestId, "Failed", "");
+        updateStatus(PaymentStatus::Failed, "Transaction Failed: " + desc);
     }
+
     reply->deleteLater();
 }
-// Helper to keep logic dry
-void MpesaPayment::updateStatus(State state, const QString &msg) {
-    m_state = state;
+
+void MpesaPayment::updateStatus(PaymentStatus::State state, const QString &msg) {
+    qDebug() << "[Mpesa] UI Transition ->" << state << ":" << msg;
+
+    // Use the setter so the base class 'state()' property is updated
+    this->setState(state);
+
     m_currentMessage = msg;
     emit stateChanged();
     emit messageUpdated(m_currentMessage);
@@ -221,7 +278,7 @@ void MpesaPayment::verifyStatus()
     // If polling every 3s, retry limit should be ~20-25.
     if (m_retryCount++ > 25) {
         m_pollTimer->stop();
-        updateStatus(State::Failed, "Timed out. Please try again.");
+        updateStatus(PaymentStatus::Failed, "Timed out. Please try again.");
         return;
     }
 
@@ -246,11 +303,74 @@ emit messageUpdated("Verifying payment...");
 }
 
 
+void MpesaPayment::onPollTimerTimeout() {
+    m_retryCount++;
+
+    // Instead of calling a different function, run the query directly
+    QJsonObject body;
+    body["BusinessShortCode"] = m_config.shortCode;
+    body["Password"] = generatePassword(m_lastTimestamp);
+    body["Timestamp"] = m_lastTimestamp;
+    body["CheckoutRequestID"] = m_checkoutRequestId;
+
+    QUrl url("https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query");
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setRawHeader("Authorization", "Bearer " + m_accessToken.toUtf8());
+
+    QNetworkReply *reply = m_netManager->post(req, QJsonDocument(body).toJson());
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (!reply) return;
+
+        QJsonObject res = QJsonDocument::fromJson(reply->readAll()).object();
+        QString resultCode = res.value("ResultCode").toString();
+
+        // "0" = Success, "1032" = Cancelled
+        if (resultCode == "0") {
+            m_pollTimer->stop();
+            updateStatus(PaymentStatus::Success, "Payment Successful!");
+            emit paymentStatusUpdated(m_checkoutRequestId, "Completed", res.value("MpesaReceiptNumber").toString());
+        }
+        else if (resultCode == "1032") {
+            m_pollTimer->stop();
+            updateStatus(PaymentStatus::Cancelled, "User cancelled.");
+            emit paymentStatusUpdated(m_checkoutRequestId, "Cancelled", "");
+        }
+        else if (m_retryCount >= MAX_POLL_RETRIES) {
+            m_pollTimer->stop();
+            updateStatus(PaymentStatus::Failed, "Polling timed out.");
+            emit paymentStatusUpdated(m_checkoutRequestId, "Timed Out", "");
+        }
+        // If resultCode is empty or something else, we let the timer tick again
+        reply->deleteLater();
+    });
+}
+void MpesaPayment::queryTransactionStatus() {
+    qDebug() << "[M-Pesa] Sending Status Query Request...";
+
+    QUrl url("https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query");
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setRawHeader("Authorization", "Bearer " + m_accessToken.toUtf8());
+
+    // Build the query body (BusinessShortCode, Password, Timestamp, CheckoutRequestID)
+    QJsonObject body;
+    body["BusinessShortCode"] = m_config.shortCode;
+    body["Password"] = generatePassword(m_lastTimestamp);
+    body["Timestamp"] = m_lastTimestamp;
+    body["CheckoutRequestID"] = m_checkoutRequestId;
+
+    QNetworkReply *reply = m_netManager->post(req, QJsonDocument(body).toJson());
+    connect(reply, &QNetworkReply::finished, this, &MpesaPayment::onQueryFinished);
+}
+
 void MpesaPayment::cancel()
 {
     m_pollTimer->stop();
-    setState(State::Cancelled);
+    setState(PaymentStatus::Cancelled);
     emit messageUpdated("Payment cancelled.");
+    updateStatus(PaymentStatus::Cancelled, "Transaction Cancelled.");
 }
 
 QString MpesaPayment::generatePassword(const QString &timestamp)
@@ -271,7 +391,7 @@ void MpesaPayment::handleTokenTimeout()
     query.exec();
 
     // Update the UI via our helper
-    updateStatus(State::Verifying, "Connection lost. Re-authenticating...");
+    updateStatus(PaymentStatus::Verifying, "Connection lost. Re-authenticating...");
 
     // Fetch a fresh token
     fetchToken();
