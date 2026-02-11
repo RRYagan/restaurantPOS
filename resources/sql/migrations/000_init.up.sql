@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS product_composition (
     
     FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
     FOREIGN KEY (inventory_id) REFERENCES inventory(id),
-    PRIMARY KEY (product_id, inventory_id)
+    PRIMARY KEY (product_id, inventory_id),
      FOREIGN KEY (quantity_unit) REFERENCES quantity_unit(quantity_unit_code)
 );
 

@@ -61,6 +61,9 @@ ApplicationWindow {
     // OrderDetailView { id: globalOrderDetailModel }
     // UserView { id: globalUserModel }
     InventoryViewController { id: globalInventoryModel }
+    // FinanceController {
+    //         id: globalFinanceController
+    //     }
 
     property bool sidebarCollapsed: width < 900
     // global data
@@ -84,14 +87,14 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            Image {
-                id: backgroundImage
-                source: "qrc:/qt/qml/POS/UI/Views/assets/images/bg-white.png"
-                anchors.fill: parent
-                fillMode: Image.PreserveAspectCrop
-                opacity: 0.3 // Adjust opacity to ensure UI text remains readable
-                asynchronous: true
-            }
+            // Image {
+            //     id: backgroundImage
+            //     source: "qrc:/qt/qml/POS/UI/Views/assets/images/bg-white.png"
+            //     anchors.fill: parent
+            //     fillMode: Image.PreserveAspectCrop
+            //     opacity: 0.3 // Adjust opacity to ensure UI text remains readable
+            //     asynchronous: true
+            // }
             RowLayout {
                 anchors.fill: parent
                 spacing: 0
@@ -103,17 +106,12 @@ ApplicationWindow {
                     Layout.rightMargin: 15
 
                     menuModel: [
-                        { name: "SALES", view: salesDashboard, icon: "🍴" },
-                        // { name: "Order History", view: ordersView, icon: "📋" },
-                        {
-                            name: "System Setup",
-                            icon: "⚙",
-                            view: setupView
-
-                        },
-                        { name: "HR", view: userMgmtView, icon: "👤" },
-                        { name: "PROCUREMENT", view: inventoryMgmtView, icon: "📦" }
-                    ]
+                            { name: "SALES", view: salesDashboard, icon: "🍴" },
+                            { name: "REPORT", view: reportView, icon: "📈" }, // Updated icon and view
+                            { name: "MANAGE", icon: "⚙", view: setupView },
+                            { name: "HR", view: hrView, icon: "👤" },
+                            { name: "PROCUREMENT", view: procurementView, icon: "📦" }
+                        ]
                 }
 
                 // --- MAIN VIEWPORT ---
@@ -126,12 +124,16 @@ ApplicationWindow {
                     initialItem: salesDashboard
 
                     Component { id: salesDashboard; SalesDashboard {} }
+                    Component {
+                            id: reportView;
+                            ReportDashboard {}
+                        }
                     Component { id: ordersView; OrdersScreen {} }
                     Component { id: orderDetailsView; OrderDetailsScreen {} }
                     Component { id: setupView; SetupScreen {} }
-                    Component { id: userMgmtView; UserManagement {} }
+                    Component { id: hrView; HR {} }
                     Component {
-                        id: inventoryMgmtView;
+                        id: procurementView;
                         InventoryManagement {
                             // Use the global ID you defined at the top of Main.qml
                             invModel: globalInventoryModel

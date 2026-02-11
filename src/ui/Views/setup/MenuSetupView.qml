@@ -18,10 +18,10 @@ Item {
     // Background for the entire page
     Rectangle {
         anchors.fill: parent
-        color: "transparent"
+        color: "#F8F9FA"
     }
 
-    // Helper to find index for ComboBoxes
+    // Helper to find index for ComboBoxes (Logic Maintained)
     function findIndexByValue(model, value, key) {
         if (!model) return 0;
         for (let i = 0; i < model.count; i++) {
@@ -34,36 +34,65 @@ Item {
         anchors.fill: parent
         currentIndex: menuSetupRoot.isEditing ? 1 : 0
 
-
         // --- VIEW 0: SEARCHABLE LIST ---
         ColumnLayout {
             spacing: 0
 
-            // Header/Search Bar Area
+            // Modern Header Area
             Rectangle {
                 Layout.fillWidth: true
                 height: 80
-                // color: "white"
-                color: "transparent"
+                color: "white"
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: 1
+                    color: "#EEEEEE"
+                }
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 20
+                    spacing: 15
 
-                    TextField {
-                        id: searchBar
-                        placeholderText: "Search products..."
+                    // Enhanced Search Bar
+                    Rectangle {
                         Layout.fillWidth: true
-                        background: Rectangle {
-                            radius: 10
-                            color: "#F5F5F5"
-                            // border.color: "#E0E0E0"
+                        height: 45
+                        color: "#F1F3F4"
+                        radius: 8
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 15
+                            Text { text: "🔍"; font.pixelSize: 14; opacity: 0.5 }
+                            TextField {
+                                id: searchBar
+                                placeholderText: "Search products..."
+                                Layout.fillWidth: true
+                                background: null
+                                font.pixelSize: 14
+                                verticalAlignment: Text.AlignVCenter
+                                // Note: Keeping original search behavior (none defined in original text, purely visual update)
+                            }
                         }
                     }
 
                     Button {
                         text: "Add Product"
-                        highlighted: true
+                        contentItem: Text {
+                            text: parent.text
+                            font.bold: true
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitWidth: 120
+                            implicitHeight: 45
+                            color: parent.pressed ? "#1565C0" : "#1976D2"
+                            radius: 8
+                        }
                         onClicked: {
                             menuSetupRoot.currentProduct = null;
                             menuSetupRoot.isEditing = true;
@@ -79,91 +108,75 @@ Item {
                 Layout.fillHeight: true
                 model: _productModel.productModel
                 clip: true
-                spacing: 5
+                spacing: 10
+                topMargin: 15
 
                 delegate: ItemDelegate {
                     width: productList.width - 40
                     x: 20
-                    height: 75 // Slightly increased height for more data
+                    height: 80
 
                     background: Rectangle {
-                        color: hovered ? "#F8F9FA" : "white"
-                        radius: 8
-                        border.color: highlighted ? "#2E7D32" : "#EEEEEE"
-                        border.width: highlighted ? 2 : 1
+                        color: parent.pressed ? "#F5F5F5" : "white"
+                        radius: 10
+                        border.color: parent.hovered ? "#BDBDBD" : "#EEEEEE"
+                        layer.enabled: true
+                        // Basic shadow effect
                     }
 
                     contentItem: RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
                         spacing: 15
+
+                        Rectangle {
+                            width: 45; height: 45; radius: 8; color: "#E3F2FD"
+                            Text { anchors.centerIn: parent; text: "📦"; font.pixelSize: 22 }
+                        }
 
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
-
                             Text {
-                                // Refactored Name: internalProductName
                                 text: model.internalProductName
-                                font.bold: true
-                                font.pixelSize: 14
-                                color: "#212121"
+                                font.bold: true; font.pixelSize: 15; color: "#212121"
                             }
-
                             RowLayout {
                                 spacing: 10
-                                Text {
-                                    // Refactored Category: productCategoryId
-                                    text: "Cat: " + model.productCategoryId
-                                    color: "#757575"
-                                    font.pixelSize: 11
-                                }
-                                Text {
-                                    // NEW: countryOriginId
-                                    text: " | Origin: " + model.countryCode
-                                    color: "#9E9E9E"
-                                    font.pixelSize: 11
-                                }
+                                Text { text: "Cat: " + model.productCategoryId; color: "#757575"; font.pixelSize: 12 }
+                                Text { text: "| Origin: " + model.countryCode; color: "#9E9E9E"; font.pixelSize: 12 }
                             }
                         }
 
                         ColumnLayout {
                             Layout.alignment: Qt.AlignRight
                             spacing: 0
-
                             Text {
-                                // Refactored Price: defaultSellingPrice
-                                // Showing currencyId dynamically
                                 text: model.currencyCode+ " " + parseFloat(model.defaultSellingPrice).toFixed(2)
-                                color: "#2E7D32"
-                                font.bold: true
-                                font.pixelSize: 15
+                                color: "#2E7D32"; font.bold: true; font.pixelSize: 16
                             }
-
                             Text {
-                                // NEW: taxAmount
                                 text: "+" + parseFloat(model.taxAmount).toFixed(2) + " Tax"
-                                color: "#757575"
-                                font.pixelSize: 10
+                                color: "#757575"; font.pixelSize: 11
                                 visible: model.taxAmount > 0
+                                Layout.alignment: Qt.AlignRight
                             }
                         }
                     }
 
                     onClicked: {
                         _productModel.productId = model.id
-                        // Map the QVariantMap to exactly match the Controller's saveProduct expectations
                         menuSetupRoot.currentProduct = {
                             "id": model.id,
                             "internalProductName": model.internalProductName,
                             "productCategoryId": model.productCategoryId,
                             "kraItemCode": model.kraItemCode,
-                            // "inventoryProductId": model.inventoryProductId,
                             "productTypeId": model.productTypeId,
-                            "currencyCode": model.currencyCode, // Ensure this matches your model's role name
+                            "currencyCode": model.currencyCode,
                             "countryCode": model.countryCode,
                             "defaultSellingPrice": model.defaultSellingPrice,
                             "taxAmount": model.taxAmount,
                             "taxClassificationCode": model.taxClassificationCode,
-
                         }
                         menuSetupRoot.isEditing = true
                     }
@@ -177,24 +190,23 @@ Item {
             clip: true
 
             ColumnLayout {
-                width: parent.width - 40
-                x: 20
+                width: parent.width - 60
+                x: 30
                 spacing: 25
 
                 // Editor Toolbar
                 RowLayout {
                     Layout.topMargin: 20
                     Button {
-                        text: "← Back"
+                        text: "← Back to List"
                         flat: true
                         onClicked: menuSetupRoot.isEditing = false
                     }
                     Text {
-                        text: currentProduct ? "Edit Product: " + currentProduct.name : "New Product"
-                        font.pixelSize: 22
-                        font.bold: true
-                        color: "#212121"
+                        text: currentProduct ? "Edit Product: " + currentProduct.internalProductName : "New Product"
+                        font.pixelSize: 24; font.bold: true; color: "#212121"
                     }
+                    Item { Layout.fillWidth: true }
                 }
 
                 // --- SECTION 1: MAIN PRODUCT DETAILS ---
@@ -210,10 +222,9 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 30
                         columns: 2
-                        rowSpacing: 12
-                        columnSpacing: 20
+                        rowSpacing: 15
+                        columnSpacing: 30
 
-                        // 1. Identification
                         Label { text: "Display Name:"; font.bold: true }
                         TextField {
                             id: nameIn
@@ -227,7 +238,7 @@ Item {
                             text: currentProduct ? currentProduct.kraItemCode : ""
                             Layout.fillWidth: true
                         }
-                        // 4. Financials
+
                         Label { text: "Price:"; font.bold: true }
                         TextField {
                             id: priceIn
@@ -235,7 +246,7 @@ Item {
                             Layout.fillWidth: true
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
                         }
-                        // 2. mandatory Region/Currency (NEW)
+
                         Label { text: "Currency:"; font.bold: true }
                         ComboBox {
                             id: currencyCombo
@@ -245,7 +256,6 @@ Item {
                             valueRole: "currency_code"
                             currentIndex: currentProduct ? indexOfValue(currentProduct.currencyCode) : indexOfValue("KES")
                         }
-
 
                         Label { text: "Country of Origin:"; font.bold: true }
                         ComboBox {
@@ -266,28 +276,17 @@ Item {
                             valueRole: "type_code"
                             currentIndex: currentProduct ? findIndexByValue(model, currentProduct.productTypeId, "type_code_name") : 0
                         }
+
                         Label { text: "Product Category:"; font.bold: true }
                         ComboBox {
                             id: catCombo
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 45
-
-                            // Connect to the model provided by your root or _productModel
                             model: _productCategoryModel
-
-                            // What the user sees
                             textRole: "product_category_name"
-
-                            // What is actually saved to the DB
                             valueRole: "id"
-
-                            // Ensure it selects the current category when editing
                             currentIndex: currentProduct ? findIndexByValue(model, currentProduct.productCategoryId, "id") : -1
-
                             displayText: currentIndex === -1 ? "Select Category..." : currentText
                         }
-
-
 
                         Label { text: "Tax Type:"; font.bold: true }
                         ComboBox {
@@ -298,42 +297,36 @@ Item {
                             valueRole: "tax_type_code"
                             currentIndex: currentProduct ? findIndexByValue(model, currentProduct.taxClassificationCode, "tax_type_code") : 0
                         }
-                        // 2. Display the Tax Rate
+
                         Label { text: "Tax Rate:"; font.bold: true }
                         Text {
                             id: textRate
-                            // Use a function or a direct binding to the currentValue of the combo
                             property real rate: {
                                 if (taxCombo.currentValue !== undefined) {
                                     return _taxClassificationModel.getValueById(taxCombo.currentValue, "tax_percentage_rate")
                                 }
                                 return 0.0
                             }
-
                             text: rate + "%"
-                            font.bold: true
-                            color: "#2E7D32"
+                            font.bold: true; color: "#2E7D32"
                         }
-
 
                         Button {
                             text: "Save Product Information"
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
-                            Layout.topMargin: 10
+                            Layout.topMargin: 15
                             highlighted: true
                             onClicked: {
-                                // IMPORTANT: The keys here MUST match the _productModel's data.value("key")
                                 let payload = {
                                     "localId": -1,
                                     "id": currentProduct ? currentProduct.id : "",
                                     "internalProductName": nameIn.text,
                                     "productCategoryId": catCombo.currentValue,
                                     "kraItemCode": kraIn.text,
-                                    // "inventoryProductId": invCombo.currentValue,
                                     "productTypeId": typeCombo.currentValue,
-                                    "currencyCode": currencyCombo.currentText,     // MUST NOT BE EMPTY
-                                    "countryCode": countryCombo.currentText, // MUST NOT BE EMPTY
+                                    "currencyCode": currencyCombo.currentText,
+                                    "countryCode": countryCombo.currentText,
                                     "defaultSellingPrice": parseFloat(priceIn.text) || 0.0,
                                     "taxClassificationCode": taxCombo.currentText,
                                     "taxRate": textRate.rate
@@ -357,35 +350,32 @@ Item {
 
                     Text {
                         text: "Product Recipe / Ingredients"
-                        font.bold: true
-                        font.pixelSize: 18
-                        color: "#212121"
+                        font.bold: true; font.pixelSize: 20; color: "#212121"
                     }
 
                     // A. ADD INGREDIENT FORM
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 90
-                        color: "#FDFDFD"
+                        height: 100
+                        color: "white"
                         border.color: "#E0E0E0"
-                        radius: 10
+                        radius: 12
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: 15
-                            spacing: 10
+                            anchors.margins: 20
+                            spacing: 15
 
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Label { text: "Select Item"; font.pixelSize: 11; color: "#666" }
-
                                 ComboBox {
                                     id: ingSelector
+                                    Layout.fillWidth: true
                                     model: _inventoryModel.inventoryModel
                                     textRole: "name"
                                     valueRole: "id"
                                     onActivated: (index) => {
-                                        // This triggers the C++ setter, which emits inventoryIdChanged
                                         _inventoryModel.inventoryId = valueAt(index)
                                     }
                                 }
@@ -398,26 +388,13 @@ Item {
                             }
 
                             ColumnLayout {
-                                width: 120
-                                spacing: 4
-
-                                Label {
-                                    text: "Unit"
-                                    font.pixelSize: 11
-                                    color: "#666"
-                                }
-                                Rectangle {
-                                    Layout.fillWidth: true
+                                width: 100
+                                Label { text: "Unit"; font.pixelSize: 11; color: "#666" }
+                                Text {
+                                    text: _inventoryModel.selectedUnitName || "---"
+                                    font.bold: true; color: "#1976D2"
                                     visible: ingSelector.currentIndex !== -1
-
-                                    Text {
-                                        // Binds directly to the property we created in the View Controller
-                                        text: _inventoryModel.selectedUnitName
-                                        font.bold: true
-                                        color: "#2ecc71"
-                                    }
                                 }
-
                             }
 
                             Button {
@@ -426,10 +403,7 @@ Item {
                                 Layout.alignment: Qt.AlignBottom
                                 enabled: ingSelector.currentIndex >= 0 && ingQty.text.length > 0
                                 onClicked: {
-                                    // 1. Get the details map from the controller
                                     let details = _inventoryModel.getInventoryDetails(ingSelector.currentValue);
-
-                                    // 2. Access the unit ID from that map
                                     let selectedUnitId = details.quantityUnitId;
 
                                     _productModel.saveIngredient({
@@ -439,7 +413,6 @@ Item {
                                         "unitId": selectedUnitId
                                     });
 
-                                    // Reset UI
                                     ingQty.text = "";
                                     ingSelector.currentIndex = -1;
                                 }
@@ -447,32 +420,31 @@ Item {
                         }
                     }
 
-                    // B. INGREDIENTS LIST (REPEATER)
+                    // B. INGREDIENTS LIST
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 10
 
                         Repeater {
                             model: _productModel.compositionModel
                             delegate: Rectangle {
                                 Layout.fillWidth: true
-                                height: 55
+                                height: 60
                                 color: "white"
-                                radius: 8
+                                radius: 10
                                 border.color: "#EEEEEE"
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 12
+                                    anchors.margins: 15
                                     spacing: 15
 
-                                    // Quantity Badge
                                     Rectangle {
-                                        width: 50; height: 28; color: "#E3F2FD"; radius: 6
+                                        width: 50; height: 30; color: "#E8F5E9"; radius: 6
                                         Text {
                                             anchors.centerIn: parent
                                             text: model.quantity
-                                            color: "#1976D2"; font.bold: true
+                                            color: "#2E7D32"; font.bold: true
                                         }
                                     }
 
@@ -484,7 +456,7 @@ Item {
                                             font.bold: true; font.pixelSize: 14
                                         }
                                         Text {
-                                            text: "ID: " + model.ingredientProductId
+                                            text: "Item ID: " + model.ingredientProductId
                                             font.pixelSize: 11; color: "#9E9E9E"
                                         }
                                     }
@@ -495,8 +467,7 @@ Item {
                                         contentItem: Text {
                                             text: "Remove"
                                             color: "#D32F2F"
-                                            horizontalAlignment: Text.AlignHCenter
-                                            verticalAlignment: Text.AlignVCenter
+                                            font.bold: true
                                         }
                                         onClicked: _productModel.removeIngredient(model.id)
                                     }
@@ -504,7 +475,6 @@ Item {
                             }
                         }
 
-                        // Placeholder if empty
                         Text {
                             text: "No ingredients added to this recipe yet."
                             visible: _productModel.compositionModel.count === 0
@@ -516,7 +486,7 @@ Item {
                     }
                 }
 
-                Item { height: 40; Layout.fillWidth: true } // Bottom spacer
+                Item { height: 40; Layout.fillWidth: true }
             }
         }
     }

@@ -6,9 +6,16 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QStandardPaths>
+#include <QUuid>
 #include <cashpayment.h>
 #include <mpesapayment.h>
 #include "payment.h"
+#include <QUuid>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDateTime>
+
 
 // A simple RAII guard to ensure the 'isBusy' flag is reset on function exit
 struct BusyGuard {
@@ -411,20 +418,77 @@ QString SalesViewController::currentStateName() const {
     default:                             return "Unknown";
     }
 }
+
+
 void SalesViewController::finalizeTransaction(const QString &receiptNumber) {
-    qDebug() << "Finalizing sale with receipt:" << receiptNumber;
+    qDebug() << "[Database] Finalizing sale record...";
 
-    // 1. Emit success to QML
-    emit paymentFinished(true, receiptNumber);
+    if (!m_salesModel) return;
 
-    // 2. Here you would usually call your sales model to clear the cart
-    // m_salesModel->clearCart();
+    // 1. Prepare Data
+    // Fix: Use QUuid::StringFormat::WithoutBrackets
+    QString saleId = QUuid::createUuid().toString();
+    QString orderId = m_salesModel->currentOrderId();
+    QString userId = "1"; // Replace with your actual user session ID
+    QString dateStr = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-    // 3. Perhaps trigger a receipt print
-    // ReceiptPrinter::instance().print(m_currentOrderId);
+    // Financials from SalesModel (using your existing double logic)
+    double total = m_salesModel->totalAmount();
+    double tax = m_salesModel->totalTaxAmount();
+    double net = total - tax;
+    double gross = total - tax; // Sub-total + surcharge (before tax)
+
+    // Map payment method based on your SQL INSERT list:
+    // CASH = 1 (code 01), MOBILE MONEY = 6 (code 06)
+    int methodId = (methodName() == "MPESA") ? 6 : 1;
+
+    // 2. Database Operation
+    QSqlDatabase db = QSqlDatabase::database();
+    if (!db.transaction()) {
+        qWarning() << "Could not start transaction";
+    }
+
+    QSqlQuery query(db);
+    query.prepare(R"(
+        INSERT INTO sale (
+            id, order_id, user_id, sale_transaction_date,
+            net_amount, gross_amount, tax_amount, total_amount,
+            kra_receipt_number, payment_method_id
+        ) VALUES (
+            :id, :order_id, :user_id, :date,
+            :net, :gross, :tax, :total,
+            :receipt, :method
+        )
+    )");
+
+    query.bindValue(":id", saleId);
+    query.bindValue(":order_id", orderId);
+    query.bindValue(":user_id", userId);
+    query.bindValue(":date", dateStr);
+    query.bindValue(":net", net);
+    query.bindValue(":gross", gross);
+    query.bindValue(":tax", tax);
+    query.bindValue(":total", total);
+    query.bindValue(":receipt", receiptNumber);
+    query.bindValue(":method", methodId);
+
+    if (!query.exec()) {
+        qCritical() << "[Database] Sale Insert Failed:" << query.lastError().text();
+        db.rollback();
+        emit paymentFinished(false, "Database Save Failed");
+        return;
+    }
+
+    if (db.commit()) {
+        qDebug() << "[Database] Sale saved successfully. ID:" << saleId;
+
+        // 3. UI/State Cleanup
+        emit paymentFinished(true, receiptNumber);
+        resetControllerState(); // Clears cart and resets payment objects
+    } else {
+        db.rollback();
+    }
 }
-
-
 // todo: refactor
 void SalesViewController::resetControllerState() {
     if (!m_activePayment) return;

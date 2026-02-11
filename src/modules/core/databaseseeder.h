@@ -15,6 +15,7 @@ private:
     bool seedProducts();
     bool seedProductCompositions();
     bool seedOpeningStockMovements();
+    bool seedTransactions();
 
     bool isSeeded() const;
     bool markSeeded() const;

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor")
 
 # 1. Find Qt6 components
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql Network Widgets Charts)
 # find_package(Qt6 REQUIRED COMPONENTS Core)
 
 # 2. Modern Qt Setup
@@ -14,8 +14,8 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 # 3. Add subdirectories (Definitions)
 add_subdirectory(src/modules/core)
-add_subdirectory(src/modules/payment/)
-
+add_subdirectory(src/modules/payment)
+add_subdirectory(src/modules/finance)
 add_subdirectory(src/ui)
 add_subdirectory(tests)
 
@@ -35,10 +35,13 @@ target_link_libraries(RestaurantPOS
         Qt6::Quick
         Qt6::Sql
         Qt6::QuickControls2
+        Qt6::Widgets
+        Qt6::Charts
         POS_UI
         POS_UIplugin
         PosCoreDatabase
         PosPayment
+        PosFinance
 
 )
 target_link_libraries(RestaurantPOS PRIVATE Qt6::Core)

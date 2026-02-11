@@ -18,6 +18,9 @@ qt_add_qml_module(POS_UI
         # controllers/orderviewcontroller.h controllers/orderviewcontroller.cpp
         Controllers/salesviewcontroller.h Controllers/salesviewcontroller.cpp
 
+        Controllers/reportcontroller.h Controllers/reportcontroller.cpp
+
+
         QML_FILES
         Views/Main.qml
 
@@ -65,10 +68,39 @@ qt_add_qml_module(POS_UI
         Views/AddItemDialog.qml
         Views/ConfirmDialog.qml
 
-
-
         Views/TestSales.qml
         Views/ProductSetupScreen.qml
+
+        # Report
+        Views/report/Report.qml
+        Views/report/ReportCard.qml
+        Views/report/AdjustableCard.qml
+
+        Views/report/sales/SalesReport.qml
+        Views/report/sales/SalesList.qml
+        Views/report/sales/SalesExport.qml
+        Views/report/sales/SalesAnalytics.qml
+        Views/report/sales/AnalyticsCard.qml
+        Views/report/sales/SalesDetails.qml
+        # dummy data
+        Views/report/sales/SalesModel.qml
+
+        Views/report/ExpenditureReport.qml
+        Views/report/InventoryReport.qml
+        Views/report/ReportDashboard.qml
+        Views/report/payments/PaymentReport.qml
+        Views/report/payments/PaymentAnalytics.qml
+        Views/report/payments/PaymentExport.qml
+        Views/report/payments/PaymentList.qml
+        Views/report/payments/StatusMetric.qml
+
+        # HR
+        Views/hr/HR.qml
+        Views/hr/HiringView.qml
+        Views/hr/HRNavButton.qml
+        Views/hr/LeaveView.qml
+        Views/hr/PayrollView.qml
+        Views/hr/RotaView.qml
 
         RESOURCES
         "Views/assets/icons/default.png"
@@ -86,4 +118,5 @@ target_link_libraries(POS_UI
         Qt6::Sql
         PosCoreDatabase
         PosPayment
+        PosFinance
 )

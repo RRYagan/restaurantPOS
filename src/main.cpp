@@ -1,4 +1,5 @@
-#include <QGuiApplication>
+// #include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QDebug>
@@ -28,7 +29,8 @@ QString formatPropertyName(QString name) {
 int main(int argc, char *argv[])
 {
 
-    QGuiApplication app(argc, argv);
+    // QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     // KDBoat aesthetics require the Basic style for full custom control
     QQuickStyle::setStyle("Basic");

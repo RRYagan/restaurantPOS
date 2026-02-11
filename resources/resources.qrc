@@ -2,6 +2,8 @@
     <qresource prefix="/">
         <file>migrations/000_init.up.sql</file>
         <file>migrations/001_mpesa_setup.up.sql</file>
-<!--        <file>migrations/000_init.down.sql</file>-->
+        <file>002_report_view_setup.up.sql</file>
+
+
     </qresource>
 </RCC>
